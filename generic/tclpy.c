@@ -505,7 +505,7 @@ Tclpy_Init(Tcl_Interp *interp)
 
 	/* Hack to fix Python C extensions not linking to libpython*.so */
 	/* http://bugs.python.org/issue4434 */
-	dlopen(PY_LIBFILE, RTLD_LAZY | RTLD_GLOBAL);
+	//dlopen(PY_LIBFILE, RTLD_LAZY | RTLD_GLOBAL);
 
 	if (parentInterp != PY_PARENT) {
 		Py_Initialize(); /* void */

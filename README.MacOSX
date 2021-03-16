@@ -1,0 +1,2 @@
+
+./configure --prefix=/usr/local --with-tcl=/usr/local/lib/ --with-python-version=3.8

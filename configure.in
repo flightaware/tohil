@@ -66,11 +66,56 @@ TEA_SETUP_COMPILER
 #TEA_SERIAL_PORT
 
 # happy local stuff
-PYTHON_CONFIG=python-config
-PYTHON_INC_DIR="`$PYTHON_CONFIG --include`"
-AC_MSG_RESULT([using $PYTHON_CONFIG-reported python include dir of... "$PYTHON_INC_DIR"])
+
+#--------------------------------------------------------------------
+# Get the paths to the python includes and libraries.
+#--------------------------------------------------------------------
+
+AC_ARG_WITH(python-include,  --with-python-include        directory containing python include files)
+AC_ARG_WITH(python-lib,  --with-python-lib        directory containing python library files)
+AC_ARG_WITH(python-version,  --with-python-version        python version (like 3.8))
+
+need_python_config=""
+
+if test "${with_python_include+set}" = "set"; then
+    PYTHON_INC_DIR="${with_python_include}"
+    AC_MSG_RESULT([using python include dir of... "$PYTHON_INC_DIR"])
+else
+    need_python_config="1"
+fi
+
+if test "${with_python_lib+set}" = "set"; then
+    PYTHON_LIB_DIR="${with_python_lib}"
+    AC_MSG_RESULT([using python lib dir of... "$PYTHON_LIB_DIR"])
+else
+    need_python_config="1"
+fi
+
+if test "${with_python_version+set}" = "set"; then
+    PYTHON_VERSION="${with_python_version}"
+else
+    PYTHON_VERSION="3.8"
+fi
+AC_MSG_RESULT([using python version of... "$PYTHON_VERSION"])
+
+if test "$need_python_config" = "1"; then
+    AC_PATH_PROGS(PYTHON_CONFIG, python3-config)
+    if test "$PYTHON_CONFIG" = ""; then
+		AC_MSG_ERROR([Cannot locate program python3-config to determine python paths.  Make sure python3-config is in PATH or set PYTHON_CONFIG env var to path to python3-config or use --with-python-include and --with-python-lib configure arguments to specify location of files.])
+    fi
+    if test "${with_python_include+set}" != "set"; then
+        PYTHON_INC_DIR="`$PYTHON_CONFIG --includes`"
+        AC_MSG_RESULT([using python3-config-reported python include dir of... "$PYTHON_INC_DIR"])
+    fi
+    if test "${with_python_lib+set}" != "set"; then
+        PYTHON_LIB_DIR="`$PYTHON_CONFIG --exec-prefix`/lib"
+        AC_MSG_RESULT([using python3-config-deduced python lib dir of... "$PYTHON_LIB_DIR"])
+    fi
+fi
 
 AC_SUBST(PYTHON_INC_DIR)
+AC_SUBST(PYTHON_LIB_DIR)
+AC_SUBST(PYTHON_VERSION)
 
 #-----------------------------------------------------------------------
 # __CHANGE__

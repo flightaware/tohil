@@ -5,6 +5,7 @@ tclpy.o
 
 # Build output
 libtclpy*.so
+libtclpy*.dylib
 pkgIndex.tcl
 
 Makefile
