@@ -2,4 +2,4 @@
 # Tcl package index file
 #
 package ifneeded tclpy PACKAGE_VERSION \
-    [list load [file join $dir libtclpyPACKAGE_VERSION.so] tclpy]
+    [list load [file join $dir @PKG_LIB_FILE@] tclpy]

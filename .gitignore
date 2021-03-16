@@ -6,3 +6,10 @@ tclpy.o
 # Build output
 libtclpy*.so
 pkgIndex.tcl
+
+Makefile
+
+autom4te.cache
+config.log
+config.status
+configure
