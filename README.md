@@ -138,7 +138,7 @@ example python session:
 ```
 >>> import tclpy
 >>> a = tclpy.eval('list 1 [list 2 4 5] 3')
->>> print a
+>>> print(a)
 1 {2 4 5} 3
 ```
 

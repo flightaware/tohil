@@ -1,5 +1,9 @@
+
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #include <tcl.h>
+
 #include <assert.h>
 #include <dlfcn.h>
 
@@ -505,6 +509,7 @@ Tclpy_Init(Tcl_Interp *interp)
 
 	/* Hack to fix Python C extensions not linking to libpython*.so */
 	/* http://bugs.python.org/issue4434 */
+//#define PY_LIBFILE "tclpy.dylib"
 	//dlopen(PY_LIBFILE, RTLD_LAZY | RTLD_GLOBAL);
 
 	if (parentInterp != PY_PARENT) {
@@ -566,7 +571,7 @@ init_python_tclpy(Tcl_Interp* interp)
 }
 
 PyMODINIT_FUNC
-inittclpy(void)
+PyInit_tclpy(void)
 {
 	return init_python_tclpy(NULL);
 }
