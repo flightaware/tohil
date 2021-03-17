@@ -78,8 +78,8 @@ AC_ARG_WITH(python-version,  --with-python-version        python version (like 3
 need_python_config=""
 
 if test "${with_python_include+set}" = "set"; then
-    PYTHON_INC_DIR="${with_python_include}"
-    AC_MSG_RESULT([using python include dir of... "$PYTHON_INC_DIR"])
+    PYTHON_INCLUDES="-I'${with_python_include}'"
+    AC_MSG_RESULT([using python includes of... "$PYTHON_INCLUDES"])
 else
     need_python_config="1"
 fi
@@ -104,8 +104,8 @@ if test "$need_python_config" = "1"; then
 		AC_MSG_ERROR([Cannot locate program python3-config to determine python paths.  Make sure python3-config is in PATH or set PYTHON_CONFIG env var to path to python3-config or use --with-python-include and --with-python-lib configure arguments to specify location of files.])
     fi
     if test "${with_python_include+set}" != "set"; then
-        PYTHON_INC_DIR="`$PYTHON_CONFIG --includes`"
-        AC_MSG_RESULT([using python3-config-reported python include dir of... "$PYTHON_INC_DIR"])
+        PYTHON_INCLUDES="`$PYTHON_CONFIG --includes`"
+        AC_MSG_RESULT([using python3-config-reported python include dir of... "$PYTHON_INCLUDES"])
     fi
     if test "${with_python_lib+set}" != "set"; then
         PYTHON_LIB_DIR="`$PYTHON_CONFIG --exec-prefix`/lib"
@@ -113,7 +113,7 @@ if test "$need_python_config" = "1"; then
     fi
 fi
 
-AC_SUBST(PYTHON_INC_DIR)
+AC_SUBST(PYTHON_INCLUDES)
 AC_SUBST(PYTHON_LIB_DIR)
 AC_SUBST(PYTHON_VERSION)
 
