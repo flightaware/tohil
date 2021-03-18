@@ -603,6 +603,30 @@ tclpy_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	return Py_None;
 }
 
+static PyObject *
+tclpy_subst(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"string", NULL};
+	char *string = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &string))
+		return NULL;
+
+	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+
+	Tcl_Obj *obj = Tcl_SubstObj(interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
+	if (obj == NULL) {
+		char *errMsg = Tcl_GetStringFromObj(Tcl_GetObjResult(interp), NULL);
+		PyErr_SetString(PyExc_RuntimeError, errMsg);
+		return NULL;
+	}
+
+	int tclStringSize;
+	char *tclString;
+	tclString = Tcl_GetStringFromObj(obj, &tclStringSize);
+	return Py_BuildValue("s#", tclString, tclStringSize);
+}
+
 static PyMethodDef TclPyMethods[] = {
 	{"eval",  (PyCFunction)tclpy_eval,
 		METH_VARARGS | METH_KEYWORDS,
@@ -613,6 +637,9 @@ static PyMethodDef TclPyMethods[] = {
 	{"setvar",  (PyCFunction)tclpy_setvar,
 		METH_VARARGS | METH_KEYWORDS,
 		"set vars and array elements in the tcl interpreter"},
+	{"subst",  (PyCFunction)tclpy_subst,
+		METH_VARARGS | METH_KEYWORDS,
+		"perform Tcl command, variable and backslash substitutions on a string"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 };
 

@@ -36,3 +36,14 @@ from python:
 >>>
 
 
+new subst method
+
+>>> import tclpy
+>>> tclpy.eval("set name karl")
+'karl'
+>>> tclpy.subst("hello, $name")
+'hello, karl'
+
+
+
+
