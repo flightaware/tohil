@@ -874,7 +874,7 @@ init_python_tohil(Tcl_Interp* interp)
 }
 
 PyMODINIT_FUNC
-PyInit_tohil(void)
+PyInit__tohil(void)
 {
 	return init_python_tohil(NULL);
 }
