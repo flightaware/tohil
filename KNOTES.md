@@ -22,23 +22,17 @@ cp libtclpy0.5.0.dylib build/lib.macosx-10.6-x86_64-3.8/tclpy.cpython-38-darwin.
 
 from python:
 
-import tclpy
 
-tclpy.eval("set a(5) foo")
-
->>> tclpy.eval('set a(5) foo')
-'foo'
+>>> import tclpy
 >>> tclpy.eval('set a(99) goof')
 'goof'
->>> tclpy.getvar('a','5')
+>>> tclpy.eval('set a(5) foo')
 'foo'
->>> tclpy.getvar('a',5)
-Traceback (most recent call last):
-  File "<stdin>", line 1, in <module>
-TypeError: argument 2 must be str, not int
 >>> tclpy.getvar('a','99')
 'goof'
+>>> tclpy.getvar(array='a',var='5')
+'foo'
+>>> tclpy.getvar(array='a',var='16')
 >>>
-
 
 
