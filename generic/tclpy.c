@@ -61,7 +61,7 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 }
 
 static PyObject *
-tclObjToPy(Tcl_Interp *interp, Tcl_Obj *tObj) {
+tclObjToPy(Tcl_Obj *tObj) {
 	int intValue;
 	long longValue;
 	double doubleValue;
@@ -80,7 +80,10 @@ tclObjToPy(Tcl_Interp *interp, Tcl_Obj *tObj) {
 		return PyFloat_FromDouble(doubleValue);
 	}
 
-	return Py_BuildValue("s", Tcl_GetStringFromObj(tObj, NULL));
+	int tclStringSize;
+	char *tclString;
+	tclString = Tcl_GetStringFromObj(tObj, &tclStringSize);
+	return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
 
@@ -695,6 +698,28 @@ tclpy_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 	return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
+static PyObject *
+tclpy_expr(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"expression", NULL};
+	char *expression = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &expression))
+		return NULL;
+
+	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+
+	Tcl_Obj *resultObj;
+	if (Tcl_ExprObj(interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
+		char *errMsg = Tcl_GetStringFromObj(Tcl_GetObjResult(interp), NULL);
+		PyErr_SetString(PyExc_RuntimeError, errMsg);
+		return NULL;
+	}
+
+	return tclObjToPy(resultObj);
+}
+
+
 static PyMethodDef TclPyMethods[] = {
 	{"eval",  (PyCFunction)tclpy_eval,
 		METH_VARARGS | METH_KEYWORDS,
@@ -708,6 +733,9 @@ static PyMethodDef TclPyMethods[] = {
 	{"subst",  (PyCFunction)tclpy_subst,
 		METH_VARARGS | METH_KEYWORDS,
 		"perform Tcl command, variable and backslash substitutions on a string"},
+	{"expr",  (PyCFunction)tclpy_expr,
+		METH_VARARGS | METH_KEYWORDS,
+		"evaluate Tcl expression"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 };
 

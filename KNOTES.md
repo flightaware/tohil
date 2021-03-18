@@ -46,4 +46,13 @@ new subst method
 
 
 
-
+>>> tclpy.expr('5+5')
+'10'
+>>> tclpy.expr('5**5')
+'3125'
+>>> tclpy.expr('1/3')
+'0'
+>>> tclpy.expr('1/3.')
+1
+>>> tclpy.expr('[clock seconds] % 86400')
+'25571'
