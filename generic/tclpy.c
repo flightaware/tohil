@@ -633,11 +633,33 @@ tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
 		return NULL;
 	}
 
-	int tclStringSize;
-	char *tclString;
-	tclString = Tcl_GetStringFromObj(tResult, &tclStringSize);
+	if (as == NULL || strcmp(as, "string") == 0) {
+		int tclStringSize;
+		char *tclString;
+		tclString = Tcl_GetStringFromObj(tResult, &tclStringSize);
+		return Py_BuildValue("s#", tclString, tclStringSize);
+	}
 
-	return Py_BuildValue("s#", tclString, tclStringSize);
+	if (strcmp(as, "list") == 0) {
+		PyObject *p = tclListObjToPyListObject(interp, tResult);
+		if (p == NULL) {
+			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+			return NULL;
+		}
+		return p;
+	}
+
+	if (strcmp(as, "dict") == 0) {
+		PyObject *p = tclListObjToPyDictObject(interp, tResult);
+		if (p == NULL) {
+			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+			return NULL;
+		}
+		return p;
+	}
+
+	PyErr_SetString(PyExc_RuntimeError, "'as' conversion must be one of 'string', 'list', 'dict'");
+	return NULL;
 }
 
 static PyObject *

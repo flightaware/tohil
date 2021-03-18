@@ -56,3 +56,16 @@ new subst method
 1
 >>> tclpy.expr('[clock seconds] % 86400')
 '25571'
+
+
+>>> tclpy.eval('set a "a 1 b 2 c 3"')
+'a 1 b 2 c 3'
+>>> tclpy.subst("$a")
+'a 1 b 2 c 3'
+>>> tclpy.eval('return $a')
+'a 1 b 2 c 3'
+>>> tclpy.megaval('return $a','list')
+['a', '1', 'b', '2', 'c', '3']
+>>> tclpy.megaval('return $a','dict')
+{'a': '1', 'b': '2', 'c': '3'}
+
