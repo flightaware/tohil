@@ -609,7 +609,7 @@ PyExec_Cmd(
 /* PYTHON LIBRARY BEGINS HERE */
 
 static PyObject *
-tclpy_eval(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 {
 	static char *kwlist[] = {"tcl_code", "to", NULL};
 	char *to = NULL;
@@ -618,7 +618,7 @@ tclpy_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|s", kwlist, &tclCode, &to))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 
 	int result = Tcl_Eval(interp, tclCode);
 	Tcl_Obj *tResult = Tcl_GetObjResult(interp);
@@ -698,7 +698,7 @@ tclpy_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 static PyObject *
-tclpy_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
 	static char *kwlist[] = {"array", "var", NULL};
 	char *array = NULL;
@@ -707,7 +707,7 @@ tclpy_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|s", kwlist, &array, &var))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 
 	if (array == NULL && var != NULL) {
 		array = var;
@@ -728,7 +728,7 @@ tclpy_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 static PyObject *
-tclpy_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
 	static char *kwlist[] = {"array", "value", "var", NULL};
 	char *array = NULL;
@@ -738,7 +738,7 @@ tclpy_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO|s", kwlist, &array, &pyValue, &var))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 
 	Tcl_Obj *tclValue = pyObjToTcl(interp, pyValue);
 
@@ -759,7 +759,7 @@ tclpy_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 static PyObject *
-tclpy_subst(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 {
 	static char *kwlist[] = {"string", NULL};
 	char *string = NULL;
@@ -767,7 +767,7 @@ tclpy_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &string))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 
 	Tcl_Obj *obj = Tcl_SubstObj(interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
 	if (obj == NULL) {
@@ -783,7 +783,7 @@ tclpy_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 static PyObject *
-tclpy_expr(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 {
 	static char *kwlist[] = {"expression", NULL};
 	char *expression = NULL;
@@ -791,7 +791,7 @@ tclpy_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &expression))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 
 	Tcl_Obj *resultObj;
 	if (Tcl_ExprObj(interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
@@ -803,32 +803,32 @@ tclpy_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tclObjToPy(resultObj);
 }
 
-static PyMethodDef TclPyMethods[] = {
-	{"eval",  (PyCFunction)tclpy_eval,
+static PyMethodDef TohilMethods[] = {
+	{"eval",  (PyCFunction)tohil_eval,
 		METH_VARARGS | METH_KEYWORDS,
 		"Evaluate tcl code"},
-	{"getvar",  (PyCFunction)tclpy_getvar,
+	{"getvar",  (PyCFunction)tohil_getvar,
 		METH_VARARGS | METH_KEYWORDS,
 		"dig vars and arrays out of the tcl interpreter"},
-	{"setvar",  (PyCFunction)tclpy_setvar,
+	{"setvar",  (PyCFunction)tohil_setvar,
 		METH_VARARGS | METH_KEYWORDS,
 		"set vars and array elements in the tcl interpreter"},
-	{"subst",  (PyCFunction)tclpy_subst,
+	{"subst",  (PyCFunction)tohil_subst,
 		METH_VARARGS | METH_KEYWORDS,
 		"perform Tcl command, variable and backslash substitutions on a string"},
-	{"expr",  (PyCFunction)tclpy_expr,
+	{"expr",  (PyCFunction)tohil_expr,
 		METH_VARARGS | METH_KEYWORDS,
 		"evaluate Tcl expression"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 };
 
 // TODO: there should probably be some tcl deinit in the clear/free code
-static struct PyModuleDef TclPyModule = {
+static struct PyModuleDef TohilModule = {
 	PyModuleDef_HEAD_INIT,
-	"tclpy",
+	"tohil",
 	"A module to permit interop with Tcl",
 	-1,
-	TclPyMethods,
+	TohilMethods,
 	NULL, // m_slots
 	NULL, // m_traverse
 	NULL, // m_clear
@@ -845,11 +845,11 @@ typedef enum {
 } ParentInterp;
 static ParentInterp parentInterp = NO_PARENT;
 
-int Tclpy_Init(Tcl_Interp *interp);
-PyObject *init_python_tclpy(Tcl_Interp* interp);
+int Tohil_Init(Tcl_Interp *interp);
+PyObject *init_python_tohil(Tcl_Interp* interp);
 
 int
-Tclpy_Init(Tcl_Interp *interp)
+Tohil_Init(Tcl_Interp *interp)
 {
 	/* TODO: all TCL_ERRORs should set an error return */
 
@@ -861,8 +861,6 @@ Tclpy_Init(Tcl_Interp *interp)
 	if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
 		return TCL_ERROR;
 	if (Tcl_PkgRequire(interp, "Tcl", "8.6", 0) == NULL)
-		return TCL_ERROR;
-	if (Tcl_PkgProvide(interp, "tclpy", PACKAGE_VERSION) != TCL_OK)
 		return TCL_ERROR;
 	if (Tcl_PkgProvide(interp, "tohil", PACKAGE_VERSION) != TCL_OK)
 		return TCL_ERROR;
@@ -886,7 +884,7 @@ Tclpy_Init(Tcl_Interp *interp)
 
 	if (parentInterp != PY_PARENT) {
 		Py_Initialize(); /* void */
-		if (init_python_tclpy(interp) == NULL)
+		if (init_python_tohil(interp) == NULL)
 			return TCL_ERROR;
 	}
 
@@ -915,7 +913,7 @@ Tclpy_Init(Tcl_Interp *interp)
 }
 
 PyObject *
-init_python_tclpy(Tcl_Interp* interp)
+init_python_tohil(Tcl_Interp* interp)
 {
 	if (parentInterp == PY_PARENT)
 		return NULL;
@@ -928,13 +926,13 @@ init_python_tclpy(Tcl_Interp* interp)
 		interp = Tcl_CreateInterp();
 	if (Tcl_Init(interp) != TCL_OK)
 		return NULL;
-	if (parentInterp == PY_PARENT && Tclpy_Init(interp) == TCL_ERROR)
+	if (parentInterp == PY_PARENT && Tohil_Init(interp) == TCL_ERROR)
 		return NULL;
 
-	PyObject *m = PyModule_Create(&TclPyModule);
+	PyObject *m = PyModule_Create(&TohilModule);
 	if (m == NULL)
 		return NULL;
-	PyObject *pCap = PyCapsule_New(interp, "tclpy.interp", NULL);
+	PyObject *pCap = PyCapsule_New(interp, "tohil.interp", NULL);
 	if (PyObject_SetAttrString(m, "interp", pCap) == -1)
 		return NULL;
 	Py_DECREF(pCap);
@@ -943,7 +941,7 @@ init_python_tclpy(Tcl_Interp* interp)
 }
 
 PyMODINIT_FUNC
-PyInit_tclpy(void)
+PyInit_tohil(void)
 {
-	return init_python_tclpy(NULL);
+	return init_python_tohil(NULL);
 }
