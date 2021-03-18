@@ -98,3 +98,13 @@ now megaval with to='set' option to return a set from a list
 
 >>> tclpy.megaval('return [list 1 2 3 4 4 3]',to='set')
 {'3', '4', '2', '1'}
+
+TODO
+
+make tclpy.expr able to do the to= stuff that tclpy.megaval can do.
+
+get rid of tclpy.eval and rename tclpy.megaval to tclpy.eval
+
+intercept stdout when exec'ing python in rivet and pump it to rivet
+
+
