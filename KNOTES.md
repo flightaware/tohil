@@ -72,3 +72,17 @@ new subst method
 
 >>> tclpy.megaval(to="list",tcl_code="return [list 1 2 3 4]")
 ['1', '2', '3', '4']
+
+check this out, converting expected results to python datatypes:
+
+>>> import tclpy
+>>> tclpy.megaval("clock seconds")
+'1616053828'
+>>> tclpy.megaval("clock seconds",to="int")
+1616053834
+>>> tclpy.megaval("clock seconds",to="float")
+1616053838.0
+>>> tclpy.megaval("clock seconds",to="bool")
+True
+>>> tclpy.megaval("clock seconds",to="list")
+['1616053849']

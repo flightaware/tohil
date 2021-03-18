@@ -66,17 +66,17 @@ tclObjToPy(Tcl_Obj *tObj) {
 	long longValue;
 	double doubleValue;
 
-	if (Tcl_GetBooleanFromObj(NULL, tObj, &intValue) == TCL_ERROR) {
+	if (Tcl_GetBooleanFromObj(NULL, tObj, &intValue) == TCL_OK) {
 		PyObject *p = (intValue ? Py_True : Py_False);
 		Py_INCREF(p);
 		return p;
 	}
 
-	if (Tcl_GetLongFromObj(NULL, tObj, &longValue) == TCL_ERROR) {
+	if (Tcl_GetLongFromObj(NULL, tObj, &longValue) == TCL_OK) {
 		return PyLong_FromLong(longValue);
 	}
 
-	if (Tcl_GetDoubleFromObj(NULL, tObj, &doubleValue) == TCL_ERROR) {
+	if (Tcl_GetDoubleFromObj(NULL, tObj, &doubleValue) == TCL_OK) {
 		return PyFloat_FromDouble(doubleValue);
 	}
 
@@ -640,6 +640,37 @@ tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
 		return Py_BuildValue("s#", tclString, tclStringSize);
 	}
 
+	if (strcmp(to, "int") == 0) {
+		long longValue;
+		if (Tcl_GetLongFromObj(interp, tResult, &longValue) == TCL_OK) {
+			return PyLong_FromLong(longValue);
+		}
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+		return NULL;
+	}
+
+	if (strcmp(to, "bool") == 0) {
+		int boolValue;
+		if (Tcl_GetBooleanFromObj(interp, tResult, &boolValue) == TCL_OK) {
+			PyObject *p = (boolValue ? Py_True : Py_False);
+			Py_INCREF(p);
+			return p;
+		}
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+		return NULL;
+	}
+
+	if (strcmp(to, "float") == 0) {
+		double doubleValue;
+
+		if (Tcl_GetDoubleFromObj(interp, tResult, &doubleValue) == TCL_OK) {
+			return PyFloat_FromDouble(doubleValue);
+		}
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+		return NULL;
+	}
+
+
 	if (strcmp(to, "list") == 0) {
 		PyObject *p = tclListObjToPyListObject(interp, tResult);
 		if (p == NULL) {
@@ -658,7 +689,7 @@ tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
 		return p;
 	}
 
-	PyErr_SetString(PyExc_RuntimeError, "'to' conversion must be one of 'string', 'list', 'dict'");
+	PyErr_SetString(PyExc_RuntimeError, "'to' conversion must be one of 'string', 'int', 'bool', 'float', 'list', 'dict'");
 	return NULL;
 }
 
