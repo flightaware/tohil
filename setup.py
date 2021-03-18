@@ -4,13 +4,15 @@
 #from setuptools import setup, Extension, find_packages
 #import pathlib
 
+TOHIL_VERSION = '1.0.0'
+
 # Always prefer setuptools over distutils
 from setuptools import setup, Extension, find_packages
 import pathlib
 # dammit beavis library names are tcl86 on freebsd on tcl8.6 on mac
 
 tohil_c_module = Extension('tohil',
-                    define_macros = [('PACKAGE_VERSION', '"1.0.0"')],
+                    define_macros = [('PACKAGE_VERSION', TOHIL_VERSION)],
                     libraries = ['tcl86'],
                     include_dirs = ['/usr/local/include', '/usr/local/include/tcl8.6'],
                     library_dirs = ['/usr/local/lib'],
@@ -46,7 +48,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.0.0',  # Required
+    version = TOHIL_VERSION,  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
