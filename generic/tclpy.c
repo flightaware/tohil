@@ -28,7 +28,7 @@ tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	PyObject *plist = PyList_New(count);
 
 	for (int i = 0; i < count; i++) {
-		PyList_SET_ITEM(plist, i, Py_BuildValue("s", Tcl_GetStringFromObj(list[i], NULL)));
+		PyList_SET_ITEM(plist, i, Py_BuildValue("s", Tcl_GetString(list[i])));
 	}
 
 	return plist;
@@ -52,8 +52,8 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 
 	for (int i = 0; i < count; i += 2) {
 		PyDict_SetItem(pdict,
-					   Py_BuildValue("s", Tcl_GetStringFromObj(list[i], NULL)),
-					   Py_BuildValue("s", Tcl_GetStringFromObj(list[i+1], NULL))
+					   Py_BuildValue("s", Tcl_GetString(list[i])),
+					   Py_BuildValue("s", Tcl_GetString(list[i+1]))
 					   );
 	}
 
@@ -614,6 +614,33 @@ tclpy_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 static PyObject *
+tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"tcl_code", "as", NULL};
+	char *as = NULL;
+	char *tclCode = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|s", kwlist, &tclCode, &as))
+		return NULL;
+
+	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+
+	int result = Tcl_Eval(interp, tclCode);
+	Tcl_Obj *tResult = Tcl_GetObjResult(interp);
+
+	if (result == TCL_ERROR) {
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(tResult));
+		return NULL;
+	}
+
+	int tclStringSize;
+	char *tclString;
+	tclString = Tcl_GetStringFromObj(tResult, &tclStringSize);
+
+	return Py_BuildValue("s#", tclString, tclStringSize);
+}
+
+static PyObject *
 tclpy_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
 	static char *kwlist[] = {"array", "var", NULL};
@@ -666,7 +693,7 @@ tclpy_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	Tcl_Obj *obj = Tcl_SetVar2Ex(interp, array, var, tclValue, (TCL_LEAVE_ERR_MSG));
 
 	if (obj == NULL) {
-		char *errMsg = Tcl_GetStringFromObj(Tcl_GetObjResult(interp), NULL);
+		char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
 		PyErr_SetString(PyExc_RuntimeError, errMsg);
 		return NULL;
 	}
@@ -687,7 +714,7 @@ tclpy_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 
 	Tcl_Obj *obj = Tcl_SubstObj(interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
 	if (obj == NULL) {
-		char *errMsg = Tcl_GetStringFromObj(Tcl_GetObjResult(interp), NULL);
+		char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
 		PyErr_SetString(PyExc_RuntimeError, errMsg);
 		return NULL;
 	}
@@ -711,7 +738,7 @@ tclpy_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 
 	Tcl_Obj *resultObj;
 	if (Tcl_ExprObj(interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
-		char *errMsg = Tcl_GetStringFromObj(Tcl_GetObjResult(interp), NULL);
+		char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
 		PyErr_SetString(PyExc_RuntimeError, errMsg);
 		return NULL;
 	}
@@ -736,6 +763,9 @@ static PyMethodDef TclPyMethods[] = {
 	{"expr",  (PyCFunction)tclpy_expr,
 		METH_VARARGS | METH_KEYWORDS,
 		"evaluate Tcl expression"},
+	{"megaval",  (PyCFunction)tclpy_megaval,
+		METH_VARARGS | METH_KEYWORDS,
+		"improved eval"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 };
 
