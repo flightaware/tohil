@@ -549,10 +549,15 @@ tclpy_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	char *array = NULL;
 	char *var = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ss", kwlist, &array, &var))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|s", kwlist, &array, &var))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+
+	if (array == NULL && var != NULL) {
+		array = var;
+		var = NULL;
+	}
 
 	Tcl_Obj *obj = Tcl_GetVar2Ex(interp, array, var, 0);
 
@@ -567,13 +572,47 @@ tclpy_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
+static PyObject *
+tclpy_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"array", "value", "var", NULL};
+	char *array = NULL;
+	char *var = NULL;
+	PyObject *pyValue = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO|s", kwlist, &array, &pyValue, &var))
+		return NULL;
+
+	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
+
+	Tcl_Obj *tclValue = pyObjToTcl(interp, pyValue);
+
+	if (array == NULL && var != NULL) {
+		array = var;
+		var = NULL;
+	}
+
+	Tcl_Obj *obj = Tcl_SetVar2Ex(interp, array, var, tclValue, (TCL_LEAVE_ERR_MSG));
+
+	if (obj == NULL) {
+		char *errMsg = Tcl_GetStringFromObj(Tcl_GetObjResult(interp), NULL);
+		PyErr_SetString(PyExc_RuntimeError, errMsg);
+		return NULL;
+	}
+
+	return Py_None;
+}
+
 static PyMethodDef TclPyMethods[] = {
-	{"getvar",  (PyCFunction)tclpy_getvar,
-		METH_VARARGS | METH_KEYWORDS,
-		"dig vars and arrays out of the tcl interpreter"},
 	{"eval",  (PyCFunction)tclpy_eval,
 		METH_VARARGS | METH_KEYWORDS,
 		"Evaluate some tcl code"},
+	{"getvar",  (PyCFunction)tclpy_getvar,
+		METH_VARARGS | METH_KEYWORDS,
+		"dig vars and arrays out of the tcl interpreter"},
+	{"setvar",  (PyCFunction)tclpy_setvar,
+		METH_VARARGS | METH_KEYWORDS,
+		"set vars and array elements in the tcl interpreter"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 };
 
