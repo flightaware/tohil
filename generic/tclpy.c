@@ -468,14 +468,20 @@ PyNewEval_Cmd(
 	PyObject *local_dict = PyDict_New();
 	PyObject *pyobj = PyEval_EvalCode(code, global_dict, local_dict);
 
+	Py_XDECREF(code);
+	Py_XDECREF(local_dict);
+
 	if (pyobj == NULL) {
 		return PyReturnException(interp, "while evaluating python code");
 	}
 
 	Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
+	Py_XDECREF(pyobj);
 	return TCL_OK;
 }
 
+// awfully similar to PyNewEval_Cmd above
+// but expecting to do more like capture stdout
 static int
 PyExec_Cmd(
 	ClientData clientData,  /* Not used. */
@@ -501,11 +507,15 @@ PyExec_Cmd(
 	PyObject *local_dict = PyDict_New();
 	PyObject *pyobj = PyEval_EvalCode(code, global_dict, local_dict);
 
+	Py_XDECREF(code);
+	Py_XDECREF(local_dict);
+
 	if (pyobj == NULL) {
 		return PyReturnException(interp, "while evaluating python code");
 	}
 
 	Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
+	Py_XDECREF(pyobj);
 	return TCL_OK;
 }
 
