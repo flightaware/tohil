@@ -35,6 +35,26 @@ tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 }
 
 PyObject *
+tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
+	Tcl_Obj **list;
+	int count;
+
+	if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
+		return NULL;
+	}
+
+	PyObject *pset = PySet_New(NULL);
+
+	for (int i = 0; i < count; i++) {
+		if (PySet_Add(pset, Py_BuildValue("s", Tcl_GetString(list[i]))) < 0) {
+			return NULL;
+		}
+	}
+
+	return pset;
+}
+
+PyObject *
 tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	Tcl_Obj **list;
 	int count;
@@ -680,6 +700,15 @@ tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
 		return p;
 	}
 
+	if (strcmp(to, "set") == 0) {
+		PyObject *p = tclListObjToPySetObject(interp, tResult);
+		if (p == NULL) {
+			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+			return NULL;
+		}
+		return p;
+	}
+
 	if (strcmp(to, "dict") == 0) {
 		PyObject *p = tclListObjToPyDictObject(interp, tResult);
 		if (p == NULL) {
@@ -689,7 +718,7 @@ tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
 		return p;
 	}
 
-	PyErr_SetString(PyExc_RuntimeError, "'to' conversion must be one of 'string', 'int', 'bool', 'float', 'list', 'dict'");
+	PyErr_SetString(PyExc_RuntimeError, "'to' conversion must be one of 'string', 'int', 'bool', 'float', 'list', 'set', 'dict'");
 	return NULL;
 }
 

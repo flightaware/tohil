@@ -86,3 +86,15 @@ check this out, converting expected results to python datatypes:
 True
 >>> tclpy.megaval("clock seconds",to="list")
 ['1616053849']
+
+don't forget you're doing
+
+    python3 setup.py build
+    sudo python3 setup.py install
+
+when building and installing the python module
+
+now megaval with to='set' option to return a set from a list
+
+>>> tclpy.megaval('return [list 1 2 3 4 4 3]',to='set')
+{'3', '4', '2', '1'}
