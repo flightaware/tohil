@@ -2,7 +2,7 @@ libtclpy
 ========
 
 This is a Tcl extension to effortlessly to call bidirectionally between Tcl and
-Python, targeting Tcl >= 8.5 and Python 3.6+
+Python, targeting Tcl >= 8.6 and Python 3.6+
 
 The extension is available under the 3-clause BSD license (see "LICENSE").
 

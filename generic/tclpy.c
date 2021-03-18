@@ -495,9 +495,9 @@ Tclpy_Init(Tcl_Interp *interp)
 	if (parentInterp == NO_PARENT)
 		parentInterp = TCL_PARENT;
 
-	if (Tcl_InitStubs(interp, "8.5", 0) == NULL)
+	if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
 		return TCL_ERROR;
-	if (Tcl_PkgRequire(interp, "Tcl", "8.5", 0) == NULL)
+	if (Tcl_PkgRequire(interp, "Tcl", "8.6", 0) == NULL)
 		return TCL_ERROR;
 	if (Tcl_PkgProvide(interp, "tclpy", PACKAGE_VERSION) != TCL_OK)
 		return TCL_ERROR;
