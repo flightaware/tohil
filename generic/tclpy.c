@@ -425,6 +425,60 @@ Py_Cmd(
 	return ret;
 }
 
+static int
+PyNewEval_Cmd(
+	ClientData clientData,  /* Not used. */
+	Tcl_Interp *interp,     /* Current interpreter */
+	int objc,               /* Number of arguments */
+	Tcl_Obj *const objv[]   /* Argument strings */
+	)
+{
+	if (objc != 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "evalString");
+		return TCL_ERROR;
+	}
+
+	const char *cmd = Tcl_GetString(objv[1]);
+
+	PyCompilerFlags flags = _PyCompilerFlags_INIT;
+	PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, &flags, -1);
+	PyObject *main_module = PyImport_AddModule("__main__");
+	PyObject *global_dict = PyModule_GetDict(main_module);
+	PyObject *local_dict = PyDict_New();
+	PyObject *pyobj = PyEval_EvalCode(code, global_dict, local_dict);
+
+	if (pyobj == NULL) {
+		char *traceStr = pyTraceAsStr(); // clears exception
+		if (traceStr == NULL) {
+			// TODO: something went wrong in traceback
+			PyErr_Clear();
+			return TCL_ERROR;
+		}
+		Tcl_AppendResult(interp, traceStr, NULL);
+		Tcl_AppendResult(interp, "----- tcl -> python interface -----", NULL);
+		free(traceStr);
+		return TCL_ERROR;
+	}
+
+	Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
+	return TCL_OK;
+}
+
+#if 0
+static Tcl_Obj *
+pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
+{
+
+	PyObject* result = PyObject_Str(obj);
+	PyObject_Print(result, stdout, 0);
+	if (PyRun_SimpleString(cmd) == 0) {
+		return TCL_OK;
+	} else {
+		return PY_ERROR;
+	};
+}
+#endif
+
 /* PYTHON LIBRARY BEGINS HERE */
 
 static PyObject *
@@ -502,15 +556,17 @@ Tclpy_Init(Tcl_Interp *interp)
 	if (Tcl_PkgProvide(interp, "tclpy", PACKAGE_VERSION) != TCL_OK)
 		return TCL_ERROR;
 
-	Tcl_Command cmd = Tcl_CreateObjCommand(interp, "py",
-		(Tcl_ObjCmdProc *) Py_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-	if (cmd == NULL)
+	if (Tcl_CreateNamespace(interp, "::tohil", NULL, NULL) == NULL)
+		return TCL_ERROR;
+	if (Tcl_CreateObjCommand(interp, "::tohil::eval",
+		(Tcl_ObjCmdProc *) PyNewEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		== NULL)
 		return TCL_ERROR;
 
-	/* Hack to fix Python C extensions not linking to libpython*.so */
-	/* http://bugs.python.org/issue4434 */
-//#define PY_LIBFILE "tclpy.dylib"
-	//dlopen(PY_LIBFILE, RTLD_LAZY | RTLD_GLOBAL);
+	if (Tcl_CreateObjCommand(interp, "py",
+		(Tcl_ObjCmdProc *) Py_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		== NULL)
+		return TCL_ERROR;
 
 	if (parentInterp != PY_PARENT) {
 		Py_Initialize(); /* void */
