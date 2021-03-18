@@ -611,31 +611,6 @@ PyExec_Cmd(
 static PyObject *
 tclpy_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"tcl_code", NULL};
-	char *tclCode = NULL;
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &tclCode))
-		return NULL;
-
-	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
-
-	int result = Tcl_Eval(interp, tclCode);
-	Tcl_Obj *tResult = Tcl_GetObjResult(interp);
-
-	int tclStringSize;
-	char *tclString;
-	tclString = Tcl_GetStringFromObj(tResult, &tclStringSize);
-
-	if (result == TCL_ERROR) {
-		PyErr_SetString(PyExc_RuntimeError, tclString);
-		return NULL;
-	}
-	return Py_BuildValue("s#", tclString, tclStringSize);
-}
-
-static PyObject *
-tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
-{
 	static char *kwlist[] = {"tcl_code", "to", NULL};
 	char *to = NULL;
 	char *tclCode = NULL;
@@ -828,11 +803,10 @@ tclpy_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tclObjToPy(resultObj);
 }
 
-
 static PyMethodDef TclPyMethods[] = {
 	{"eval",  (PyCFunction)tclpy_eval,
 		METH_VARARGS | METH_KEYWORDS,
-		"Evaluate some tcl code"},
+		"Evaluate tcl code"},
 	{"getvar",  (PyCFunction)tclpy_getvar,
 		METH_VARARGS | METH_KEYWORDS,
 		"dig vars and arrays out of the tcl interpreter"},
@@ -845,9 +819,6 @@ static PyMethodDef TclPyMethods[] = {
 	{"expr",  (PyCFunction)tclpy_expr,
 		METH_VARARGS | METH_KEYWORDS,
 		"evaluate Tcl expression"},
-	{"megaval",  (PyCFunction)tclpy_megaval,
-		METH_VARARGS | METH_KEYWORDS,
-		"improved eval"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 };
 
