@@ -69,3 +69,6 @@ new subst method
 >>> tclpy.megaval('return $a','dict')
 {'a': '1', 'b': '2', 'c': '3'}
 
+
+>>> tclpy.megaval(to="list",tcl_code="return [list 1 2 3 4]")
+['1', '2', '3', '4']

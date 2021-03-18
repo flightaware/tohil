@@ -616,11 +616,11 @@ tclpy_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 static PyObject *
 tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"tcl_code", "as", NULL};
-	char *as = NULL;
+	static char *kwlist[] = {"tcl_code", "to", NULL};
+	char *to = NULL;
 	char *tclCode = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|s", kwlist, &tclCode, &as))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|s", kwlist, &tclCode, &to))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tclpy.interp", 0);
@@ -633,14 +633,14 @@ tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
 		return NULL;
 	}
 
-	if (as == NULL || strcmp(as, "string") == 0) {
+	if (to == NULL || strcmp(to, "string") == 0) {
 		int tclStringSize;
 		char *tclString;
 		tclString = Tcl_GetStringFromObj(tResult, &tclStringSize);
 		return Py_BuildValue("s#", tclString, tclStringSize);
 	}
 
-	if (strcmp(as, "list") == 0) {
+	if (strcmp(to, "list") == 0) {
 		PyObject *p = tclListObjToPyListObject(interp, tResult);
 		if (p == NULL) {
 			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
@@ -649,7 +649,7 @@ tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
 		return p;
 	}
 
-	if (strcmp(as, "dict") == 0) {
+	if (strcmp(to, "dict") == 0) {
 		PyObject *p = tclListObjToPyDictObject(interp, tResult);
 		if (p == NULL) {
 			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
@@ -658,7 +658,7 @@ tclpy_megaval(PyObject *self, PyObject *args, PyObject *kwargs)
 		return p;
 	}
 
-	PyErr_SetString(PyExc_RuntimeError, "'as' conversion must be one of 'string', 'list', 'dict'");
+	PyErr_SetString(PyExc_RuntimeError, "'to' conversion must be one of 'string', 'list', 'dict'");
 	return NULL;
 }
 
