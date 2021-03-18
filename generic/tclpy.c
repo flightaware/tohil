@@ -465,11 +465,9 @@ PyNewEval_Cmd(
 
 	PyObject *main_module = PyImport_AddModule("__main__");
 	PyObject *global_dict = PyModule_GetDict(main_module);
-	PyObject *local_dict = PyDict_New();
-	PyObject *pyobj = PyEval_EvalCode(code, global_dict, local_dict);
+	PyObject *pyobj = PyEval_EvalCode(code, global_dict, global_dict);
 
 	Py_XDECREF(code);
-	Py_XDECREF(local_dict);
 
 	if (pyobj == NULL) {
 		return PyReturnException(interp, "while evaluating python code");
@@ -504,11 +502,9 @@ PyExec_Cmd(
 
 	PyObject *main_module = PyImport_AddModule("__main__");
 	PyObject *global_dict = PyModule_GetDict(main_module);
-	PyObject *local_dict = PyDict_New();
-	PyObject *pyobj = PyEval_EvalCode(code, global_dict, local_dict);
+	PyObject *pyobj = PyEval_EvalCode(code, global_dict, global_dict);
 
 	Py_XDECREF(code);
-	Py_XDECREF(local_dict);
 
 	if (pyobj == NULL) {
 		return PyReturnException(interp, "while evaluating python code");
