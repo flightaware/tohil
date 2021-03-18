@@ -390,17 +390,17 @@ PyCall_Cmd(
 	}
 
 	int i;
-	PyObject *pArgs = PyTuple_New(objc-3);
+	PyObject *pArgs = PyTuple_New(objc - 2);
 	PyObject* curarg = NULL;
-	for (i = 0; i < objc-2; i++) {
-		curarg = PyUnicode_FromString(Tcl_GetString(objv[i+2]));
+	for (i = 2; i < objc; i++) {
+		curarg = PyUnicode_FromString(Tcl_GetString(objv[i]));
 		if (curarg == NULL) {
 			Py_DECREF(pArgs);
 			Py_DECREF(pFn);
 			return PyReturnException(interp, "unicode string conversion failed");
 		}
 		/* Steals a reference */
-		PyTuple_SET_ITEM(pArgs, i, curarg);
+		PyTuple_SET_ITEM(pArgs, i - 2, curarg);
 	}
 
 	PyObject *pRet = PyObject_Call(pFn, pArgs, NULL);
