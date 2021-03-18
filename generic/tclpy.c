@@ -16,6 +16,51 @@
 static PyObject *pFormatException = NULL;
 static PyObject *pFormatExceptionOnly = NULL;
 
+PyObject *
+tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
+	Tcl_Obj **list;
+	int count;
+
+	if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
+		return NULL;
+	}
+
+	PyObject *plist = PyList_New(count);
+
+	for (int i = 0; i < count; i++) {
+		PyList_SET_ITEM(plist, i, Py_BuildValue("s", Tcl_GetStringFromObj(list[i], NULL)));
+	}
+
+	return plist;
+}
+
+PyObject *
+tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
+	Tcl_Obj **list;
+	int count;
+
+	if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
+		return NULL;
+	}
+
+	if (count % 2 != 0) {
+		// list doesn't have an even number of elements
+		return NULL;
+	}
+
+	PyObject *pdict = PyDict_New();
+
+	for (int i = 0; i < count; i += 2) {
+		PyDict_SetItem(pdict,
+					   Py_BuildValue("s", Tcl_GetStringFromObj(list[i], NULL)),
+					   Py_BuildValue("s", Tcl_GetStringFromObj(list[i+1], NULL))
+					   );
+	}
+
+	return pdict;
+}
+
+
 static Tcl_Obj *
 pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
 {
