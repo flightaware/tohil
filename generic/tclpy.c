@@ -519,21 +519,6 @@ PyExec_Cmd(
 	return TCL_OK;
 }
 
-#if 0
-static Tcl_Obj *
-pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
-{
-
-	PyObject* result = PyObject_Str(obj);
-	PyObject_Print(result, stdout, 0);
-	if (PyRun_SimpleString(cmd) == 0) {
-		return TCL_OK;
-	} else {
-		return PY_ERROR;
-	};
-}
-#endif
-
 /* PYTHON LIBRARY BEGINS HERE */
 
 static PyObject *
