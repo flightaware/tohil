@@ -1,5 +1,5 @@
 #
-# libtclpy configure for FreeBSD
+# tohil configure for FreeBSD
 #
 
 autoreconf

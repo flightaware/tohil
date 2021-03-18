@@ -1,11 +1,11 @@
 *.swp
 
 # Intermediate build files
-tclpy.o
+tohil.o
 
 # Build output
-libtclpy*.so
-libtclpy*.dylib
+libtohil*.so
+libtohil*.dylib
 pkgIndex.tcl
 
 Makefile
@@ -14,3 +14,5 @@ autom4te.cache
 config.log
 config.status
 configure
+
+build

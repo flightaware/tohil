@@ -181,7 +181,7 @@ COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(C
 # for the BINARIES that you specified above have already been done.
 #========================================================================
 
-all: binaries libraries doc
+all: binaries libraries doc build-python-module
 
 #========================================================================
 # The binaries target builds executable programs, Windows .dll's, unix
@@ -206,7 +206,7 @@ doc:
 	@echo "        xml2nroff sample.xml > sample.n"
 	@echo "        xml2html sample.xml > sample.html"
 
-install: all install-binaries install-libraries install-doc
+install: all install-binaries install-libraries install-doc install-python-module
 
 install-binaries: binaries install-lib-binaries install-bin-binaries
 
@@ -229,9 +229,9 @@ install-libraries: libraries
 #========================================================================
 
 install-doc: doc
-	@$(INSTALL_DATA_DIR) $(DESTDIR)$(mandir)/mann
-	@echo "Installing documentation in $(DESTDIR)$(mandir)"
-	@list='$(srcdir)/doc/*.n'; for i in $$list; do \
+	#@$(INSTALL_DATA_DIR) $(DESTDIR)$(mandir)/mann
+	#@echo "Installing documentation in $(DESTDIR)$(mandir)"
+	#@list='$(srcdir)/doc/*.n'; for i in $$list; do \
 	    echo "Installing $$i"; \
 	    $(INSTALL_DATA) $$i $(DESTDIR)$(mandir)/mann ; \
 	done
@@ -448,3 +448,11 @@ uninstall-binaries:
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
+
+# tohil python stuff
+#
+build-python-module:
+	python3 setup.py build
+
+install-python-module:
+	python3 setup.py install
