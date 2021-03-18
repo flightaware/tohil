@@ -60,6 +60,29 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	return pdict;
 }
 
+static PyObject *
+tclObjToPy(Tcl_Interp *interp, Tcl_Obj *tObj) {
+	int intValue;
+	long longValue;
+	double doubleValue;
+
+	if (Tcl_GetBooleanFromObj(NULL, tObj, &intValue) == TCL_ERROR) {
+		PyObject *p = (intValue ? Py_True : Py_False);
+		Py_INCREF(p);
+		return p;
+	}
+
+	if (Tcl_GetLongFromObj(NULL, tObj, &longValue) == TCL_ERROR) {
+		return PyLong_FromLong(longValue);
+	}
+
+	if (Tcl_GetDoubleFromObj(NULL, tObj, &doubleValue) == TCL_ERROR) {
+		return PyFloat_FromDouble(doubleValue);
+	}
+
+	return Py_BuildValue("s", Tcl_GetStringFromObj(tObj, NULL));
+}
+
 
 static Tcl_Obj *
 pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
