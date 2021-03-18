@@ -426,6 +426,22 @@ Py_Cmd(
 }
 
 static int
+PyReturnException(Tcl_Interp *interp, char *description)
+{
+	char *traceStr = pyTraceAsStr(); // clears exception
+	if (traceStr == NULL) {
+		// TODO: something went wrong in traceback
+		PyErr_Clear();
+		return TCL_ERROR;
+	}
+
+	Tcl_SetObjResult(interp, Tcl_NewStringObj(traceStr, -1));
+	Tcl_AddErrorInfo(interp, description);
+	free(traceStr);
+	return TCL_ERROR;
+}
+
+static int
 PyNewEval_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
@@ -437,27 +453,56 @@ PyNewEval_Cmd(
 		Tcl_WrongNumArgs(interp, 1, objv, "evalString");
 		return TCL_ERROR;
 	}
-
 	const char *cmd = Tcl_GetString(objv[1]);
 
-	PyCompilerFlags flags = _PyCompilerFlags_INIT;
-	PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, &flags, -1);
+    // PyCompilerFlags flags = _PyCompilerFlags_INIT;
+	// PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, &flags, -1);
+	PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, NULL, -1);
+
+	if (code == NULL) {
+		return PyReturnException(interp, "while compiling python eval code");
+	}
+
 	PyObject *main_module = PyImport_AddModule("__main__");
 	PyObject *global_dict = PyModule_GetDict(main_module);
 	PyObject *local_dict = PyDict_New();
 	PyObject *pyobj = PyEval_EvalCode(code, global_dict, local_dict);
 
 	if (pyobj == NULL) {
-		char *traceStr = pyTraceAsStr(); // clears exception
-		if (traceStr == NULL) {
-			// TODO: something went wrong in traceback
-			PyErr_Clear();
-			return TCL_ERROR;
-		}
-		Tcl_AppendResult(interp, traceStr, NULL);
-		Tcl_AppendResult(interp, "----- tcl -> python interface -----", NULL);
-		free(traceStr);
+		return PyReturnException(interp, "while evaluating python code");
+	}
+
+	Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
+	return TCL_OK;
+}
+
+static int
+PyExec_Cmd(
+	ClientData clientData,  /* Not used. */
+	Tcl_Interp *interp,     /* Current interpreter */
+	int objc,               /* Number of arguments */
+	Tcl_Obj *const objv[]   /* Argument strings */
+	)
+{
+	if (objc != 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "execString");
 		return TCL_ERROR;
+	}
+	const char *cmd = Tcl_GetString(objv[1]);
+
+	PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_file_input, NULL, -1);
+
+	if (code == NULL) {
+		return PyReturnException(interp, "while compiling python exec code");
+	}
+
+	PyObject *main_module = PyImport_AddModule("__main__");
+	PyObject *global_dict = PyModule_GetDict(main_module);
+	PyObject *local_dict = PyDict_New();
+	PyObject *pyobj = PyEval_EvalCode(code, global_dict, local_dict);
+
+	if (pyobj == NULL) {
+		return PyReturnException(interp, "while evaluating python code");
 	}
 
 	Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
@@ -560,6 +605,11 @@ Tclpy_Init(Tcl_Interp *interp)
 		return TCL_ERROR;
 	if (Tcl_CreateObjCommand(interp, "::tohil::eval",
 		(Tcl_ObjCmdProc *) PyNewEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		== NULL)
+		return TCL_ERROR;
+
+	if (Tcl_CreateObjCommand(interp, "::tohil::exec",
+		(Tcl_ObjCmdProc *) PyExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
