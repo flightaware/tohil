@@ -11,7 +11,6 @@
 
 // Need an integer we can use for detecting python errors, assume we'll never
 // use TCL_BREAK
-#define PY_ERROR TCL_BREAK
 
 static PyObject *pFormatException = NULL;
 static PyObject *pFormatExceptionOnly = NULL;
@@ -320,203 +319,6 @@ pyTraceAsStr(void)
 }
 
 static int
-PyCall_Cmd(
-	ClientData clientData,  /* Not used. */
-	Tcl_Interp *interp,     /* Current interpreter */
-	int objc,               /* Number of arguments */
-	Tcl_Obj *const objv[]   /* Argument strings */
-	)
-{
-	if (objc < 3) {
-		Tcl_WrongNumArgs(interp, 2, objv, "func ?arg ...?");
-		return TCL_ERROR;
-	}
-
-	const char *objandfn = Tcl_GetString(objv[2]);
-
-	/* Borrowed ref, do not decrement */
-	PyObject *pMainModule = PyImport_AddModule("__main__");
-	if (pMainModule == NULL)
-		return PY_ERROR;
-
-	/* So we don't have to special case the decref in the following loop */
-	Py_INCREF(pMainModule);
-	PyObject *pObjParent = NULL;
-	PyObject *pObj = pMainModule;
-	PyObject *pObjStr = NULL;
-	char *dot = index(objandfn, '.');
-	while (dot != NULL) {
-		pObjParent = pObj;
-
-		pObjStr = PyUnicode_FromStringAndSize(objandfn, dot-objandfn);
-		if (pObjStr == NULL) {
-			Py_DECREF(pObjParent);
-			return PY_ERROR;
-		}
-
-		pObj = PyObject_GetAttr(pObjParent, pObjStr);
-		Py_DECREF(pObjStr);
-		Py_DECREF(pObjParent);
-		if (pObj == NULL)
-			return PY_ERROR;
-
-		objandfn = dot + 1;
-		dot = index(objandfn, '.');
-	}
-
-	PyObject *pFn = PyObject_GetAttrString(pObj, objandfn);
-	Py_DECREF(pObj);
-	if (pFn == NULL)
-		return PY_ERROR;
-
-	if (!PyCallable_Check(pFn)) {
-		Py_DECREF(pFn);
-		return PY_ERROR;
-	}
-
-	int i;
-	PyObject *pArgs = PyTuple_New(objc-3);
-	PyObject* curarg = NULL;
-	for (i = 0; i < objc-3; i++) {
-		curarg = PyUnicode_FromString(Tcl_GetString(objv[i+3]));
-		if (curarg == NULL) {
-			Py_DECREF(pArgs);
-			Py_DECREF(pFn);
-			return PY_ERROR;
-		}
-		/* Steals a reference */
-		PyTuple_SET_ITEM(pArgs, i, curarg);
-	}
-
-	PyObject *pRet = PyObject_Call(pFn, pArgs, NULL);
-	Py_DECREF(pFn);
-	Py_DECREF(pArgs);
-	if (pRet == NULL)
-		return PY_ERROR;
-
-	Tcl_Obj *tRet = pyObjToTcl(interp, pRet);
-	Py_DECREF(pRet);
-	if (tRet == NULL)
-		return PY_ERROR;
-
-	Tcl_SetObjResult(interp, tRet);
-	return TCL_OK;
-}
-
-static int
-PyEval_Cmd(
-	ClientData clientData,  /* Not used. */
-	Tcl_Interp *interp,     /* Current interpreter */
-	int objc,               /* Number of arguments */
-	Tcl_Obj *const objv[]   /* Argument strings */
-	)
-{
-	if (objc != 3) {
-		Tcl_WrongNumArgs(interp, 2, objv, "evalString");
-		return TCL_ERROR;
-	}
-
-	const char *cmd = Tcl_GetString(objv[2]);
-
-	if (PyRun_SimpleString(cmd) == 0) {
-		return TCL_OK;
-	} else {
-		return PY_ERROR;
-	};
-}
-
-static int
-PyImport_Cmd(
-	ClientData clientData,  /* Not used. */
-	Tcl_Interp *interp,     /* Current interpreter */
-	int objc,               /* Number of arguments */
-	Tcl_Obj *const objv[]   /* Argument strings */
-	)
-{
-	const char *modname, *topmodname;
-	PyObject *pMainModule, *pTopModule;
-	int ret = -1;
-
-	if (objc != 3) {
-		Tcl_WrongNumArgs(interp, 2, objv, "module");
-		return TCL_ERROR;
-	}
-
-	modname = Tcl_GetString(objv[2]);
-
-	/* Borrowed ref, do not decrement */
-	pMainModule = PyImport_AddModule("__main__");
-	if (pMainModule == NULL)
-		return PY_ERROR;
-
-	// We don't use PyImport_ImportModule so mod.submod works
-	pTopModule = PyImport_ImportModuleEx(modname, NULL, NULL, NULL);
-	if (pTopModule == NULL)
-		return PY_ERROR;
-
-	topmodname = PyModule_GetName(pTopModule);
-	if (topmodname != NULL) {
-		ret = PyObject_SetAttrString(pMainModule, topmodname, pTopModule);
-	}
-	Py_DECREF(pTopModule);
-
-	if (ret != -1) {
-		return TCL_OK;
-	} else {
-		return PY_ERROR;
-	}
-}
-
-/* The two static variables below are related by order, keep alphabetical */
-static const char *cmdnames[] = {
-	"call", "eval", "import", NULL
-};
-static int (*cmds[]) (
-	ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]
-) = {
-	PyCall_Cmd, PyEval_Cmd, PyImport_Cmd
-};
-
-static int
-Py_Cmd(
-	ClientData clientData,  /* Not used. */
-	Tcl_Interp *interp,     /* Current interpreter */
-	int objc,               /* Number of arguments */
-	Tcl_Obj *const objv[]   /* Argument strings */
-	)
-{
-	if (objc < 2) {
-		Tcl_WrongNumArgs(interp, 1, objv, "subcommand ?arg ...?");
-		return TCL_ERROR;
-	}
-
-	int cmdindex;
-	if (Tcl_GetIndexFromObj(interp, objv[1], cmdnames, "command", TCL_EXACT,
-			&cmdindex) != TCL_OK)
-		return TCL_ERROR;
-
-	/* Actually call the command */
-	int ret = (*(cmds[cmdindex]))(clientData, interp, objc, objv);
-
-	if (ret == PY_ERROR) {
-		ret = TCL_ERROR;
-		// Not entirely sure if this is the correct way of doing things. Should
-		// I be calling Tcl_AddErrorInfo instead?
-		char *traceStr = pyTraceAsStr(); // clears exception
-		if (traceStr == NULL) {
-			// TODO: something went wrong in traceback
-			PyErr_Clear();
-			return TCL_ERROR;
-		}
-		Tcl_AppendResult(interp, traceStr, NULL);
-		Tcl_AppendResult(interp, "----- tcl -> python interface -----", NULL);
-		free(traceStr);
-	}
-
-	return ret;
-}
-
-static int
 PyReturnException(Tcl_Interp *interp, char *description)
 {
 	char *traceStr = pyTraceAsStr(); // clears exception
@@ -533,7 +335,132 @@ PyReturnException(Tcl_Interp *interp, char *description)
 }
 
 static int
-PyNewEval_Cmd(
+PyCall_Cmd(
+	ClientData clientData,  /* Not used. */
+	Tcl_Interp *interp,     /* Current interpreter */
+	int objc,               /* Number of arguments */
+	Tcl_Obj *const objv[]   /* Argument strings */
+	)
+{
+	if (objc < 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "func ?arg ...?");
+		return TCL_ERROR;
+	}
+
+	const char *objandfn = Tcl_GetString(objv[1]);
+
+	/* Borrowed ref, do not decrement */
+	PyObject *pMainModule = PyImport_AddModule("__main__");
+	if (pMainModule == NULL)
+		return PyReturnException(interp, "unable to add module __main__ to python interpreter");
+
+	/* So we don't have to special case the decref in the following loop */
+	Py_INCREF(pMainModule);
+	PyObject *pObjParent = NULL;
+	PyObject *pObj = pMainModule;
+	PyObject *pObjStr = NULL;
+	char *dot = index(objandfn, '.');
+	while (dot != NULL) {
+		pObjParent = pObj;
+
+		pObjStr = PyUnicode_FromStringAndSize(objandfn, dot-objandfn);
+		if (pObjStr == NULL) {
+			Py_DECREF(pObjParent);
+			return PyReturnException(interp, "failed unicode translation of call function in python interpreter");
+		}
+
+		pObj = PyObject_GetAttr(pObjParent, pObjStr);
+		Py_DECREF(pObjStr);
+		Py_DECREF(pObjParent);
+		if (pObj == NULL)
+			return PyReturnException(interp, "failed to find dotted attribute in python interpreter");
+
+		objandfn = dot + 1;
+		dot = index(objandfn, '.');
+	}
+
+	PyObject *pFn = PyObject_GetAttrString(pObj, objandfn);
+	Py_DECREF(pObj);
+	if (pFn == NULL)
+		return PyReturnException(interp, "failed to find object/function in python interpreter");
+
+	if (!PyCallable_Check(pFn)) {
+		Py_DECREF(pFn);
+		return PyReturnException(interp, "function is not callable");
+	}
+
+	int i;
+	PyObject *pArgs = PyTuple_New(objc-3);
+	PyObject* curarg = NULL;
+	for (i = 0; i < objc-2; i++) {
+		curarg = PyUnicode_FromString(Tcl_GetString(objv[i+2]));
+		if (curarg == NULL) {
+			Py_DECREF(pArgs);
+			Py_DECREF(pFn);
+			return PyReturnException(interp, "unicode string conversion failed");
+		}
+		/* Steals a reference */
+		PyTuple_SET_ITEM(pArgs, i, curarg);
+	}
+
+	PyObject *pRet = PyObject_Call(pFn, pArgs, NULL);
+	Py_DECREF(pFn);
+	Py_DECREF(pArgs);
+	if (pRet == NULL)
+		return PyReturnException(interp, "error in python object call");
+
+	Tcl_Obj *tRet = pyObjToTcl(interp, pRet);
+	Py_DECREF(pRet);
+	if (tRet == NULL)
+		return PyReturnException(interp, "error converting python object to tcl object");
+
+	Tcl_SetObjResult(interp, tRet);
+	return TCL_OK;
+}
+
+static int
+PyImport_Cmd(
+	ClientData clientData,  /* Not used. */
+	Tcl_Interp *interp,     /* Current interpreter */
+	int objc,               /* Number of arguments */
+	Tcl_Obj *const objv[]   /* Argument strings */
+	)
+{
+	const char *modname, *topmodname;
+	PyObject *pMainModule, *pTopModule;
+	int ret = -1;
+
+	if (objc != 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "module");
+		return TCL_ERROR;
+	}
+
+	modname = Tcl_GetString(objv[1]);
+
+	/* Borrowed ref, do not decrement */
+	pMainModule = PyImport_AddModule("__main__");
+	if (pMainModule == NULL)
+		return PyReturnException(interp, "add module __main__ failed");
+
+	// We don't use PyImport_ImportModule so mod.submod works
+	pTopModule = PyImport_ImportModuleEx(modname, NULL, NULL, NULL);
+	if (pTopModule == NULL)
+		return PyReturnException(interp, "import module failed");
+
+	topmodname = PyModule_GetName(pTopModule);
+	if (topmodname != NULL) {
+		ret = PyObject_SetAttrString(pMainModule, topmodname, pTopModule);
+	}
+	Py_DECREF(pTopModule);
+
+	if (ret < 0)
+		return PyReturnException(interp, "while trying to import a module");
+
+	return TCL_OK;
+}
+
+static int
+PyEval_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
 	int objc,               /* Number of arguments */
@@ -569,7 +496,7 @@ PyNewEval_Cmd(
 	return TCL_OK;
 }
 
-// awfully similar to PyNewEval_Cmd above
+// awfully similar to PyEval_Cmd above
 // but expecting to do more like capture stdout
 static int
 PyExec_Cmd(
@@ -867,8 +794,9 @@ Tohil_Init(Tcl_Interp *interp)
 
 	if (Tcl_CreateNamespace(interp, "::tohil", NULL, NULL) == NULL)
 		return TCL_ERROR;
+
 	if (Tcl_CreateObjCommand(interp, "::tohil::eval",
-		(Tcl_ObjCmdProc *) PyNewEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		(Tcl_ObjCmdProc *) PyEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
@@ -877,8 +805,13 @@ Tohil_Init(Tcl_Interp *interp)
 		== NULL)
 		return TCL_ERROR;
 
-	if (Tcl_CreateObjCommand(interp, "py",
-		(Tcl_ObjCmdProc *) Py_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+	if (Tcl_CreateObjCommand(interp, "::tohil::call",
+		(Tcl_ObjCmdProc *) PyCall_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		== NULL)
+		return TCL_ERROR;
+
+	if (Tcl_CreateObjCommand(interp, "::tohil::import",
+		(Tcl_ObjCmdProc *) PyImport_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
