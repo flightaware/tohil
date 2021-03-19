@@ -747,26 +747,39 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tclObjToPy(resultObj);
 }
 
-// need a tohil_call function for python that's like the tohil::call in tcl, something
-// that doesn't make you pass everything through eval
+// tohil.call function for python that's like the tohil::call in tcl, something
+// that doesn't make you pass everything through eval.  here it is.
+//
 static PyObject *
 tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-	Py_ssize_t nargs = PyTuple_GET_SIZE(args);
+	Py_ssize_t objc = PyTuple_GET_SIZE(args);
 	int i;
-	Tcl_Obj **call_list = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * nargs);
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 	char *to = NULL;
+	//
+	// allocate an array of Tcl object pointers the same size
+	// as the number of arguments we received
+	Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
 
 	//PyObject_Print(kwargs, stdout, 0);
 
 	// we need to process kwargs to get the -to
-	//PyObject *to_object = PyDict_GetItemString(kwargs, "to");
-
-	for (i = 0; i < nargs; i++) {
-		call_list[i] = pyObjToTcl(interp, PyTuple_GET_ITEM(args, i));
+	PyObject *to_object = PyDict_GetItemString(kwargs, "to");
+	if (to_object != NULL) {
 	}
-	int tcl_result = Tcl_EvalObjv(interp, nargs, call_list, 0);
+
+	// for each argument convert the python object to a tcl object
+	// and store it in the tcl object vector
+	for (i = 0; i < objc; i++) {
+		objv[i] = pyObjToTcl(interp, PyTuple_GET_ITEM(args, i));
+	}
+
+	// invoke tcl using the objv array we just constructed
+	int tcl_result = Tcl_EvalObjv(interp, objc, objv, 0);
+
+	// NB do we need to decr the ref counts, maybe incr them above?
+	ckfree(objv);
 
 	return tohil_python_return(interp, tcl_result, to, Tcl_GetObjResult(interp));
 }
