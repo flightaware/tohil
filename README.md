@@ -14,19 +14,16 @@ that provides a higher level of abstraction on top of tclpy.
 
 You can import tohil into either a Tcl or Python parent interpreter. Doing
 so will initialise an interpreter for the other language and insert all
-libtclpy methods. This means you can call backwards and forwards between
+tohil methods. This means you can call backwards and forwards between
 interpreters.
 
-### From TCL
+### Accessing Python From TCL
 
 General notes:
  - Unless otherwise noted, 'interpreter' refers to the python interpreter.
- - All commands are run in the context of a single interpreter session. Imports,
-   function definitions and variables persist.
- - Exceptions in the python interpreter will return a stack trace of the python
-   code that was executing. If the exception continues up the stack, the tcl
-   stack trace will be appended to it.
-   They may be masked (as per tcl stack traces) with catch.
+ - All commands are run in the context of a single interpreter session. Imports, function definitions and variables persist.
+ - Exceptions in the python interpreter will return a TCL error and stack trace of the python code that was executing. If the exception continues up the stack, the tcl stack trace will be appended to it.
+ - Python errors may be caught (as per tcl stack traces) with Tcl's catch or try.
 
 ```tcl
 package require tohil
@@ -69,6 +66,19 @@ Reference:
    - `side effects: imports named module into globals of the python interpreter`
    - the name of the module may be of the form module.submodule
 
+
+Tohil provides new commands for interactiving with the python interpreter, via the ::tohil namespace.
+
+tohil::eval evaluates the code passed to it as if with python's eval.  So it has to be an expression, i.e. it is an error if you try to define a function with it, or even set the value of a variable.
+
+Anything returned by python from the eval is returned to tcl.
+
+tohil::exec evaluates the code passed to it as if with python's exec.  Nothing is returned.  If the python code prints anything, it goes to stdout using python's I/O subsystem.  However you can easily redirect python's output to go to a string, or whatever, in the normal python manner.  Tohil provide a python class that will send everything sent to python's stdout through to Tcl's stdout.  This should be great for Rivet.
+
+tohil::call provides a way to invoke one tcl function, with zero or more arguments, without having to pass it through eval and running the risk that tcl metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
+
+tohil::import provides a way to import python modules, although I'm not sure that it's much different from doing a tohil::exec "import module"
+
 example tclsh session:
 
 ```
@@ -77,7 +87,7 @@ example tclsh session:
 % tohil::exec {def mk(dir): os.mkdir(dir)}
 % tohil::exec {def rm(dir): os.rmdir(dir); return 15}
 % tohil::import os
-% set a [tohil::eval {print "creating 'testdir'"; mk('testdir')}]
+% set a [tohil::exec {print "creating 'testdir'"; mk('testdir')}]
 creating 'testdir'
 % set b [py call rm testdir]
 15
@@ -129,7 +139,7 @@ t\"est 11\{24 6 5
 a: , b: 15, c: someinput, d: 0.0625, e: {"t\"est": "11{24", "6": "5"}, f: {1 5} {7 9}
 ```
 
-### From Python
+### Accessing TCL From Python
 
 Reference:
  - `tohil.eval(evalstring)`
@@ -141,11 +151,51 @@ Reference:
      line statements or multiline blocks
    - errors reaching the Tcl interpreter top level are raised as an exception
 
-You can access variables in TCL from python using the getvar method:
+As it can be tricky to invoke Tcl using eval and not getting possibly unwanted side effects if arguments contain tcl metadata such as square brackets and dollar signs, a direct argument-for-argument tohil.call is provided where tcl will not do variable and command substitution on its arguments and keep funny business to a minimum.
 
+```python
+>>> import tohil
+>>> clock = 1616182348
+>>> tohil.call('clock', 'format', clock, '-locale', 'fr')
+'ven. mars 19 19:32:28 UTC 2021'
+```
+
+The above example is trivial and not really an example of something that might be unsafe to use eval for.  But imagine if you were submitting arbitrary data as arguments to Tcl commands.  It would be difficult to examine it in python to be sure tcl will execute it appropriate.
+
+Python has direct access TCL variables and arrays using tohil.getvar.
+
+```
 tohil.getvar(var)
 tohil.getvar(array, var)
 tohil.getvar(array='a', var='5')
+```
+
+Likewise, tohil.setvar can set them using setvar.
+
+You can also evaluate tcl expressions from python using tohil.expr:
+
+```
+>>> tohil.expr('5+5')
+'10'
+>>> tohil.expr('5**5')
+'3125'
+>>> tohil.expr('1/3')
+'0'
+>>> tohil.expr('1/3.')
+1
+>>> tohil.expr('[clock seconds] % 86400')
+'25571'
+```
+
+Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, command and variable substitutions, but doesn't evaluate the final result, like eval would.
+
+```
+>>> import tohil
+>>> tohil.eval("set name karl")
+'karl'
+>>> tohil.subst("hello, $name")
+'hello, karl'
+```
 
 example python session:
 
@@ -167,69 +217,49 @@ example python session:
 >>> tohil.getvar(array='a',var='16')
 
 
-new subst method
-
->>> import tclpy
->>> tclpy.eval("set name karl")
-'karl'
->>> tclpy.subst("hello, $name")
-'hello, karl'
 
 
-
->>> tclpy.expr('5+5')
-'10'
->>> tclpy.expr('5**5')
-'3125'
->>> tclpy.expr('1/3')
-'0'
->>> tclpy.expr('1/3.')
-1
->>> tclpy.expr('[clock seconds] % 86400')
-'25571'
-
-
->>> tclpy.eval('set a "a 1 b 2 c 3"')
+>>> tohil.eval('set a "a 1 b 2 c 3"')
 'a 1 b 2 c 3'
->>> tclpy.subst("$a")
+>>> tohil.subst("$a")
 'a 1 b 2 c 3'
->>> tclpy.eval('return $a')
+>>> tohil.eval('return $a')
 'a 1 b 2 c 3'
->>> tclpy.megaval('return $a','list')
+>>> tohil.megaval('return $a','list')
 ['a', '1', 'b', '2', 'c', '3']
->>> tclpy.megaval('return $a','dict')
+>>> tohil.megaval('return $a','dict')
 {'a': '1', 'b': '2', 'c': '3'}
 
 
->>> tclpy.eval(to="list",tcl_code="return [list 1 2 3 4]")
+>>> tohil.eval(to="list",tcl_code="return [list 1 2 3 4]")
 ['1', '2', '3', '4']
 
 ```
 check this out, converting expected results to python datatypes:
 
->>> import tclpy
->>> tclpy.megaval("clock seconds")
+>>> import tohil
+>>> tohil.megaval("clock seconds")
 '1616053828'
->>> tclpy.megaval("clock seconds",to="int")
+>>> tohil.megaval("clock seconds",to="int")
 1616053834
->>> tclpy.megaval("clock seconds",to="float")
+>>> tohil.megaval("clock seconds",to="float")
 1616053838.0
->>> tclpy.megaval("clock seconds",to="bool")
+>>> tohil.megaval("clock seconds",to="bool")
 True
->>> tclpy.megaval("clock seconds",to="list")
+>>> tohil.megaval("clock seconds",to="list")
 ['1616053849']
 
 
 now megaval with to='set' option to return a set from a list
 
->>> tclpy.megaval('return [list 1 2 3 4 4 3]',to='set')
+>>> tohil.megaval('return [list 1 2 3 4 4 3]',to='set')
 {'3', '4', '2', '1'}
 
 TODO
 
-make tclpy.expr able to do the to= stuff that tclpy.megaval can do.
+make tohil.expr able to do the to= stuff that tohil.megaval can do.
 
-get rid of tclpy.eval and rename tclpy.megaval to tclpy.eval
+get rid of tohil.eval and rename tohil.megaval to tohil.eval
 
 intercept stdout when exec'ing python in rivet and pump it to rivet
 
@@ -291,11 +321,11 @@ copy the .dylib file that make built to the .so file where make install sent the
 
 something like (on the mac, using pyenv)
 
-sudo cp tohil1.0.0.dylib ~/.pyenv/versions/3.8.2/lib/python3.8/site-packages/tclpy.cpython-38-darwin.so
+sudo cp tohil1.0.0.dylib ~/.pyenv/versions/3.8.2/lib/python3.8/site-packages/tohil.cpython-38-darwin.so
 
 or
 
-cp tohil1.0.0.dylib build/lib.macosx-10.6-x86_64-3.8/tclpy.cpython-38-darwin.so
+cp tohil1.0.0.dylib build/lib.macosx-10.6-x86_64-3.8/tohil.cpython-38-darwin.so
 
 ### todo
 
@@ -308,7 +338,7 @@ In order of priority:
  - `py call -types [list t1 ...] func ?arg ...? : ?t1 ...? -> multi`
    (polymorphic args, polymorphic return)
  - unicode handling (exception messages, fn param, returns from calls...AS\_STRING is bad)
- - allow statically compiling python into tclpy
+ - allow statically compiling python into tohil
    - http://pkaudio.blogspot.co.uk/2008/11/notes-for-embedding-python-in-your-cc.html
    - https://github.com/albertz/python-embedded
    - https://github.com/zeha/python-superstatic
