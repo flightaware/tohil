@@ -15,6 +15,7 @@
 static PyObject *pFormatException = NULL;
 static PyObject *pFormatExceptionOnly = NULL;
 
+// turn a tcl list into a python list
 PyObject *
 tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	Tcl_Obj **list;
@@ -33,6 +34,7 @@ tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	return plist;
 }
 
+// turn a tcl list into a python set
 PyObject *
 tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	Tcl_Obj **list;
@@ -53,6 +55,7 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	return pset;
 }
 
+// turn a tcl list of key-value pairs into a python dict
 PyObject *
 tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	Tcl_Obj **list;
@@ -79,6 +82,8 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	return pdict;
 }
 
+// turn a tcl object into a python object by trying to convert it as a boolean,
+// then a long, then a double and finally a string
 static PyObject *
 tclObjToPy(Tcl_Obj *tObj) {
 	int intValue;
@@ -105,7 +110,7 @@ tclObjToPy(Tcl_Obj *tObj) {
 	return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
-
+// convert a python object to a tcl object - amazing code by aidan
 static Tcl_Obj *
 pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
 {
@@ -334,6 +339,12 @@ PyReturnException(Tcl_Interp *interp, char *description)
 	return TCL_ERROR;
 }
 
+//
+// call python from tcl with very explicit arguments versus
+//   slamming stuff through eval
+//
+//   NB we need one like this going the other direction
+//
 static int
 PyCall_Cmd(
 	ClientData clientData,  /* Not used. */
@@ -535,6 +546,83 @@ PyExec_Cmd(
 
 /* PYTHON LIBRARY BEGINS HERE */
 
+// say return tohil_python_return(interp, tcl_result, to string, resultObject)
+PyObject *
+tohil_python_return(Tcl_Interp *interp, int tcl_result, char *to, Tcl_Obj *resultObj) {
+	if (tcl_result == TCL_ERROR) {
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(resultObj));
+		return NULL;
+	}
+
+	if (to == NULL || strcmp(to, "string") == 0) {
+		int tclStringSize;
+		char *tclString;
+		tclString = Tcl_GetStringFromObj(resultObj, &tclStringSize);
+		return Py_BuildValue("s#", tclString, tclStringSize);
+	}
+
+	if (strcmp(to, "int") == 0) {
+		long longValue;
+		if (Tcl_GetLongFromObj(interp, resultObj, &longValue) == TCL_OK) {
+			return PyLong_FromLong(longValue);
+		}
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+		return NULL;
+	}
+
+	if (strcmp(to, "bool") == 0) {
+		int boolValue;
+		if (Tcl_GetBooleanFromObj(interp, resultObj, &boolValue) == TCL_OK) {
+			PyObject *p = (boolValue ? Py_True : Py_False);
+			Py_INCREF(p);
+			return p;
+		}
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+		return NULL;
+	}
+
+	if (strcmp(to, "float") == 0) {
+		double doubleValue;
+
+		if (Tcl_GetDoubleFromObj(interp, resultObj, &doubleValue) == TCL_OK) {
+			return PyFloat_FromDouble(doubleValue);
+		}
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+		return NULL;
+	}
+
+
+	if (strcmp(to, "list") == 0) {
+		PyObject *p = tclListObjToPyListObject(interp, resultObj);
+		if (p == NULL) {
+			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+			return NULL;
+		}
+		return p;
+	}
+
+	if (strcmp(to, "set") == 0) {
+		PyObject *p = tclListObjToPySetObject(interp, resultObj);
+		if (p == NULL) {
+			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+			return NULL;
+		}
+		return p;
+	}
+
+	if (strcmp(to, "dict") == 0) {
+		PyObject *p = tclListObjToPyDictObject(interp, resultObj);
+		if (p == NULL) {
+			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+			return NULL;
+		}
+		return p;
+	}
+
+	PyErr_SetString(PyExc_RuntimeError, "'to' conversion must be one of 'string', 'int', 'bool', 'float', 'list', 'set', 'dict'");
+	return NULL;
+}
+
 static PyObject *
 tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -548,80 +636,9 @@ tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 
 	int result = Tcl_Eval(interp, tclCode);
-	Tcl_Obj *tResult = Tcl_GetObjResult(interp);
+	Tcl_Obj *resultObj = Tcl_GetObjResult(interp);
 
-	if (result == TCL_ERROR) {
-		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(tResult));
-		return NULL;
-	}
-
-	if (to == NULL || strcmp(to, "string") == 0) {
-		int tclStringSize;
-		char *tclString;
-		tclString = Tcl_GetStringFromObj(tResult, &tclStringSize);
-		return Py_BuildValue("s#", tclString, tclStringSize);
-	}
-
-	if (strcmp(to, "int") == 0) {
-		long longValue;
-		if (Tcl_GetLongFromObj(interp, tResult, &longValue) == TCL_OK) {
-			return PyLong_FromLong(longValue);
-		}
-		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-		return NULL;
-	}
-
-	if (strcmp(to, "bool") == 0) {
-		int boolValue;
-		if (Tcl_GetBooleanFromObj(interp, tResult, &boolValue) == TCL_OK) {
-			PyObject *p = (boolValue ? Py_True : Py_False);
-			Py_INCREF(p);
-			return p;
-		}
-		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-		return NULL;
-	}
-
-	if (strcmp(to, "float") == 0) {
-		double doubleValue;
-
-		if (Tcl_GetDoubleFromObj(interp, tResult, &doubleValue) == TCL_OK) {
-			return PyFloat_FromDouble(doubleValue);
-		}
-		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-		return NULL;
-	}
-
-
-	if (strcmp(to, "list") == 0) {
-		PyObject *p = tclListObjToPyListObject(interp, tResult);
-		if (p == NULL) {
-			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-			return NULL;
-		}
-		return p;
-	}
-
-	if (strcmp(to, "set") == 0) {
-		PyObject *p = tclListObjToPySetObject(interp, tResult);
-		if (p == NULL) {
-			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-			return NULL;
-		}
-		return p;
-	}
-
-	if (strcmp(to, "dict") == 0) {
-		PyObject *p = tclListObjToPyDictObject(interp, tResult);
-		if (p == NULL) {
-			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-			return NULL;
-		}
-		return p;
-	}
-
-	PyErr_SetString(PyExc_RuntimeError, "'to' conversion must be one of 'string', 'int', 'bool', 'float', 'list', 'set', 'dict'");
-	return NULL;
+	return tohil_python_return(interp, result, to, resultObj);
 }
 
 static PyObject *
@@ -730,6 +747,30 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tclObjToPy(resultObj);
 }
 
+// need a tohil_call function for python that's like the tohil::call in tcl, something
+// that doesn't make you pass everything through eval
+static PyObject *
+tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+	Py_ssize_t nargs = PyTuple_GET_SIZE(args);
+	int i;
+	Tcl_Obj **call_list = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * nargs);
+	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
+	char *to = NULL;
+
+	//PyObject_Print(kwargs, stdout, 0);
+
+	// we need to process kwargs to get the -to
+	//PyObject *to_object = PyDict_GetItemString(kwargs, "to");
+
+	for (i = 0; i < nargs; i++) {
+		call_list[i] = pyObjToTcl(interp, PyTuple_GET_ITEM(args, i));
+	}
+	int tcl_result = Tcl_EvalObjv(interp, nargs, call_list, 0);
+
+	return tohil_python_return(interp, tcl_result, to, Tcl_GetObjResult(interp));
+}
+
 static PyMethodDef TohilMethods[] = {
 	{"eval",  (PyCFunction)tohil_eval,
 		METH_VARARGS | METH_KEYWORDS,
@@ -746,6 +787,9 @@ static PyMethodDef TohilMethods[] = {
 	{"expr",  (PyCFunction)tohil_expr,
 		METH_VARARGS | METH_KEYWORDS,
 		"evaluate Tcl expression"},
+	{"call",  (PyCFunction)tohil_call,
+		METH_VARARGS | METH_KEYWORDS,
+		"invoke a tcl command with arguments"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -845,20 +889,47 @@ Tohil_Init(Tcl_Interp *interp)
 	return TCL_OK;
 }
 
+//
+// this is called both from python module initialization
+//   and tcl extension initialization
+//
+//   there is a parent interpreter.  it is either python or tcl, depending
+//   on which language pulled in tohil first.o
+//
+//
 PyObject *
 init_python_tohil(Tcl_Interp* interp)
 {
+	// if python is already the parent then we've already
+	// initialized so do nothing
 	if (parentInterp == PY_PARENT)
 		return NULL;
+
+	// if there is no parent then we're the parent so python
+	// creates the tcl interpreter, etc.
+	//
+	// The tcl init routine in this file, Tohil_Init, has similar
+	// logic to figure out if its first and do its thing.
 	if (parentInterp == NO_PARENT)
 		parentInterp = PY_PARENT;
+
+	// if tcl's the parent then there must be a tcl interpreter
 	if (parentInterp == TCL_PARENT)
 		assert(interp != NULL);
 
+	// if there's no tcl interpreter, create one and initialize it
 	if (interp == NULL)
 		interp = Tcl_CreateInterp();
+
 	if (Tcl_Init(interp) != TCL_OK)
 		return NULL;
+
+	// if python's the parent then invoke Tohil_Init to load us
+	// into the interpreter
+	// NB uh this probably isn't enough and we need to do a
+	// package require tohil as there is tcl code in files in
+	// the package now
+	// OTOH you know you've got the right shared library
 	if (parentInterp == PY_PARENT && Tohil_Init(interp) == TCL_ERROR)
 		return NULL;
 
@@ -874,7 +945,7 @@ init_python_tohil(Tcl_Interp* interp)
 }
 
 PyMODINIT_FUNC
-PyInit_tohil(void)
+PyInit__tohil(void)
 {
 	return init_python_tohil(NULL);
 }

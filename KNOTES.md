@@ -108,3 +108,5 @@ get rid of tclpy.eval and rename tclpy.megaval to tclpy.eval
 intercept stdout when exec'ing python in rivet and pump it to rivet
 
 
+
+https://github.com/python/cpython/blob/master/Modules/_tkinter.c
