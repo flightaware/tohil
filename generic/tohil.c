@@ -9,9 +9,6 @@
 
 /* TCL LIBRARY BEGINS HERE */
 
-// Need an integer we can use for detecting python errors, assume we'll never
-// use TCL_BREAK
-
 static PyObject *pFormatException = NULL;
 static PyObject *pFormatExceptionOnly = NULL;
 
@@ -548,21 +545,38 @@ PyExec_Cmd(
 
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
 PyObject *
-tohil_python_return(Tcl_Interp *interp, int tcl_result, char *to, Tcl_Obj *resultObj) {
+tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Obj *resultObj) {
+	const char *toString = NULL;
+	PyTypeObject *pt = NULL;
+
 	if (tcl_result == TCL_ERROR) {
 		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(resultObj));
 		return NULL;
 	}
 
-	if (to == NULL || strcmp(to, "string") == 0) {
+	if (toType != NULL) {
+		if (!PyType_Check(toType)) {
+			PyErr_SetString(PyExc_RuntimeError, "to type is not a valid python data type");
+			return NULL;
+		}
+
+		pt = (PyTypeObject *)toType;
+		toString = pt->tp_name;
+	}
+
+	if (toType == NULL || strcmp(toString, "str") == 0) {
 		int tclStringSize;
 		char *tclString;
+
+		Py_XDECREF(pt);
 		tclString = Tcl_GetStringFromObj(resultObj, &tclStringSize);
 		return Py_BuildValue("s#", tclString, tclStringSize);
 	}
 
-	if (strcmp(to, "int") == 0) {
+	if (strcmp(toString, "int") == 0) {
 		long longValue;
+
+		Py_XDECREF(pt);
 		if (Tcl_GetLongFromObj(interp, resultObj, &longValue) == TCL_OK) {
 			return PyLong_FromLong(longValue);
 		}
@@ -570,8 +584,10 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, char *to, Tcl_Obj *resul
 		return NULL;
 	}
 
-	if (strcmp(to, "bool") == 0) {
+	if (strcmp(toString, "bool") == 0) {
 		int boolValue;
+
+		Py_XDECREF(pt);
 		if (Tcl_GetBooleanFromObj(interp, resultObj, &boolValue) == TCL_OK) {
 			PyObject *p = (boolValue ? Py_True : Py_False);
 			Py_INCREF(p);
@@ -581,9 +597,10 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, char *to, Tcl_Obj *resul
 		return NULL;
 	}
 
-	if (strcmp(to, "float") == 0) {
+	if (strcmp(toString, "float") == 0) {
 		double doubleValue;
 
+		Py_XDECREF(pt);
 		if (Tcl_GetDoubleFromObj(interp, resultObj, &doubleValue) == TCL_OK) {
 			return PyFloat_FromDouble(doubleValue);
 		}
@@ -592,8 +609,10 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, char *to, Tcl_Obj *resul
 	}
 
 
-	if (strcmp(to, "list") == 0) {
+	if (strcmp(toString, "list") == 0) {
 		PyObject *p = tclListObjToPyListObject(interp, resultObj);
+
+		Py_XDECREF(pt);
 		if (p == NULL) {
 			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
 			return NULL;
@@ -601,8 +620,10 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, char *to, Tcl_Obj *resul
 		return p;
 	}
 
-	if (strcmp(to, "set") == 0) {
+	if (strcmp(toString, "set") == 0) {
 		PyObject *p = tclListObjToPySetObject(interp, resultObj);
+
+		Py_XDECREF(pt);
 		if (p == NULL) {
 			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
 			return NULL;
@@ -610,8 +631,10 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, char *to, Tcl_Obj *resul
 		return p;
 	}
 
-	if (strcmp(to, "dict") == 0) {
+	if (strcmp(toString, "dict") == 0) {
 		PyObject *p = tclListObjToPyDictObject(interp, resultObj);
+
+		Py_XDECREF(pt);
 		if (p == NULL) {
 			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
 			return NULL;
@@ -619,7 +642,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, char *to, Tcl_Obj *resul
 		return p;
 	}
 
-	PyErr_SetString(PyExc_RuntimeError, "'to' conversion must be one of 'string', 'int', 'bool', 'float', 'list', 'set', 'dict'");
+	PyErr_SetString(PyExc_RuntimeError, "'to' conversion type must be str, int, bool, float, list, set, dict");
 	return NULL;
 }
 
@@ -627,10 +650,10 @@ static PyObject *
 tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 {
 	static char *kwlist[] = {"tcl_code", "to", NULL};
-	char *to = NULL;
+	PyObject *to = NULL;
 	char *tclCode = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|s", kwlist, &tclCode, &to))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", kwlist, &tclCode, &to))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
@@ -642,13 +665,36 @@ tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 static PyObject *
+tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"expression", "to", NULL};
+	char *expression = NULL;
+	PyObject *to = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", kwlist, &expression, &to))
+		return NULL;
+
+	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
+
+	Tcl_Obj *resultObj;
+	if (Tcl_ExprObj(interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
+		char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
+		PyErr_SetString(PyExc_RuntimeError, errMsg);
+		return NULL;
+	}
+
+	return tohil_python_return(interp, TCL_OK, to, resultObj);
+}
+
+static PyObject *
 tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"array", "var", NULL};
+	static char *kwlist[] = {"array", "var", "to", NULL};
 	char *array = NULL;
 	char *var = NULL;
+	PyObject *to = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|s", kwlist, &array, &var))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|sO", kwlist, &array, &var, &to))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
@@ -665,10 +711,7 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 		return Py_None;
 	}
 
-	int tclStringSize;
-	char *tclString;
-	tclString = Tcl_GetStringFromObj(obj, &tclStringSize);
-	return Py_BuildValue("s#", tclString, tclStringSize);
+	return tohil_python_return(interp, TCL_OK, to, Tcl_GetObjResult(interp));
 }
 
 static PyObject *
@@ -726,27 +769,6 @@ tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 	return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
-static PyObject *
-tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
-{
-	static char *kwlist[] = {"expression", NULL};
-	char *expression = NULL;
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &expression))
-		return NULL;
-
-	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
-
-	Tcl_Obj *resultObj;
-	if (Tcl_ExprObj(interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
-		char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
-		PyErr_SetString(PyExc_RuntimeError, errMsg);
-		return NULL;
-	}
-
-	return tclObjToPy(resultObj);
-}
-
 // tohil.call function for python that's like the tohil::call in tcl, something
 // that doesn't make you pass everything through eval.  here it is.
 //
@@ -756,7 +778,7 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 	Py_ssize_t objc = PyTuple_GET_SIZE(args);
 	int i;
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
-	char *to = NULL;
+	PyObject *to = NULL;
 	//
 	// allocate an array of Tcl object pointers the same size
 	// as the number of arguments we received
@@ -764,10 +786,8 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 
 	//PyObject_Print(kwargs, stdout, 0);
 
-	// we need to process kwargs to get the -to
-	PyObject *to_object = PyDict_GetItemString(kwargs, "to");
-	if (to_object != NULL) {
-	}
+	// we need to process kwargs to get the to
+	to = PyDict_GetItemString(kwargs, "to");
 
 	// for each argument convert the python object to a tcl object
 	// and store it in the tcl object vector
@@ -782,6 +802,24 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 	ckfree(objv);
 
 	return tohil_python_return(interp, tcl_result, to, Tcl_GetObjResult(interp));
+}
+
+static PyObject *
+tohil_plug(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+	PyObject_Print(kwargs, stdout, 0);
+	printf("\n");
+
+	PyObject *to_object = PyDict_GetItemString(kwargs, "foo");
+	if (to_object != NULL) {
+		printf("found foo object\n");
+		if (PyType_Check(to_object)) {
+			printf(" it's a type\n");
+			PyTypeObject *pt = (PyTypeObject *)to_object;
+			printf("  jackpot: %s\n", pt->tp_name);
+		}
+	}
+	return Py_None;
 }
 
 static PyMethodDef TohilMethods[] = {
@@ -803,6 +841,9 @@ static PyMethodDef TohilMethods[] = {
 	{"call",  (PyCFunction)tohil_call,
 		METH_VARARGS | METH_KEYWORDS,
 		"invoke a tcl command with arguments"},
+	{"plug",  (PyCFunction)tohil_plug,
+		METH_VARARGS | METH_KEYWORDS,
+		"karl's microscope"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 };
 
