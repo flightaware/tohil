@@ -756,11 +756,12 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 	int i;
 	Tcl_Obj **call_list = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * nargs);
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
-	static char *kwlist[] = {"to", NULL};
 	char *to = NULL;
 
-	//if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|s", kwlist, &to))
-	//	return NULL;
+	//PyObject_Print(kwargs, stdout, 0);
+
+	// we need to process kwargs to get the -to
+	//PyObject *to_object = PyDict_GetItemString(kwargs, "to");
 
 	for (i = 0; i < nargs; i++) {
 		call_list[i] = pyObjToTcl(interp, PyTuple_GET_ITEM(args, i));
