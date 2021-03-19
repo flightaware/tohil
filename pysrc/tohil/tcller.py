@@ -10,7 +10,7 @@ class TclWriter:
 
     def write(self, string):
         tohil.call('puts', '-nonewline', string)
-        self.flush()
+        #self.flush()
 
     def flush(self):
         tohil.call('flush','stdout')
