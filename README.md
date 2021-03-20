@@ -225,44 +225,44 @@ example python session:
 'a 1 b 2 c 3'
 >>> tohil.eval('return $a')
 'a 1 b 2 c 3'
->>> tohil.megaval('return $a','list')
+>>> tohil.eval('return $a' to=list)
 ['a', '1', 'b', '2', 'c', '3']
->>> tohil.megaval('return $a','dict')
+>>> tohil.eval('return $a',to=dict)
 {'a': '1', 'b': '2', 'c': '3'}
 
 
->>> tohil.eval(to="list",tcl_code="return [list 1 2 3 4]")
+>>> tohil.eval(to=list,tcl_code="return [list 1 2 3 4]")
 ['1', '2', '3', '4']
 
 ```
 check this out, converting expected results to python datatypes:
 
 >>> import tohil
->>> tohil.megaval("clock seconds")
+>>> tohil.eval("clock seconds")
 '1616053828'
->>> tohil.megaval("clock seconds",to="int")
+>>> tohil.eval("clock seconds",to=int)
 1616053834
->>> tohil.megaval("clock seconds",to="float")
+>>> tohil.eval("clock seconds",to=float)
 1616053838.0
->>> tohil.megaval("clock seconds",to="bool")
+>>> tohil.eval("clock seconds",to=bool)
 True
->>> tohil.megaval("clock seconds",to="list")
+>>> tohil.eval("clock seconds",to=list)
 ['1616053849']
 
 
-now megaval with to='set' option to return a set from a list
+now eval with to=set option to return a set from a list
 
->>> tohil.megaval('return [list 1 2 3 4 4 3]',to='set')
+>>> tohil.eval('return [list 1 2 3 4 4 3]',to=set)
 {'3', '4', '2', '1'}
 
-TODO
 
-make tohil.expr able to do the to= stuff that tohil.megaval can do.
 
-get rid of tohil.eval and rename tohil.megaval to tohil.eval
+This might bake your noodle...
 
-intercept stdout when exec'ing python in rivet and pump it to rivet
-
+```
+>>> tohil.eval('tohil::eval "2 ** 32 - 1"')
+'4294967295'
+```
 
 ### Unix Build
 
@@ -329,11 +329,10 @@ cp tohil1.0.0.dylib build/lib.macosx-10.6-x86_64-3.8/tohil.cpython-38-darwin.so
 
 ### todo
 
-This is the old list.  SOme of this stuff has been done.  We probably don't have the same priorities.  Will update over tinme.
+This is the old list.  SOme of this stuff has been done.  We probably don't have the same priorities.  Will update over time.
 
 In order of priority:
 
- - allow python to call back into tcl
  - allow compiling on Windows
  - `py call -types [list t1 ...] func ?arg ...? : ?t1 ...? -> multi`
    (polymorphic args, polymorphic return)
@@ -347,13 +346,9 @@ In order of priority:
    - http://stackoverflow.com/questions/1150373/compile-the-python-interpreter-statically
  - allow statically compiling
  - check threading compatibility
- - let `py eval` work with indented multiline blocks
  - `py import ?-from module? module : -> nil`
- - return the short error line in the catch err variable and put the full stack
-   trace in errorInfo
- - py call of non-existing function says raises attribute err, should be a
-   NameError
+ - return the short error line in the catch err variable and put the full stack trace in errorInfo
+ - py call of non-existing function says raises attribute err, should be a NameError
  - make `py call` look in the builtins module - http://stackoverflow.com/a/11181607
  - all TODOs
-
 
