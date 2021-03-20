@@ -1,145 +1,27 @@
 # tohil
 
-tohil is based on libtclpy, by Aidan Hobson Sayers.
-
-This is tohil, a dual-purpose Python extension AND TCL extension that makes it possible to effortlessly call bidirectionally between Tcl and Python, targeting Tcl >= 8.6 and Python 3.6+
+This is tohil, a dual-purpose Python extension and TCL extension that makes it possible to effortlessly call bidirectionally between Tcl and Python, targeting Tcl >= 8.6 and Python 3.6+
 
 The extension is available under the 3-clause BSD license (see "LICENSE").
 
-Tcl users may also want to consider using
-[pyman](http://chiselapp.com/user/gwlester/repository/pyman/home), a Tcl package
-that provides a higher level of abstraction on top of tclpy.
+tohil is based on libtclpy, by Aidan Hobson Sayers.
 
 ## Usage
 
 You can import tohil into either a Tcl or Python parent interpreter. Doing
-so will initialise an interpreter for the other language and insert all
-tohil methods. This means you can call backwards and forwards between
-interpreters.
+so will create and initialise an interpreter for the  corresponding language and define all
+tohil's methods in both. 
 
-### Accessing Python From TCL
-
-General notes:
- - Unless otherwise noted, 'interpreter' refers to the python interpreter.
- - All commands are run in the context of a single interpreter session. Imports, function definitions and variables persist.
- - Exceptions in the python interpreter will return a TCL error and stack trace of the python code that was executing. If the exception continues up the stack, the tcl stack trace will be appended to it.
- - Python errors may be caught (as per tcl stack traces) with Tcl's catch or try.
-
-```tcl
-package require tohil
-```
-
-Reference:
- - `tohil::call ?obj.?func ?arg ...?`
-   - `takes: name of a python function`
-   - `returns: return value of function with the first appropriate conversion
-      applied from the list below:`
-     - `None is converted to an empty string`
-     - `True is converted to 1`
-     - `False is converted to 0`
-     - `Python 'str' objects are considered to be byte arrays`
-     - `Python 'unicode' objects are considered to be unicode strings`
-     - `Python 'number' objects are converted to base 10 if necessary`
-     - `Python mapping objects (supporting key-val mapping, e.g. python dicts)
-        are converted to tcl dicts`
-     - `Python sequence objects (supporting indexing, e.g. python lists) are
-        converted to tcl lists`
-     - `Otherwise, the str function is applied to the python object`
-   - `side effects: executes function`
-   - `func` may be a dot qualified name (i.e. object or module method)
- - `tohil::eval evalString`
-   - `takes: string of valid python code`
-   - `returns: the result of the eval`
-   - `side effects: executes code in the python interpreter`
-   - **Do not use with substituted input**
-   - `evalString` may be any valid python expression
- - `tohil::exec execString`
-   - `takes: string of valid python code`
-   - `returns: the result of the python exec`
-   - `side effects: executes code in the python interpreter`
-   - **Do not use with substituted input**
-   - `execString` may be any valid python expression code, including semicolons for single line statements or (non-indented) multiline blocks
-   - errors reaching the python interpreter top level are printed to stderr
- - `tohil::import module`
-   - `takes: name of a python module`
-   - `returns: nothing`
-   - `side effects: imports named module into globals of the python interpreter`
-   - the name of the module may be of the form module.submodule
-
-
-Tohil provides new commands for interactiving with the python interpreter, via the ::tohil namespace.
-
-tohil::eval evaluates the code passed to it as if with python's eval.  So it has to be an expression, i.e. it is an error if you try to define a function with it, or even set the value of a variable.
-
-Anything returned by python from the eval is returned to tcl.
-
-tohil::exec evaluates the code passed to it as if with python's exec.  Nothing is returned.  If the python code prints anything, it goes to stdout using python's I/O subsystem.  However you can easily redirect python's output to go to a string, or whatever, in the normal python manner.  Tohil provide a python class that will send everything sent to python's stdout through to Tcl's stdout.  This should be great for Rivet.
-
-tohil::call provides a way to invoke one tcl function, with zero or more arguments, without having to pass it through eval and running the risk that tcl metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
-
-tohil::import provides a way to import python modules, although I'm not sure that it's much different from doing a tohil::exec "import module"
-
-example tclsh session:
-
-```
-% package require tohil
-%
-% tohil::exec {def mk(dir): os.mkdir(dir)}
-% tohil::exec {def rm(dir): os.rmdir(dir); return 15}
-% tohil::import os
-% set a [tohil::exec {print "creating 'testdir'"; mk('testdir')}]
-creating 'testdir'
-% set b [py call rm testdir]
-15
-%
-% tohil::import StringIO
-% tohil::eval {sio = StringIO.StringIO()}
-% tohil::call sio.write someinput
-% set c [py call sio.getvalue]
-someinput
-%
-% tohil::eval {divide = lambda x: 1.0/int(x)}
-% set d [tohil::call divide 16]
-0.0625
-% list [catch {tohil::call divide 0} err] $err
-1 {ZeroDivisionError: float division by zero
-  File "<string>", line 1, in <lambda>
------ tcl -> python interface -----}
-%
-% tohil::import json
-% tohil::exec {
-def jobj(*args):
-    d = {}
-    for i in range(len(args)/2):
-        d[args[2*i]] = args[2*i+1]
-    return json.dumps(d)
-}
-% set e [dict create]
-% dict set e {t"est} "11{24"
-t\"est 11\{24
-% dict set e 6 5
-t\"est 11\{24 6 5
-% set e [py call jobj {*}$e]
-{"t\"est": "11{24", "6": "5"}
-%
-% tohil::import sqlite3
-% tohil::eval {b = sqlite3.connect(":memory:").cursor()}
-% tohil::eval {def exe(sql, *args): b.execute(sql, args)}
-% tohil::call exe "create table x(y integer, z integer)"
-% tohil::call exe "insert into x values (?,?)" 1 5
-% tohil::call exe "insert into x values (?,?)" 7 9
-% tohil::call exe "select avg(y), min(z) from x"
-% tohil::call b.fetchone
-4.0 5
-% tohil::call exe "select * from x"
-% set f [tohil::call b.fetchall]
-{1 5} {7 9}
-%
-% puts "a: $a, b: $b, c: $c, d: $d, e: $e, f: $f"
-a: , b: 15, c: someinput, d: 0.0625, e: {"t\"est": "11{24", "6": "5"}, f: {1 5} {7 9}
-```
+This means you can call backwards and forwards between interpreters.  In other words, any Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code limited only by your machine's memory and your sanity (and the (settable) Tcl recursion limit).
 
 ### Accessing TCL From Python
+
+Interacting with the Tcl interpreter from Python is performed at the base level through some methods of the tohil object that gets created when you import tohil into your Python program.
+
+```python
+import tohil
+```
+
 
 Reference:
  - `tohil.eval(evalstring)`
@@ -255,6 +137,128 @@ now eval with to=set option to return a set from a list
 >>> tohil.eval('return [list 1 2 3 4 4 3]',to=set)
 {'3', '4', '2', '1'}
 
+### Accessing Python From TCL
+
+From Tcl, tohil provides access to Python through several commands and some procs.
+
+Perhaps the two most important commands are `tohil::eval` and `tohil::exec`.  These commands correspond closely to python's `eval` and `exec`.
+
+General notes:
+ - All commands are run in the context of a single interpreter session. Imports, function definitions and variables persist.
+ - Uncaught exceptions in the python interpreter resulting from code invoked from Tcl using tohil will propagate a TCL error including a stack trace of the python code that was executing. As the exception continues up the stack, the tcl stack trace will be appended to it.
+ - Such Python errors may be caught (as per tcl stack traces) with Tcl's catch or try, the same as any other TCL error.
+
+```tcl
+package require tohil
+```
+
+Tohil provides new commands for interactiving with the python interpreter, via the ::tohil namespace.
+
+tohil::eval evaluates the code passed to it as if with python's eval.  So it has to be an expression, i.e. it is an error if you try to define a function with it, or even set the value of a variable.
+
+Anything returned by python from the eval is returned to tcl.
+
+tohil::exec evaluates the code passed to it as if with python's exec.  Nothing is returned.  If the python code prints anything, it goes to stdout using python's I/O subsystem.  However you can easily redirect python's output to go to a string, or whatever, in the normal python manner.  Tohil provide a python class that will send everything sent to python's stdout through to Tcl's stdout.  This should be great for Rivet.
+
+tohil::call provides a way to invoke one tcl function, with zero or more arguments, without having to pass it through eval and running the risk that tcl metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
+
+tohil::import provides a way to import python modules, although I'm not sure that it's much different from doing a tohil::exec "import module"
+
+
+Reference:
+ - `tohil::eval evalString`
+   - takes: string of valid python code
+   - returns: the result of the eval
+   - side effects: executes code in the python interpreter
+   - `evalString` may be any valid python expression
+ - `tohil::call ?obj.?func ?arg ...?`
+   - takes: name of a python function
+   - returns: return value of function with the first appropriate conversion applied from the list below:
+     - `None` is converted to an empty string
+     - `True` and `False` are converted to a Tcl boolean object with a corresponding value
+     - Python *str objects* are converted to Tcl byte arrays
+     - Python *unicode objects* are converted to Tcl unicode strings
+     - Python *number objects* are converted I think to text numbers NB this is probably improvable
+     - Python *mapping objects* (supporting key-val mapping, e.g. python dicts) are converted to tcl dicts
+     - Python *sequence objects* (supporting indexing, e.g. python lists) are converted to tcl lists
+     - Otherwise, the str function is applied to the python object and that's set into the corresponding Tcl object
+   - side effects: executes function
+   - `func` may be a dot qualified name (i.e. object or module method)
+ - `tohil::exec execString`
+   - `takes: string of valid python code`
+   - `returns: the result of the python exec`
+   - `side effects: executes code in the python interpreter`
+   - **Do not use with substituted input**
+   - `execString` may be any valid python code, including semicolons for single line statements or (non-indented) multiline blocks with indentions, etc.
+   - errors reaching the python interpreter top level (i.e. not caught tcl-side or python-side by application code) are printed to stderr
+ - `tohil::import module`
+   - takes: name of a python module
+   - returns: nothing
+   - side effects: imports named module into globals of the python interpreter
+   - the name of the module may be of the form module.submodule
+   - You can do the same thing using exec and, currently, exercise more control.  For example `tohil::exec "from io import StringIO"`
+
+
+example tclsh session:
+
+```
+% package require tohil
+%
+% tohil::exec {def mk(dir): os.mkdir(dir)}
+% tohil::exec {def rm(dir): os.rmdir(dir); return 15}
+% tohil::import os
+% set a [tohil::exec {print "creating 'testdir'"; mk('testdir')}]
+creating 'testdir'
+% set b [py call rm testdir]
+15
+%
+% tohil::import StringIO
+% tohil::eval {sio = StringIO.StringIO()}
+% tohil::call sio.write someinput
+% set c [py call sio.getvalue]
+someinput
+%
+% tohil::eval {divide = lambda x: 1.0/int(x)}
+% set d [tohil::call divide 16]
+0.0625
+% list [catch {tohil::call divide 0} err] $err
+1 {ZeroDivisionError: float division by zero
+  File "<string>", line 1, in <lambda>
+----- tcl -> python interface -----}
+%
+% tohil::import json
+% tohil::exec {
+def jobj(*args):
+    d = {}
+    for i in range(len(args)/2):
+        d[args[2*i]] = args[2*i+1]
+    return json.dumps(d)
+}
+% set e [dict create]
+% dict set e {t"est} "11{24"
+t\"est 11\{24
+% dict set e 6 5
+t\"est 11\{24 6 5
+% set e [py call jobj {*}$e]
+{"t\"est": "11{24", "6": "5"}
+%
+% tohil::import sqlite3
+% tohil::eval {b = sqlite3.connect(":memory:").cursor()}
+% tohil::eval {def exe(sql, *args): b.execute(sql, args)}
+% tohil::call exe "create table x(y integer, z integer)"
+% tohil::call exe "insert into x values (?,?)" 1 5
+% tohil::call exe "insert into x values (?,?)" 7 9
+% tohil::call exe "select avg(y), min(z) from x"
+% tohil::call b.fetchone
+4.0 5
+% tohil::call exe "select * from x"
+% set f [tohil::call b.fetchall]
+{1 5} {7 9}
+%
+% puts "a: $a, b: $b, c: $c, d: $d, e: $e, f: $f"
+a: , b: 15, c: someinput, d: 0.0625, e: {"t\"est": "11{24", "6": "5"}, f: {1 5} {7 9}
+```
+
 
 
 This might bake your noodle...
@@ -352,3 +356,10 @@ In order of priority:
  - make `py call` look in the builtins module - http://stackoverflow.com/a/11181607
  - all TODOs
 
+### notes
+
+[pyman](http://chiselapp.com/user/gwlester/repository/pyman/home) is a Tcl package that provides a higher level of abstraction on top of tclpy.  It will need to be updated for tohil but bears examination and hopefully the participation of its author, Gerald Lester.
+
+### geek notes
+
+The single tohil shared library created by building this software is loaded both by Python and Tcl, which is pretty cool and important to how it works.
