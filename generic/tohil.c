@@ -272,6 +272,11 @@ PyReturnException(Tcl_Interp *interp, char *description)
 
 	Tcl_SetObjResult(interp, pyObjToTcl(interp, pVal));
 
+	Tcl_Obj *errorCodeObj = Tcl_NewObj();
+	Tcl_ListObjAppendElement(interp, errorCodeObj, Tcl_NewStringObj("PYTHON", -1));
+	Tcl_ListObjAppendElement(interp, errorCodeObj, pyObjToTcl(interp, pType));
+	Tcl_SetObjErrorCode(interp, errorCodeObj);
+
 	/* Get traceback as a python list */
 	if (pTrace != NULL) {
 		pTraceList = PyObject_CallFunctionObjArgs(
