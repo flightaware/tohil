@@ -241,16 +241,21 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
 	return tObj;
 }
 
-// Returns a string that must be 'free'd containing an error and traceback, or
-// NULL if there was no Python error
-static char *
-pyTraceAsStr(void)
+static int
+PyReturnTclError(Tcl_Interp *interp, char *string) {
+	Tcl_SetObjResult(interp, Tcl_NewStringObj(string, -1));
+	return TCL_ERROR;
+}
+
+static int
+PyReturnException(Tcl_Interp *interp, char *description)
 {
 	// Shouldn't call this function unless Python has excepted
-	if (PyErr_Occurred() == NULL)
-		return NULL;
+	if (PyErr_Occurred() == NULL) {
+		return PyReturnTclError(interp, "bug in tohil - PyReturnException called without a python error having occurred");
+	}
 
-	/* USE PYTHON TRACEBACK MODULE */
+	/* use python traceback module */
 
 	// TODO: save the error and reraise in python if we have no idea
 	// TODO: prefix everything with 'PY:'?
@@ -265,6 +270,8 @@ pyTraceAsStr(void)
 	PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
 	PyErr_NormalizeException(&pType, &pVal, &pTrace);
 
+	Tcl_SetObjResult(interp, pyObjToTcl(interp, pVal));
+
 	/* Get traceback as a python list */
 	if (pTrace != NULL) {
 		pTraceList = PyObject_CallFunctionObjArgs(
@@ -274,13 +281,13 @@ pyTraceAsStr(void)
 			pFormatExceptionOnly, pType, pVal, NULL);
 	}
 	if (pTraceList == NULL)
-		return strdup("[Failed to get python exception details (#e_ltp01)]\n");
+		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp01)]");
 
 	/* Put the list in tcl order (top stack level at top) */
 	pNone = PyObject_CallMethod(pTraceList, "reverse", NULL);
 	if (pNone == NULL) {
 		Py_DECREF(pTraceList);
-		return strdup("[Failed to get python exception details (#e_ltp02)]\n");
+		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp02)]");
 	}
 	assert(pNone == Py_None);
 	Py_DECREF(pNone);
@@ -293,7 +300,7 @@ pyTraceAsStr(void)
 	}
 	if (traceLen <= 0 || (pTraceDesc == NULL && traceLen > 1)) {
 		Py_DECREF(pTraceList);
-		return strdup("[Failed to get python exception details (#e_ltp03)]\n");
+		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp03)]");
 	}
 	Py_XDECREF(pTraceDesc);
 
@@ -301,36 +308,22 @@ pyTraceAsStr(void)
 	pEmptyStr = PyUnicode_FromString("");
 	if (pEmptyStr == NULL) {
 		Py_DECREF(pTraceList);
-		return strdup("[Failed to get python exception details (#e_ltp04)]\n");
+		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp04)]");
 	}
 	pTraceStr = PyObject_CallMethod(pEmptyStr, "join", "O", pTraceList);
 	Py_DECREF(pTraceList);
 	Py_DECREF(pEmptyStr);
 	if (pTraceStr == NULL)
-		return strdup("[Failed to get python exception details (#e_ltp05)]\n");
+		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp05)]");
 
 	/* Turn the python string into a string */
 	pTraceBytes = PyUnicode_AsASCIIString(pTraceStr);
 	Py_DECREF(pTraceStr);
 	if (pTraceBytes == NULL)
-		return strdup("[Failed to convert python exception details to ascii bytes (#e_ltp06)]\n");
-	traceStr = strdup(PyBytes_AS_STRING(pTraceBytes));
+		return PyReturnTclError(interp, "[Failed to convert python exception details to ascii bytes (#e_ltp06)]");
+	Tcl_AddErrorInfo(interp, PyBytes_AS_STRING(pTraceBytes));
 	Py_DECREF(pTraceBytes);
 
-	return traceStr;
-}
-
-static int
-PyReturnException(Tcl_Interp *interp, char *description)
-{
-	char *traceStr = pyTraceAsStr(); // clears exception
-	if (traceStr == NULL) {
-		// TODO: something went wrong in traceback
-		PyErr_Clear();
-		return TCL_ERROR;
-	}
-
-	Tcl_SetObjResult(interp, Tcl_NewStringObj(traceStr, -1));
 	Tcl_AddErrorInfo(interp, description);
 	free(traceStr);
 	return TCL_ERROR;
