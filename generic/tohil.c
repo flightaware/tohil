@@ -241,12 +241,19 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
 	return tObj;
 }
 
+//
+// PyReturnTclError - return a tcl error to the tcl interpreter
+//   with the specified string as an error message
+//
 static int
 PyReturnTclError(Tcl_Interp *interp, char *string) {
 	Tcl_SetObjResult(interp, Tcl_NewStringObj(string, -1));
 	return TCL_ERROR;
 }
 
+//
+// PyReturnException - return a python exception to tcl as a tcl error
+//
 static int
 PyReturnException(Tcl_Interp *interp, char *description)
 {
@@ -286,13 +293,23 @@ PyReturnException(Tcl_Interp *interp, char *description)
 			pFormatExceptionOnly, pType, pVal, NULL);
 	}
 	if (pTraceList == NULL)
-		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp01)]");
+		return PyReturnTclError(interp, "failed to get traceback as a python list");
+
+	// pop off the top-level error message; we already
+	// grabbed it into the tcl interpreter result so
+	// if we don't pop it it'll appear twice in the tcl
+	// errorInfo.
+	traceLen = PyObject_Length(pTraceList);
+	if (traceLen > 1) {
+		pTraceDesc = PyObject_CallMethod(pTraceList, "pop", NULL);
+		Py_DECREF(pTraceList);
+	}
 
 	/* Put the list in tcl order (top stack level at top) */
 	pNone = PyObject_CallMethod(pTraceList, "reverse", NULL);
 	if (pNone == NULL) {
 		Py_DECREF(pTraceList);
-		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp02)]");
+		return PyReturnTclError(interp, "failed to reverse traceback list");
 	}
 	assert(pNone == Py_None);
 	Py_DECREF(pNone);
@@ -305,21 +322,19 @@ PyReturnException(Tcl_Interp *interp, char *description)
 	}
 	if (traceLen <= 0 || (pTraceDesc == NULL && traceLen > 1)) {
 		Py_DECREF(pTraceList);
-		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp03)]");
+		return PyReturnTclError(interp, "failed to pop traceback header");
 	}
 	Py_XDECREF(pTraceDesc);
 
 	/* Turn the python list into a python string */
+	// by invoking join on the empty string with a callmethod
+	// format of "object"
 	pEmptyStr = PyUnicode_FromString("");
-	if (pEmptyStr == NULL) {
-		Py_DECREF(pTraceList);
-		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp04)]");
-	}
 	pTraceStr = PyObject_CallMethod(pEmptyStr, "join", "O", pTraceList);
 	Py_DECREF(pTraceList);
 	Py_DECREF(pEmptyStr);
 	if (pTraceStr == NULL)
-		return PyReturnTclError(interp, "[Failed to get python exception details (#e_ltp05)]");
+		return PyReturnTclError(interp, "failed to join traceback list into a string");
 
 	/* Turn the python string into a string */
 	pTraceBytes = PyUnicode_AsASCIIString(pTraceStr);
