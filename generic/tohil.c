@@ -281,7 +281,9 @@ PyReturnException(Tcl_Interp *interp, char *description)
 
 	Tcl_Obj *errorCodeObj = Tcl_NewObj();
 	Tcl_ListObjAppendElement(interp, errorCodeObj, Tcl_NewStringObj("PYTHON", -1));
-	Tcl_ListObjAppendElement(interp, errorCodeObj, pyObjToTcl(interp, pType));
+
+	PyTypeObject *pt = (PyTypeObject *)pType;
+	Tcl_ListObjAppendElement(interp, errorCodeObj, Tcl_NewStringObj(pt->tp_name, -1));
 	Tcl_SetObjErrorCode(interp, errorCodeObj);
 
 	/* Get traceback as a python list */
@@ -299,11 +301,13 @@ PyReturnException(Tcl_Interp *interp, char *description)
 	// grabbed it into the tcl interpreter result so
 	// if we don't pop it it'll appear twice in the tcl
 	// errorInfo.
+#if 0
 	traceLen = PyObject_Length(pTraceList);
 	if (traceLen > 1) {
 		pTraceDesc = PyObject_CallMethod(pTraceList, "pop", NULL);
 		Py_DECREF(pTraceList);
 	}
+#endif
 
 	/* Put the list in tcl order (top stack level at top) */
 	pNone = PyObject_CallMethod(pTraceList, "reverse", NULL);
