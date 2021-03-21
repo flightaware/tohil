@@ -6,6 +6,8 @@ from tohil._tohil import (
     eval, expr, getvar, interp, setvar, subst, call, plug,
 )
 
+from tohil.trampoline import Trampoline
+
 from tohil.tcller import TclWriter
 
 class RivetControl:
