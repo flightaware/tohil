@@ -1,20 +1,22 @@
 # tohil
 
-This is tohil, a dual-purpose Python extension and TCL extension that makes it possible to effortlessly call bidirectionally between Tcl and Python, targeting Tcl >= 8.6 and Python 3.6+
+Tohil a feathered serpent, aims to provide a delightful integration between python, the serpent, and TCL, the feather.
 
-The extension is available under the 3-clause BSD license (see "LICENSE").
+Tohil is simultaneously a Python extension and a TCL extension that makes it possible to effortlessly call bidirectionally between Tcl and Python, targeting Tcl 8.6+ and Python 3.6+
 
-tohil is based on libtclpy, by Aidan Hobson Sayers at https://github.com/aidanhs/libtclpy/.
+Tohil is open source software, available for free including for profit and/or for redistribution, under the permissive 3-clause BSD license (see "LICENSE.txt").
+
+tohil is based on, and is completely inspired by and exists because of, libtclpy, by Aidan Hobson Sayers available at https://github.com/aidanhs/libtclpy/.
 
 ## Usage
 
-You can import tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define all tohil's methods in both. 
+You can import tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define tohil's functions in both.
 
-This means you can call backwards and forwards between interpreters.  In other words, any Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code limited only by your machine's memory and your sanity (and the (settable) Tcl recursion limit).
+Using tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code limited only by your machine's memory and your sanity (and the (settable) Python and Tcl recursion limits).
 
 ### Accessing TCL From Python
 
-Interacting with the Tcl interpreter from Python is performed at the base level through some methods of the tohil object that gets created when you import tohil into your Python program.
+To use Python to do things in Tcl, you invoke functions defined by the tohil module that gets created when you import tohil into your Python interpreter.
 
 ```python
 import tohil
@@ -26,7 +28,7 @@ import tohil
    - side effects: executes code in the Tcl interpreter
    - *Do not use with untrusted substituted input*
    - `evalString` may be any valid Tcl code, including semicolons for single line statements or multiline blocks
-   - uncaught tcl errors tracing back all the way to the the tohil interface are raised as a python exception
+   - uncaught tcl errors tracing back all the way to the the tohil membrane are raised as a python exception
 
 By default the results of the Tcl code evaluated (if there wasn't an exception) is returned to the caller, as a string.
 
@@ -47,7 +49,7 @@ Note that currently for list, set and dict, the values constructed therein will 
 
  - `tohil.call(command, arg1 arg2, arg3, to=type)`
    - takes: single Tcl command name plus zero or more arguments, and an optional data type to convert the return to
-   - returns: the final return value
+   - returns: whatever tcl returned
    - side effects: executes code in the Tcl interpreter
    - uncaught tcl errors tracing back all the way to the the tohil interface are raised as a python exception
 
@@ -184,9 +186,7 @@ Anything returned by python from the eval is returned to to the caller of tohil:
 
 tohil::exec evaluates the code passed to it as if with python's exec.  Nothing is returned.  If the python code prints anything, it goes to stdout using python's I/O subsystem.  However you can easily redirect python's output to go to a string, or whatever, in the normal python manner.
 
-Tohil provide a python class that will send everything sent to python's stdout through to Tcl's stdout.  This should be great for Rivet.
-
-Actually even better than that is just to send python's stdout to Rivet by sending it to Tcl's stdout.  There's a TclWriter class underneath pysrc.
+tohil::run evaluates the code passed to it as if with python's exec, but unlike tohil::exec, anything emitted by the python code to python's stdout (print, etc) is captured by tohil::run and returned to the caller.
 
 tohil::call provides a way to invoke one python function, with zero or more arguments, without having to pass it through Python's eval or exec and running the risk that python metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
 
@@ -296,9 +296,30 @@ This might bake your noodle...
 '4294967295'
 ```
 
-### Unix Build
+### Rivet
 
-tohil builds with the familiar GNU autoconf build system.  "autoreconf" will produce a configure script based on the configure.in.  The tooling used is the standard Tcl Extension Architecture (TEA) approach, which is pretty evolved and fairly clean considering it's auitoconf.
+From a Rivet page, in some of your Tcl code, invoke `package require tohil`.
+
+If you run tohil_rivet it will plug tohil's python interpreter such that everything it writes to stdout using print, or whatever, will go through Tcl's stdout and thereby into your Rivet page.
+
+```
+<?
+
+package require tohil; tohil_rivet
+
+puts "calling out to python to add 5 + 5: [::tohil::eval "5 + 5"]"
+
+tohil::exec {
+print('hello, world')
+print("<hr>")
+}
+
+?>
+```
+
+###  Building on Unix, Linux, FreeBSD and the Mac
+
+tohil builds with the familiar GNU autoconf build system.  "autoreconf" will produce a configure script based on the configure.in.  The tooling used is the standard Tcl Extension Architecture (TEA) approach, which is pretty evolved and fairly clean considering it's autoconf.
 
 It is assumed that you
  - have got the repo (either by `git clone` or a tar.gz from the releases page).
