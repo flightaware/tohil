@@ -9,7 +9,7 @@ tohil is based on libtclpy, by Aidan Hobson Sayers.
 ## Usage
 
 You can import tohil into either a Tcl or Python parent interpreter. Doing
-so will create and initialise an interpreter for the  corresponding language and define all
+so will create and initialise an interpreter for the corresponding language and define all
 tohil's methods in both. 
 
 This means you can call backwards and forwards between interpreters.  In other words, any Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code limited only by your machine's memory and your sanity (and the (settable) Tcl recursion limit).
@@ -29,11 +29,10 @@ Reference:
    - `returns: the final return value`
    - `side effects: executes code in the Tcl interpreter`
    - **Do not use with substituted input**
-   - `evalString` may be any valid Tcl code, including semicolons for single
-     line statements or multiline blocks
-   - errors reaching the Tcl interpreter top level are raised as an exception
+   - `evalString` may be any valid Tcl code, including semicolons for single line statements or multiline blocks
+   - uncaught tcl errors tracing back all the way to the the tohil interface are raised as a python exception
 
-As it can be tricky to invoke Tcl using eval and not getting possibly unwanted side effects if arguments contain tcl metadata such as square brackets and dollar signs, a direct argument-for-argument tohil.call is provided where tcl will not do variable and command substitution on its arguments and keep funny business to a minimum.
+As it can be tricky to invoke Tcl using eval and not getting possibly unwanted side effects if arguments (such as data!) contain tcl metadata such as square brackets and dollar signs, a direct argument-for-argument tohil.call is provided where tcl will not do variable and command substitution on its arguments and keep funny business to a minimum.
 
 ```python
 >>> import tohil
@@ -141,26 +140,31 @@ now eval with to=set option to return a set from a list
 
 From Tcl, tohil provides access to Python through several commands and some procs.
 
-Perhaps the two most important commands are `tohil::eval` and `tohil::exec`.  These commands correspond closely to python's `eval` and `exec`.
+Probably the most important commands are `tohil::eval`, `tohil::exec` and `tohil::call`.  The first two commands correspond closely to python's `eval` and `exec`.
 
 General notes:
  - All commands are run in the context of a single interpreter session. Imports, function definitions and variables persist.
  - Uncaught exceptions in the python interpreter resulting from code invoked from Tcl using tohil will propagate a TCL error including a stack trace of the python code that was executing. As the exception continues up the stack, the tcl stack trace will be appended to it.
+ - The Tcl error code is set to a list comprising "PYTHON", the class name of the exception, and the base error message.  This suppose is experimental but likely to continue.  I would like to add the class arguments, though.
  - Such Python errors may be caught (as per tcl stack traces) with Tcl's catch or try, the same as any other TCL error.
 
 ```tcl
 package require tohil
 ```
 
-Tohil provides new commands for interactiving with the python interpreter, via the ::tohil namespace.
+Tohil provides new commands for interacting with the python interpreter, via the ::tohil namespace.
 
-tohil::eval evaluates the code passed to it as if with python's eval.  So it has to be an expression, i.e. it is an error if you try to define a function with it, or even set the value of a variable.
+tohil::eval evaluates the code passed to it as if with native python's eval.  So the argument has to be an expression, some kind of simple call, etc, i.e. it is an error if you try to define a function with it, or even set the value of a variable.
 
 Anything returned by python from the eval is returned to tcl.
 
-tohil::exec evaluates the code passed to it as if with python's exec.  Nothing is returned.  If the python code prints anything, it goes to stdout using python's I/O subsystem.  However you can easily redirect python's output to go to a string, or whatever, in the normal python manner.  Tohil provide a python class that will send everything sent to python's stdout through to Tcl's stdout.  This should be great for Rivet.
+tohil::exec evaluates the code passed to it as if with python's exec.  Nothing is returned.  If the python code prints anything, it goes to stdout using python's I/O subsystem.  However you can easily redirect python's output to go to a string, or whatever, in the normal python manner.
 
-tohil::call provides a way to invoke one tcl function, with zero or more arguments, without having to pass it through eval and running the risk that tcl metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
+Tohil provide a python class that will send everything sent to python's stdout through to Tcl's stdout.  This should be great for Rivet.
+
+Actually even better than that is just to send python's stdout to Rivet by sending it to Tcl's stdout.  There's a TclWriter class underneath pysrc.
+
+tohil::call provides a way to invoke one python function, with zero or more arguments, without having to pass it through eval and running the risk that python metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
 
 tohil::import provides a way to import python modules, although I'm not sure that it's much different from doing a tohil::exec "import module"
 
