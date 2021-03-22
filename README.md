@@ -4,13 +4,11 @@ This is tohil, a dual-purpose Python extension and TCL extension that makes it p
 
 The extension is available under the 3-clause BSD license (see "LICENSE").
 
-tohil is based on libtclpy, by Aidan Hobson Sayers.
+tohil is based on libtclpy, by Aidan Hobson Sayers at https://github.com/aidanhs/libtclpy/.
 
 ## Usage
 
-You can import tohil into either a Tcl or Python parent interpreter. Doing
-so will create and initialise an interpreter for the corresponding language and define all
-tohil's methods in both. 
+You can import tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define all tohil's methods in both. 
 
 This means you can call backwards and forwards between interpreters.  In other words, any Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code limited only by your machine's memory and your sanity (and the (settable) Tcl recursion limit).
 
@@ -22,14 +20,35 @@ Interacting with the Tcl interpreter from Python is performed at the base level 
 import tohil
 ```
 
-
-Reference:
- - `tohil.eval(evalstring)`
-   - `takes: string of valid Tcl code`
-   - `returns: the final return value`
-   - `side effects: executes code in the Tcl interpreter`
-   - **Do not use with substituted input**
+ - `tohil.eval(evalstring, to=type)`
+   - takes: string of valid Tcl code
+   - returns: the final return value
+   - side effects: executes code in the Tcl interpreter
+   - *Do not use with untrusted substituted input*
    - `evalString` may be any valid Tcl code, including semicolons for single line statements or multiline blocks
+   - uncaught tcl errors tracing back all the way to the the tohil interface are raised as a python exception
+
+By default the results of the Tcl code evaluated (if there wasn't an exception) is returned to the caller, as a string.
+
+The optional "to" named parameter allows you to specify one of a number of data types that will cause tohil to convert the return into a native Python data type.
+
+The types supported are str, int, bool, float, list, set, and 'dict'.
+
+```python
+>>> tohil.eval('set a [list a 1 b 2 c 3]')
+'a 1 b 2 c 3'
+>>> tohil.eval('return $a', to=list)
+['a', '1', 'b', '2', 'c', '3']
+>>> tohil.eval('return $a',to=dict)
+{'a': '1', 'b': '2', 'c': '3'}
+```
+
+Note that currently for list, set and dict, the values constructed therein will be strings.  We already have code that can recognize and convert a few types and could use that, or perhaps we will create a way to specify desired type conversions within compound types.
+
+ - `tohil.call(command, arg1 arg2, arg3, to=type)`
+   - takes: single Tcl command name plus zero or more arguments, and an optional data type to convert the return to
+   - returns: the final return value
+   - side effects: executes code in the Tcl interpreter
    - uncaught tcl errors tracing back all the way to the the tohil interface are raised as a python exception
 
 As it can be tricky to invoke Tcl using eval and not getting possibly unwanted side effects if arguments (such as data!) contain tcl metadata such as square brackets and dollar signs, a direct argument-for-argument tohil.call is provided where tcl will not do variable and command substitution on its arguments and keep funny business to a minimum.
@@ -49,6 +68,7 @@ Python has direct access TCL variables and arrays using tohil.getvar.
 tohil.getvar(var)
 tohil.getvar(array, var)
 tohil.getvar(array='a', var='5')
+tohil.getvar(array='a', var='5', to=int)
 ```
 
 Likewise, tohil.setvar can set them using setvar.
@@ -164,7 +184,7 @@ Tohil provide a python class that will send everything sent to python's stdout t
 
 Actually even better than that is just to send python's stdout to Rivet by sending it to Tcl's stdout.  There's a TclWriter class underneath pysrc.
 
-tohil::call provides a way to invoke one python function, with zero or more arguments, without having to pass it through eval and running the risk that python metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
+tohil::call provides a way to invoke one python function, with zero or more arguments, without having to pass it through Python's eval or exec and running the risk that python metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
 
 tohil::import provides a way to import python modules, although I'm not sure that it's much different from doing a tohil::exec "import module"
 
