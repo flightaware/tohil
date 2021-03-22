@@ -86,9 +86,12 @@ You can also evaluate tcl expressions from python using tohil.expr:
 1
 >>> tohil.expr('[clock seconds] % 86400')
 '25571'
+>>> tohil.expr('[clock seconds] % 86400',to=int)
+25571
 ```
 
 Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, command and variable substitutions, but doesn't evaluate the final result, like eval would.
+
 
 ```
 >>> import tohil
@@ -97,6 +100,8 @@ Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, com
 >>> tohil.subst("hello, $name")
 'hello, karl'
 ```
+
+Although we could easily make tohil.subst support the "to=" way of request a type conversion, is there any case where you wouldn't just expect it to return a string?
 
 example python session:
 
@@ -118,9 +123,7 @@ example python session:
 >>> tohil.getvar(array='a',var='16')
 
 
-
-
->>> tohil.eval('set a "a 1 b 2 c 3"')
+>>> tohil.eval('set a [list a 1 b 2 c 3]')
 'a 1 b 2 c 3'
 >>> tohil.subst("$a")
 'a 1 b 2 c 3'
@@ -136,7 +139,8 @@ example python session:
 ['1', '2', '3', '4']
 
 ```
-check this out, converting expected results to python datatypes:
+
+Check this out, converting expected results to python datatypes:
 
 >>> import tohil
 >>> tohil.eval("clock seconds")
@@ -176,7 +180,7 @@ Tohil provides new commands for interacting with the python interpreter, via the
 
 tohil::eval evaluates the code passed to it as if with native python's eval.  So the argument has to be an expression, some kind of simple call, etc, i.e. it is an error if you try to define a function with it, or even set the value of a variable.
 
-Anything returned by python from the eval is returned to tcl.
+Anything returned by python from the eval is returned to to the caller of tohil::eval.
 
 tohil::exec evaluates the code passed to it as if with python's exec.  Nothing is returned.  If the python code prints anything, it goes to stdout using python's I/O subsystem.  However you can easily redirect python's output to go to a string, or whatever, in the normal python manner.
 
@@ -304,14 +308,14 @@ The build process fairly simple:
  - make
  - sudo make install
 
-We're using distutils to build the python module, so the Makefile.in/Makefile is basically doing
+We're using setuptools to build the python module, so the Makefile.in/Makefile is basically doing
 
 ```
 python3 setup.py build
 python3 setup.py install
 ```
 
-to build and installing the python module
+...to build and install the python module.
 
 Now try it out:
 
@@ -330,20 +334,20 @@ Run the tests with
 
 ### gotchas
 
-1. Be very careful when putting unicode characters into a inside a `py eval`
-call - they are decoded by the tcl parser and passed as literal bytes
+1. Be very careful when putting unicode characters into a inside a `tohil.eval`
+or `tohil.exec` call - they are decoded by the tcl parser and passed as literal bytes
 to the python interpreter. So if we directly have the character "ಠ", it is
 decoded to a utf-8 byte sequence and becomes u"\xe0\xb2\xa0" (where the \xXY are
 literal bytes) as seen by the Python interpreter.
 2. Escape sequences (e.g. `\x00`) inside py eval may be interpreted by tcl - use
 {} quoting to avoid this.
 
-you need to build the library without stubs for python to be able to use it.
+You need to build the library without stubs for python to be able to use it.
 
-on freebsd at least i have to change -ltclstub86 to -ltcl86 in Makefile after
+On FreeBSD at least i have to change -ltclstub86 to -ltcl86 in Makefile after
 it is created -- this needs to be done properly
 
-on the mac the python3 setup.tcl thing builds a shared library but it doesn't properly link it to the tcl library so you get a runtime error when you try to import tohil.
+On the Mac the python3 setup.tcl thing builds a shared library but it doesn't properly link it to the tcl library so you get a runtime error when you try to import tohil.
 
 copy the .dylib file that make built to the .so file where make install sent the python module and it will work.
 
