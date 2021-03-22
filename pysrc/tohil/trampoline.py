@@ -6,15 +6,9 @@ import sys
 import traceback
 
 def handle_exception(type, val, traceback_object):
-    print("handle exception invoked, type:")
-    print(type)
-    print("val:")
-    print(val)
-    print("format_tb:")
-    print(traceback.format_tb(traceback_object))
-    print("---")
     errorCode = ["PYTHON", type.__name__, val]
-    errorInfo = "stub error info"
+    tb_list = traceback.format_tb(traceback_object)
+    errorInfo = "\nfrom python code executed by tohil\n" + " ".join(tb_list).rstrip()
     return errorCode, errorInfo
 
 class Trampoline:
