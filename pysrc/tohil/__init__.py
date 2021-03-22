@@ -2,6 +2,8 @@
 
 import sys
 
+from tohil.trampoline import Trampoline, handle_exception
+
 from tohil._tohil import (
     eval, expr, getvar, interp, setvar, subst, call, plug,
 )
@@ -25,3 +27,4 @@ rivetControl = RivetControl()
 
 def rivet():
     rivetControl.activate()
+
