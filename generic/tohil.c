@@ -9,8 +9,7 @@
 
 /* TCL LIBRARY BEGINS HERE */
 
-static PyObject *pFormatException = NULL;
-static PyObject *pFormatExceptionOnly = NULL;
+static PyObject *pTohilHandleException = NULL;
 
 // turn a tcl list into a python list
 PyObject *
@@ -262,94 +261,31 @@ PyReturnException(Tcl_Interp *interp, char *description)
 		return PyReturnTclError(interp, "bug in tohil - PyReturnException called without a python error having occurred");
 	}
 
-	/* use python traceback module */
-
-	// TODO: save the error and reraise in python if we have no idea
-	// TODO: prefix everything with 'PY:'?
-	// TODO: use extract_tb to get stack, print custom traceback myself
-
+	// break out the exception
 	PyObject *pType = NULL, *pVal = NULL, *pTrace = NULL;
-	PyObject *pTraceList = NULL, *pTraceStr = NULL, *pTraceDesc = NULL, *pTraceBytes = NULL;
-	PyObject *pNone = NULL, *pEmptyStr = NULL;
-	char *traceStr = NULL;
-	Py_ssize_t traceLen = 0;
 
 	PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
 	PyErr_NormalizeException(&pType, &pVal, &pTrace);
 
+	// set tcl interpreter result
 	Tcl_SetObjResult(interp, pyObjToTcl(interp, pVal));
 
-	Tcl_Obj *errorCodeObj = Tcl_NewObj();
-	Tcl_ListObjAppendElement(interp, errorCodeObj, Tcl_NewStringObj("PYTHON", -1));
+	// invoke python tohil.handle_exception(type, val, tracebackObject)
+	// it returns a tuple consisting of the error code and error info (traceback)
+	PyObject *pExceptionResult = PyObject_CallFunctionObjArgs(pTohilHandleException, pType, pVal, pTrace, NULL);
 
-	PyTypeObject *pt = (PyTypeObject *)pType;
-	Tcl_ListObjAppendElement(interp, errorCodeObj, Tcl_NewStringObj(pt->tp_name, -1));
-	Tcl_SetObjErrorCode(interp, errorCodeObj);
+	// call tohil python exception handler function
+	// return to me a tuple containing the error string, error code, and traceback
+	if (pExceptionResult == NULL)
+		return PyReturnTclError(interp, "some problem running the tohil python exception handler");
 
-	/* Get traceback as a python list */
-	if (pTrace != NULL) {
-		pTraceList = PyObject_CallFunctionObjArgs(
-			pFormatException, pType, pVal, pTrace, NULL);
-	} else {
-		pTraceList = PyObject_CallFunctionObjArgs(
-			pFormatExceptionOnly, pType, pVal, NULL);
+	if (!PyTuple_Check(pExceptionResult) || PyTuple_GET_SIZE(pExceptionResult) != 2) {
+		return PyReturnTclError(interp, "malfunction in tohil python exception handler, did not return tuple or tuple did not contain 2 elements");
 	}
-	if (pTraceList == NULL)
-		return PyReturnTclError(interp, "failed to get traceback as a python list");
 
-	// pop off the top-level error message; we already
-	// grabbed it into the tcl interpreter result so
-	// if we don't pop it it'll appear twice in the tcl
-	// errorInfo.
-#if 0
-	traceLen = PyObject_Length(pTraceList);
-	if (traceLen > 1) {
-		pTraceDesc = PyObject_CallMethod(pTraceList, "pop", NULL);
-		Py_DECREF(pTraceList);
-	}
-#endif
-
-	/* Put the list in tcl order (top stack level at top) */
-	pNone = PyObject_CallMethod(pTraceList, "reverse", NULL);
-	if (pNone == NULL) {
-		Py_DECREF(pTraceList);
-		return PyReturnTclError(interp, "failed to reverse traceback list");
-	}
-	assert(pNone == Py_None);
-	Py_DECREF(pNone);
-
-	/* Remove "Traceback (most recent call last):" if the trace len > 1 */
-	/* TODO: this feels like a hack, there must be a better way */
-	traceLen = PyObject_Length(pTraceList);
-	if (traceLen > 1) {
-		pTraceDesc = PyObject_CallMethod(pTraceList, "pop", NULL);
-	}
-	if (traceLen <= 0 || (pTraceDesc == NULL && traceLen > 1)) {
-		Py_DECREF(pTraceList);
-		return PyReturnTclError(interp, "failed to pop traceback header");
-	}
-	Py_XDECREF(pTraceDesc);
-
-	/* Turn the python list into a python string */
-	// by invoking join on the empty string with a callmethod
-	// format of "object"
-	pEmptyStr = PyUnicode_FromString("");
-	pTraceStr = PyObject_CallMethod(pEmptyStr, "join", "O", pTraceList);
-	Py_DECREF(pTraceList);
-	Py_DECREF(pEmptyStr);
-	if (pTraceStr == NULL)
-		return PyReturnTclError(interp, "failed to join traceback list into a string");
-
-	/* Turn the python string into a string */
-	pTraceBytes = PyUnicode_AsASCIIString(pTraceStr);
-	Py_DECREF(pTraceStr);
-	if (pTraceBytes == NULL)
-		return PyReturnTclError(interp, "[Failed to convert python exception details to ascii bytes (#e_ltp06)]");
-	Tcl_AddErrorInfo(interp, PyBytes_AS_STRING(pTraceBytes));
-	Py_DECREF(pTraceBytes);
-
-	Tcl_AddErrorInfo(interp, description);
-	free(traceStr);
+	Tcl_SetObjErrorCode(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 0)));
+	Tcl_AppendObjToErrorInfo(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 1)));
+	Py_DECREF(pExceptionResult);
 	return TCL_ERROR;
 }
 
@@ -936,25 +872,22 @@ Tohil_Init(Tcl_Interp *interp)
 			return TCL_ERROR;
 	}
 
-	/* Get support for full tracebacks */
-	PyObject *pTraceModStr, *pTraceMod;
+	// import tohil to get at the python parts
+	// and grab a reference to tohil's exception handler
+	PyObject *pTohilModStr, *pTohilMod;
 
-	pTraceModStr = PyUnicode_FromString("traceback");
-	if (pTraceModStr == NULL)
-		return TCL_ERROR;
-	pTraceMod = PyImport_Import(pTraceModStr);
-	Py_DECREF(pTraceModStr);
-	if (pTraceMod == NULL)
-		return TCL_ERROR;
-	pFormatException =     PyObject_GetAttrString(pTraceMod, "format_exception");
-	pFormatExceptionOnly = PyObject_GetAttrString(pTraceMod, "format_exception_only");
-	Py_DECREF(pTraceMod);
-	if (pFormatException == NULL || pFormatExceptionOnly == NULL ||
-			!PyCallable_Check(pFormatException) ||
-			!PyCallable_Check(pFormatExceptionOnly)) {
-		Py_XDECREF(pFormatException);
-		Py_XDECREF(pFormatExceptionOnly);
-		return TCL_ERROR;
+	pTohilModStr = PyUnicode_FromString("tohil");
+	pTohilMod = PyImport_Import(pTohilModStr);
+	Py_DECREF(pTohilModStr);
+	if (pTohilMod == NULL) {
+		return PyReturnTclError(interp, "unable to import tohil module to python interpreter");
+	}
+
+	pTohilHandleException =     PyObject_GetAttrString(pTohilMod, "handle_exception");
+	Py_DECREF(pTohilMod);
+	if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
+		Py_XDECREF(pTohilHandleException);
+		return PyReturnTclError(interp, "unable to find tohil.handle_exception function in python interpreter");
 	}
 
 	return TCL_OK;
