@@ -1,5 +1,7 @@
 # tohil
 
+<img src="https://github.com/flightaware/tohil/blob/main/graphics/237px-Quetzalcoatl_feathered_serpent.png">
+
 Tohil a feathered serpent, aims to provide a delightful integration between python, the serpent, and TCL, the feather.
 
 Tohil is simultaneously a Python extension and a TCL extension that makes it possible to effortlessly call bidirectionally between Tcl and Python, targeting Tcl 8.6+ and Python 3.6+
@@ -412,3 +414,11 @@ In order of priority:
 ### geek notes
 
 The single tohil shared library created by building this software is loaded both by Python and Tcl, which is pretty cool and important to how it works.
+
+### image attribution
+
+Do you like the tohil logo?  It's from a public domain image of the Mayan deity Quetzalcoatl (also known in some cultures as Tohil), from the Codex Telleriano-Remensis, from the 16th century.
+
+A scan of the image can be found here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_telleriano.jpg.  A wikimedia user, https://commons.wikimedia.org/wiki/User:Di_(they-them), made an SVG file of it, available here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_feathered_serpent.svg
+
+
