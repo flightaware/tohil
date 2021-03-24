@@ -1,17 +1,23 @@
+"""trampoline
+
+support functions for tohil
+"""
+
 from io import StringIO
-import re
 import sys
 import traceback
 
+# we call exec.  it's necessary.
+#pylint: disable=W0122
 
-def handle_exception(type, val, traceback_object):
+def handle_exception(exception_type, val, traceback_object):
     """handle_exception - the tohil C code that handles uncaught
     python exceptions invokes this to turn an exception type, value
     and traceback object into a tcl error code and error info"""
-    errorCode = ["PYTHON", type.__name__, val]
+    error_code = ["PYTHON", exception_type.__name__, val]
     tb_list = traceback.format_tb(traceback_object)
-    errorInfo = "\nfrom python code executed by tohil\n" + " ".join(tb_list).rstrip()
-    return errorCode, errorInfo
+    error_info = "\nfrom python code executed by tohil\n" + " ".join(tb_list).rstrip()
+    return error_code, error_info
 
 
 def run(command):
