@@ -26,8 +26,16 @@ LIBS = """ @LIBS@ """
 prefix = "@prefix@"
 exec_prefix = "@exec_prefix@"
 
-
 TOHIL_VERSION = "1.0.0"
+
+import re
+
+def include_to_dir(string):
+    return re.sub(r"""(-I| |"|')*""", "", string)
+
+tcl_include_dir = include_to_dir(TCL_INCLUDES)
+prefix_include_dir = f"{prefix}/include"
+prefix_lib_dir = f"{prefix}/lib"
 
 # Always prefer setuptools over distutils
 from setuptools import setup, Extension, find_packages
@@ -39,8 +47,8 @@ tohil_c_module = Extension(
     "tohil._tohil",
     define_macros=[("PACKAGE_VERSION", TOHIL_VERSION)],
     libraries=["tcl86"],
-    include_dirs=["/usr/local/include", "/usr/local/include/tcl8.6"],
-    library_dirs=["/usr/local/lib"],
+    include_dirs=[prefix_include_dir, tcl_include_dir],
+    library_dirs=[prefix_lib_dir],
     sources=["generic/tohil.c"],
 )
 
