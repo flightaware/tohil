@@ -1,9 +1,8 @@
-
-
 from io import StringIO
 import re
 import sys
 import traceback
+
 
 def handle_exception(type, val, traceback_object):
     """handle_exception - the tohil C code that handles uncaught
@@ -13,6 +12,7 @@ def handle_exception(type, val, traceback_object):
     tb_list = traceback.format_tb(traceback_object)
     errorInfo = "\nfrom python code executed by tohil\n" + " ".join(tb_list).rstrip()
     return errorCode, errorInfo
+
 
 def run(command):
     """run - perform exec but redirect stdout while
@@ -32,4 +32,3 @@ def run(command):
         sys.stdout = their_stdout
 
     return my_stdout.getvalue()
-

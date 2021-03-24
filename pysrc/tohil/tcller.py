@@ -1,19 +1,19 @@
-
-
 import tohil
 from io import StringIO
 import sys
+
 
 class TclWriter:
     def __init__(self):
         pass
 
     def write(self, string):
-        tohil.call('puts', '-nonewline', string)
-        #self.flush()
+        tohil.call("puts", "-nonewline", string)
+        # self.flush()
 
     def flush(self):
-        tohil.call('flush','stdout')
+        tohil.call("flush", "stdout")
+
 
 class Tcller:
     """exec something and return whatever it emitted to tcl's stdout"""
