@@ -24,6 +24,8 @@ To use Python to do things in Tcl, you invoke functions defined by the tohil mod
 import tohil
 ```
 
+#### tohil.eval
+
  - `tohil.eval(evalstring, to=type)`
    - takes: string of valid Tcl code
    - returns: the final return value
@@ -36,7 +38,7 @@ By default the results of the Tcl code evaluated (if there wasn't an exception) 
 
 The optional "to" named parameter allows you to specify one of a number of data types that will cause tohil to convert the return into a native Python data type.
 
-The types supported are str, int, bool, float, list, set, and 'dict'.
+The types supported are str, int, bool, float, list, set, and dict.
 
 ```python
 >>> tohil.eval('set a [list a 1 b 2 c 3]')
@@ -49,13 +51,15 @@ The types supported are str, int, bool, float, list, set, and 'dict'.
 
 Note that currently for list, set and dict, the values constructed therein will be strings.  We already have code that can recognize and convert a few types and could use that, or perhaps we will create a way to specify desired type conversions within compound types.
 
+#### tohil.call
+
  - `tohil.call(command, arg1 arg2, arg3, to=type)`
    - takes: single Tcl command name plus zero or more arguments, and an optional data type to convert the return to
    - returns: whatever tcl returned
    - side effects: executes code in the Tcl interpreter
    - uncaught tcl errors tracing back all the way to the the tohil interface are raised as a python exception
 
-As it can be tricky to invoke Tcl using eval and not getting possibly unwanted side effects if arguments (such as data!) contain tcl metadata such as square brackets and dollar signs, a direct argument-for-argument tohil.call is provided where tcl will not do variable and command substitution on its arguments and keep funny business to a minimum.
+As it can be tricky to invoke Tcl using eval and not getting possibly unwanted side effects if arguments (such as data!) contain tcl metadata such as square brackets and dollar signs, a direct argument-for-argument *tohil.call* is provided where tcl will not do variable and command substitution on its arguments and thus help keep funny business to a minimum.
 
 ```python
 >>> import tohil
@@ -64,7 +68,9 @@ As it can be tricky to invoke Tcl using eval and not getting possibly unwanted s
 'ven. mars 19 19:32:28 UTC 2021'
 ```
 
-The above example is trivial and not really an example of something that might be unsafe to use eval for.  But imagine if you were submitting arbitrary data as arguments to Tcl commands.  It would be difficult to examine it in python to be sure tcl will execute it appropriate.
+The above example is trivial and not really an example of something that might be unsafe to use eval for.  But imagine if you were submitting arbitrary data as arguments to Tcl commands.  It would be difficult to examine it in python to be sure tcl will execute it as you intended.
+
+#### tohil.getvar and tohil.setvar
 
 Python has direct access TCL variables and arrays using tohil.getvar.
 
@@ -94,6 +100,8 @@ You can also evaluate tcl expressions from python using tohil.expr:
 25571
 ```
 
+#### tohil.subst
+
 Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, command and variable substitutions, but doesn't evaluate the final result, like eval would.
 
 
@@ -107,9 +115,9 @@ Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, com
 
 Although we could easily make tohil.subst support the "to=" way of request a type conversion, is there any case where you wouldn't just expect it to return a string?
 
-example python session:
+#### Examples using tohil from Python
 
-```
+```python
 >>> import tohil
 >>> a = tohil.eval('list 1 [list 2 4 5] 3')
 >>> print(a)
@@ -138,7 +146,6 @@ example python session:
 >>> tohil.eval('return $a',to=dict)
 {'a': '1', 'b': '2', 'c': '3'}
 
-
 >>> tohil.eval(to=list,tcl_code="return [list 1 2 3 4]")
 ['1', '2', '3', '4']
 
@@ -146,6 +153,7 @@ example python session:
 
 Check this out, converting expected results to python datatypes:
 
+```python
 >>> import tohil
 >>> tohil.eval("clock seconds")
 '1616053828'
@@ -157,12 +165,14 @@ Check this out, converting expected results to python datatypes:
 True
 >>> tohil.eval("clock seconds",to=list)
 ['1616053849']
+```
 
+Now eval with to=set option to return a set from a list...
 
-now eval with to=set option to return a set from a list
-
+```python
 >>> tohil.eval('return [list 1 2 3 4 4 3]',to=set)
 {'3', '4', '2', '1'}
+```
 
 ### Accessing Python From TCL
 
@@ -173,7 +183,7 @@ Probably the most important commands are `tohil::eval`, `tohil::exec` and `tohil
 General notes:
  - All commands are run in the context of a single interpreter session. Imports, function definitions and variables persist.
  - Uncaught exceptions in the python interpreter resulting from code invoked from Tcl using tohil will propagate a TCL error including a stack trace of the python code that was executing. As the exception continues up the stack, the tcl stack trace will be appended to it.
- - The Tcl error code is set to a list comprising "PYTHON", the class name of the exception, and the base error message.  This suppose is experimental but likely to continue.  I would like to add the class arguments, though.
+ - The Tcl error code is set to a list comprising "PYTHON", the class name of the exception, and the base error message.  This is experimental but likely to continue.  I would like to add the class arguments, though.
  - Such Python errors may be caught (as per tcl stack traces) with Tcl's catch or try, the same as any other TCL error.
 
 ```tcl
@@ -182,20 +192,30 @@ package require tohil
 
 Tohil provides new commands for interacting with the python interpreter, via the ::tohil namespace.
 
+#### tohil::eval
+
 tohil::eval evaluates the code passed to it as if with native python's eval.  So the argument has to be an expression, some kind of simple call, etc, i.e. it is an error if you try to define a function with it, or even set the value of a variable.
 
 Anything returned by python from the eval is returned to to the caller of tohil::eval.
 
-tohil::exec evaluates the code passed to it as if with python's exec.  Nothing is returned.  If the python code prints anything, it goes to stdout using python's I/O subsystem.  However you can easily redirect python's output to go to a string, or whatever, in the normal python manner.
+#### tohil::exec
+
+tohil::exec evaluates the code passed to it as if with python's exec.  Nothing is returned.  If the python code prints anything, it goes to stdout using python's I/O subsystem.  However you can easily redirect python's output to go to a string, or whatever, in the normal python manner.  tohil::run, in fact, provides a way to do this.
+
+#### tohil::run
 
 tohil::run evaluates the code passed to it as if with python's exec, but unlike tohil::exec, anything emitted by the python code to python's stdout (print, etc) is captured by tohil::run and returned to the caller.
 
+#### tohil::call
+
 tohil::call provides a way to invoke one python function, with zero or more arguments, without having to pass it through Python's eval or exec and running the risk that python metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
+
+#### tohil::import
 
 tohil::import provides a way to import python modules, although I'm not sure that it's much different from doing a tohil::exec "import module"
 
+#### Reference
 
-Reference:
  - `tohil::eval evalString`
    - takes: string of valid python code
    - returns: the result of the eval
@@ -229,26 +249,11 @@ Reference:
    - You can do the same thing using exec and, currently, exercise more control.  For example `tohil::exec "from io import StringIO"`
 
 
-example tclsh session:
+#### Examples using tohil from Tcl
 
 ```
 % package require tohil
-%
-% tohil::exec {def mk(dir): os.mkdir(dir)}
-% tohil::exec {def rm(dir): os.rmdir(dir); return 15}
-% tohil::import os
-% set a [tohil::exec {print "creating 'testdir'"; mk('testdir')}]
-creating 'testdir'
-% set b [py call rm testdir]
-15
-%
-% tohil::import StringIO
-% tohil::eval {sio = StringIO.StringIO()}
-% tohil::call sio.write someinput
-% set c [py call sio.getvalue]
-someinput
-%
-% tohil::eval {divide = lambda x: 1.0/int(x)}
+% tohil::exec {divide = lambda x: 1.0/int(x)}
 % set d [tohil::call divide 16]
 0.0625
 % list [catch {tohil::call divide 0} err] $err
@@ -289,8 +294,6 @@ t\"est 11\{24 6 5
 a: , b: 15, c: someinput, d: 0.0625, e: {"t\"est": "11{24", "6": "5"}, f: {1 5} {7 9}
 ```
 
-
-
 This might bake your noodle...
 
 ```
@@ -298,7 +301,7 @@ This might bake your noodle...
 '4294967295'
 ```
 
-### Rivet
+### Using tohil from Rivet
 
 From a Rivet page, in some of your Tcl code, invoke `package require tohil`.
 
@@ -319,7 +322,7 @@ print("<hr>")
 ?>
 ```
 
-###  Building on Unix, Linux, FreeBSD and the Mac
+###  Building tohil on Unix, Linux, FreeBSD and the Mac
 
 tohil builds with the familiar GNU autoconf build system.  "autoreconf" will produce a configure script based on the configure.in.  The tooling used is the standard Tcl Extension Architecture (TEA) approach, which is pretty evolved and fairly clean considering it's autoconf.
 
@@ -417,7 +420,7 @@ The single tohil shared library created by building this software is loaded both
 
 ### image attribution
 
-Do you like the tohil logo?  It's from a public domain image of the Mayan deity Quetzalcoatl (also known in some cultures as Tohil), from the Codex Telleriano-Remensis, from the 16th century.
+Do you like the tohil logo?  It's from a creative commons-licensed image of the Mayan deity Quetzalcoatl (also known in some cultures as Tohil), from the Codex Telleriano-Remensis, from the 16th century.
 
 A scan of the image can be found here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_telleriano.jpg.  A wikimedia user, https://commons.wikimedia.org/wiki/User:Di_(they-them), made an SVG file of it, available here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_feathered_serpent.svg
 
