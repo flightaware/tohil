@@ -72,16 +72,49 @@ The above example is trivial and not really an example of something that might b
 
 #### tohil.getvar and tohil.setvar
 
-Python has direct access TCL variables and arrays using tohil.getvar.
+Python has direct access TCL variables and arrays using tohil.getvar.  Likewise, tohil.setvar can set them.
 
 ```
-tohil.getvar(var)
-tohil.getvar(array, var)
-tohil.getvar(array='a', var='5')
-tohil.getvar(array='a', var='5', to=int)
+>>> import tohil
+>>> tohil.setvar("foo", "bar")
+>>> tohil.getvar("foo")
+'bar'
+>>> tohil.setvar(var="happy", value="lamp")
+>>> tohil.getvar("happy")
+'lamp'
+
+>>> tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
+''
+>>> tohil.getvar('x(a)')
+'1'
+>>> tohil.getvar('x(a)', to=int)
+1
+>>> tohil.getvar(var='x(b)', to=float)
+2.0
+>>> tohil.getvar("x(e)")
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+RuntimeError: can't read "x(e)": no such element in array
 ```
 
-Likewise, tohil.setvar can set them using setvar.
+#### tohil.exists
+
+Since it is an error to try to getvar a variable that doesn't exist, you can trap the request from python and handle the exception, or use tohil.exists to see if the var or array element exist.
+
+```
+>>> tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
+''
+>>> tohil.exists("x(c)")
+True
+>>> tohil.exists("x(e)")
+False
+>>>
+>>> tohil.exists("banana")
+False
+```
+
+
+#### tohil.expr
 
 You can also evaluate tcl expressions from python using tohil.expr:
 

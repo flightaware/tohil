@@ -644,22 +644,16 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 static PyObject *
 tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"array", "var", "to", NULL};
-	char *array = NULL;
+	static char *kwlist[] = {"var", "to", NULL};
 	char *var = NULL;
 	PyObject *to = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|sO", kwlist, &array, &var, &to))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", kwlist, &var, &to))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 
-	if (array == NULL && var != NULL) {
-		array = var;
-		var = NULL;
-	}
-
-	Tcl_Obj *obj = Tcl_GetVar2Ex(interp, array, var, (TCL_LEAVE_ERR_MSG));
+	Tcl_Obj *obj = Tcl_GetVar2Ex(interp, var, NULL, (TCL_LEAVE_ERR_MSG));
 
 	if (obj == NULL) {
 		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
@@ -670,33 +664,47 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 static PyObject *
+tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"var", "to", NULL};
+	char *var = NULL;
+	PyObject *to = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", kwlist, &var, &to))
+		return NULL;
+
+	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
+
+	Tcl_Obj *obj = Tcl_GetVar2Ex(interp, var, NULL, 0);
+
+	PyObject *p = (obj == NULL ? Py_False : Py_True);
+	Py_INCREF(p);
+	return p;
+}
+
+
+static PyObject *
 tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"array", "value", "var", NULL};
-	char *array = NULL;
+	static char *kwlist[] = {"var", "value", NULL};
 	char *var = NULL;
 	PyObject *pyValue = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO|s", kwlist, &array, &pyValue, &var))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO", kwlist, &var, &pyValue))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 
 	Tcl_Obj *tclValue = pyObjToTcl(interp, pyValue);
 
-	if (array == NULL && var != NULL) {
-		array = var;
-		var = NULL;
-	}
-
-	Tcl_Obj *obj = Tcl_SetVar2Ex(interp, array, var, tclValue, (TCL_LEAVE_ERR_MSG));
+	Tcl_Obj *obj = Tcl_SetVar2Ex(interp, var, NULL, tclValue, (TCL_LEAVE_ERR_MSG));
 
 	if (obj == NULL) {
 		char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
 		PyErr_SetString(PyExc_RuntimeError, errMsg);
 		return NULL;
 	}
-
+	Py_INCREF(Py_None);
 	return Py_None;
 }
 
@@ -783,10 +791,13 @@ static PyMethodDef TohilMethods[] = {
 		"Evaluate tcl code"},
 	{"getvar",  (PyCFunction)tohil_getvar,
 		METH_VARARGS | METH_KEYWORDS,
-		"dig vars and arrays out of the tcl interpreter"},
+		"get vars and array elements from the tcl interpreter"},
 	{"setvar",  (PyCFunction)tohil_setvar,
 		METH_VARARGS | METH_KEYWORDS,
 		"set vars and array elements in the tcl interpreter"},
+	{"exists",  (PyCFunction)tohil_exists,
+		METH_VARARGS | METH_KEYWORDS,
+		"check whether vars and array elements exist in the tcl interpreter"},
 	{"subst",  (PyCFunction)tohil_subst,
 		METH_VARARGS | METH_KEYWORDS,
 		"perform Tcl command, variable and backslash substitutions on a string"},

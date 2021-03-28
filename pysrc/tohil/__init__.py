@@ -13,6 +13,7 @@ from tohil.trampoline import handle_exception, run
 
 from tohil._tohil import (
     eval,
+    exists,
     expr,
     getvar,
     interp,
