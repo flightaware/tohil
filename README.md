@@ -97,6 +97,17 @@ Traceback (most recent call last):
 RuntimeError: can't read "x(e)": no such element in array
 ```
 
+As you can see, it's an error to try to get a variable or array element that isn't there.  You can use tohil.exists to see if the variable is there, or trap the python exception, or possibly make use of tohil.getvar's handy "default" keyword-only argument.
+
+```
+>>> tohil.getvar("x(e)", default="0")
+'0'
+>>> tohil.getvar("x(e)", default=0, to=int)
+0
+>>> tohil.getvar("x(d)", default=0, to=int)
+4
+```
+
 #### tohil.exists
 
 Since it is an error to try to getvar a variable that doesn't exist, you can trap the request from python and handle the exception, or use tohil.exists to see if the var or array element exist.
