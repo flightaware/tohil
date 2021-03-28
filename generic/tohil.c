@@ -608,7 +608,7 @@ tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 	PyObject *to = NULL;
 	char *tclCode = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", kwlist, &tclCode, &to))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &tclCode, &to))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
@@ -626,7 +626,7 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	char *expression = NULL;
 	PyObject *to = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", kwlist, &expression, &to))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &expression, &to))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
@@ -641,28 +641,46 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tohil_python_return(interp, TCL_OK, to, resultObj);
 }
 
+// tohil.getvar - from python get the contents of a variable
 static PyObject *
 tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"var", "to", NULL};
+	static char *kwlist[] = {"var", "to", "default", NULL};
 	char *var = NULL;
 	PyObject *to = NULL;
+	PyObject *defaultPyObj = NULL;
+	Tcl_Obj *obj = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", kwlist, &var, &to))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$OO", kwlist, &var, &to, &defaultPyObj))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 
-	Tcl_Obj *obj = Tcl_GetVar2Ex(interp, var, NULL, (TCL_LEAVE_ERR_MSG));
+	if (defaultPyObj == NULL) {
+		// a default wasn't specified, it's an error if the var or array
+		// element doesn't exist
+		obj = Tcl_GetVar2Ex(interp, var, NULL, (TCL_LEAVE_ERR_MSG));
 
-	if (obj == NULL) {
-		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-		return NULL;
+		if (obj == NULL) {
+			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+			return NULL;
+		}
+	} else {
+		// a default was specified, it's not an error if the var or array
+		// element doesn't exist, we simply return the default value
+		obj = Tcl_GetVar2Ex(interp, var, NULL, 0);
+		if (obj == NULL) {
+			Py_INCREF(defaultPyObj);
+			return defaultPyObj;
+		}
 	}
 
+	// the var or array element exists in tcl, return the value to python,
+	// possibly to a specific datatype
 	return tohil_python_return(interp, TCL_OK, to, obj);
 }
 
+// tohil.exists - from python see if a variable or array element exists in tcl
 static PyObject *
 tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -670,7 +688,7 @@ tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
 	char *var = NULL;
 	PyObject *to = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", kwlist, &var, &to))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &var, &to))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
@@ -682,7 +700,7 @@ tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
 	return p;
 }
 
-
+// tohil.setvar - set a variable or array element in tcl from python
 static PyObject *
 tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
