@@ -497,6 +497,8 @@ PyExec_Cmd(
 /* PYTHON LIBRARY BEGINS HERE */
 
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
+// from a function in this library that accepts a to=python_data_type argument,
+// and this routine ought to handle it
 PyObject *
 tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Obj *resultObj) {
 	const char *toString = NULL;
@@ -657,14 +659,14 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 		var = NULL;
 	}
 
-	Tcl_Obj *obj = Tcl_GetVar2Ex(interp, array, var, 0);
+	Tcl_Obj *obj = Tcl_GetVar2Ex(interp, array, var, (TCL_LEAVE_ERR_MSG));
 
 	if (obj == NULL) {
-		Py_INCREF(Py_None);
-		return Py_None;
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+		return NULL;
 	}
 
-	return tohil_python_return(interp, TCL_OK, to, Tcl_GetObjResult(interp));
+	return tohil_python_return(interp, TCL_OK, to, obj);
 }
 
 static PyObject *
