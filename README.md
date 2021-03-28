@@ -10,6 +10,8 @@ Tohil is open source software, available for free including for profit and/or fo
 
 tohil is based on, and is completely inspired by and exists because of, libtclpy, by Aidan Hobson Sayers available at https://github.com/aidanhs/libtclpy/.
 
+Tohil is pronounced as, your choice, toe-heel, or toe-hill.
+
 ## Usage
 
 You can import tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define tohil's functions in both.
@@ -38,7 +40,7 @@ By default the results of the Tcl code evaluated (if there wasn't an exception) 
 
 The optional "to" named parameter allows you to specify one of a number of data types that will cause tohil to convert the return into a native Python data type.
 
-The types supported are str, int, bool, float, list, set, and dict.
+The types supported are str, int, bool, float, list, set, dict and tuple.
 
 ```python
 >>> tohil.eval('set a [list a 1 b 2 c 3]')
@@ -47,9 +49,13 @@ The types supported are str, int, bool, float, list, set, and dict.
 ['a', '1', 'b', '2', 'c', '3']
 >>> tohil.eval('return $a',to=dict)
 {'a': '1', 'b': '2', 'c': '3'}
+
+>>> a, b, c = tohil.eval("list 1 2 3", to=tuple)
+>>> c
+'3'
 ```
 
-Note that currently for list, set and dict, the values constructed therein will be strings.  We already have code that can recognize and convert a few types and could use that, or perhaps we will create a way to specify desired type conversions within compound types.
+Note that currently for list, set, dict, and tuple, the values constructed therein will be strings.  We already have code that can recognize and convert a few types and could use that, or perhaps we will create a way to specify desired type conversions within compound types.
 
 #### tohil.call
 

@@ -51,6 +51,26 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	return pset;
 }
 
+// turn a tcl list into a python tuple
+PyObject *
+tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
+	Tcl_Obj **list;
+	int count;
+
+	if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
+		return NULL;
+	}
+
+	PyObject *ptuple = PyTuple_New(count);
+
+	for (int i = 0; i < count; i++) {
+		PyTuple_SET_ITEM(ptuple, i, Py_BuildValue("s", Tcl_GetString(list[i])));
+	}
+
+	return ptuple;
+}
+
+
 // turn a tcl list of key-value pairs into a python dict
 PyObject *
 tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
@@ -597,7 +617,18 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
 		return p;
 	}
 
-	PyErr_SetString(PyExc_RuntimeError, "'to' conversion type must be str, int, bool, float, list, set, dict");
+	if (strcmp(toString, "tuple") == 0) {
+		PyObject *p = tclListObjToPyTupleObject(interp, resultObj);
+
+		Py_XDECREF(pt);
+		if (p == NULL) {
+			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+			return NULL;
+		}
+		return p;
+	}
+
+	PyErr_SetString(PyExc_RuntimeError, "'to' conversion type must be str, int, bool, float, list, set, dict, or tuple");
 	return NULL;
 }
 
