@@ -834,7 +834,9 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 	//PyObject_Print(kwargs, stdout, 0);
 
 	// we need to process kwargs to get the to
-	to = PyDict_GetItemString(kwargs, "to");
+	if (kwargs != NULL) {
+		to = PyDict_GetItemString(kwargs, "to");
+	}
 
 	// for each argument convert the python object to a tcl object
 	// and store it in the tcl object vector
