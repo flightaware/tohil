@@ -437,6 +437,8 @@ cp tohil1.0.0.dylib build/lib.macosx-10.6-x86_64-3.8/tohil.cpython-38-darwin.so
 
 ### todo
 
+a way to pass kwargs thought tohil::eval
+
 This is the old list.  SOme of this stuff has been done.  We probably don't have the same priorities.  Will update over time.
 
 In order of priority:

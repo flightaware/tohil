@@ -324,11 +324,24 @@ PyCall_Cmd(
 	)
 {
 	if (objc < 2) {
-		Tcl_WrongNumArgs(interp, 1, objv, "func ?arg ...?");
+	  wrongargs:
+		Tcl_WrongNumArgs(interp, 1, objv, "?-kwlist list? func ?arg ...?");
 		return TCL_ERROR;
 	}
 
+	PyObject *kwObj = NULL;
 	const char *objandfn = Tcl_GetString(objv[1]);
+	int objStart = 2;
+
+	if (*objandfn == '-' && strcmp(objandfn, "-kwlist") == 0) {
+		if (objc < 4) goto wrongargs;
+		kwObj = tclListObjToPyDictObject(interp, objv[2]);
+		objandfn = Tcl_GetString(objv[3]);
+		objStart = 4;
+		if (kwObj == NULL) {
+			return TCL_ERROR;
+		}
+	}
 
 	/* Borrowed ref, do not decrement */
 	PyObject *pMainModule = PyImport_AddModule("__main__");
@@ -373,7 +386,7 @@ PyCall_Cmd(
 	int i;
 	PyObject *pArgs = PyTuple_New(objc - 2);
 	PyObject* curarg = NULL;
-	for (i = 2; i < objc; i++) {
+	for (i = objStart; i < objc; i++) {
 		curarg = PyUnicode_FromString(Tcl_GetString(objv[i]));
 		if (curarg == NULL) {
 			Py_DECREF(pArgs);
@@ -384,9 +397,11 @@ PyCall_Cmd(
 		PyTuple_SET_ITEM(pArgs, i - 2, curarg);
 	}
 
-	PyObject *pRet = PyObject_Call(pFn, pArgs, NULL);
+	PyObject *pRet = PyObject_Call(pFn, pArgs, kwObj);
 	Py_DECREF(pFn);
 	Py_DECREF(pArgs);
+	if (kwObj != NULL)
+		Py_DECREF(kwObj);
 	if (pRet == NULL)
 		return PyReturnException(interp, "error in python object call");
 
