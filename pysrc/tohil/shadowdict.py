@@ -41,3 +41,5 @@ class ShadowDict(MutableMapping):
     def __iter__(self):
         return ShadowDictIterator(self.tcl_array)
 
+    def __contains__(self, key):
+        return tohil.exists(f"{self.tcl_array}({key})")
