@@ -33,7 +33,7 @@ class ShadowDict(MutableMapping):
         tohil.setvar(f"{self.tcl_array}({key})", value)
 
     def __len__(self):
-        return tohil.eval(f"array size {self.tcl_array}")
+        return tohil.eval(f"array size {self.tcl_array}", to=int)
 
     def __repr__(self):
         return str(tohil.eval(f"array get {self.tcl_array}", to=dict))
