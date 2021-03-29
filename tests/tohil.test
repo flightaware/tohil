@@ -18,7 +18,7 @@ test tohil_eval-1.2 {incorrect usage of eval -- too many arguments} {
 
 test tohil_eval-1.3 {correct usage of eval} {
 	list [catch {tohil::eval "5 + 5"} errMsg] $errMsg
-} {0 {10}}
+} {0 10}
 
 test tohil_eval-1.4 {incorrect usage of eval} {
 	list [catch {tohil::eval "a = 5"} errMsg] $errMsg
@@ -48,7 +48,7 @@ test tohil_exec-1.4 {incorrect usage of exec} {
 # =========
 test tohil_import-1.1 {incorrect import usage} {
 	list [catch {tohil::import} errMsg1] $errMsg1\
-	     [catch {tohil import -from os} errMsg2] $errMsg2
+	     [catch {tohil::import -from os} errMsg2] $errMsg2
 } {1 {wrong # args: should be "tohil::import module"}\
    1 {wrong # args: should be "tohil::import module"}}
 
@@ -63,13 +63,15 @@ test tohil_import-1.3 {submodule import} -body {
 } -result {}
 
 test tohil_import-1.4 {non-existent import} -body {
-	list [catch {tohil import aosidas} err] $err
+	list [catch {tohil::import aosidas} err] $err
 } -result {1 {No module named 'aosidas'}}
 
 test tohil_import-1.5 {non-existent import with full trace} -body {
-	proc aaa {} {tohil::import aosidas}
+	proc aaa {} {
+		tohil::import aosidas
+	}
 	list [catch {aaa} err] $err $::errorInfo
-} -result {1 {No module named 'aosidas'
+} -result {1 {No module named 'aosidas'} {No module named 'aosidas'
 from python code executed by tohil
     invoked from within
 "tohil::import aosidas"
@@ -108,15 +110,13 @@ test tohil_call-1.5 {call of object methods} {
 test tohil_call-1.6 {simple call exception} {
 	tohil::exec {a = lambda: 1/0}
 	list [catch {tohil::call a} err] $err
-} {1 {ZeroDivisionError: division by zero
-  File "<string>", line 1, in <lambda>
------ tcl -> tohilthon interface -----}}
+} {1 {division by zero}}
 
 test tohil_call-1.7 {stacked call exception} {
-	tohil eval {def a(): return 5 + dict()}
-	tohil eval {def b(): return a()}
-	tohil eval {def c(): return b()}
-	proc d {} {tohil call c}
+	tohil::exec {def a(): return 5 + dict()}
+	tohil::exec {def b(): return a()}
+	tohil::exec {def c(): return b()}
+	proc d {} {tohil::call c}
 	proc e {} {d}
 	list [catch {e} err] $err $::errorInfo
 } {1 {TypeError: unsupported operand type(s) for +: 'int' and 'dict'
@@ -154,43 +154,43 @@ test tohil_call-1.9 {call of nonexistent object methods} {
 # TYPES
 # =========
 test types-1.1 {return True} {
-	py eval {def a(): return True}
-	py call a
+	tohil::exec {def a(): return True}
+	tohil::call a
 } {1}
 
 test types-1.2 {return False} {
-	py eval {def a(): return False}
-	py call a
+	tohil::exec {def a(): return False}
+	tohil::call a
 } {0}
 
 test types-1.3 {return None} {
-	py eval {def a(): return None}
-	py call a
+	tohil::exec {def a(): return None}
+	tohil::call a
 } {}
 
 test types-1.4 {return null byte} {
-	py eval {def a(): return '\0'}
-	set a [py call a]
+	tohil::exec {def a(): return '\0'}
+	set a [tohil::call a]
 	list [string length $a] [expr {$a == "\0"}]
 } {1 1}
 
 # See gotcha 1 for explanation of roundabout way of getting a unicode object.
 test types-1.5 {return unicode object} {
-	py eval {def a(): return b'\xe0\xb2\xa0'.decode('utf-8')}
-	expr {[py call a] == "ಠ"}
+	tohil::exec {def a(): return b'\xe0\xb2\xa0'.decode('utf-8')}
+	expr {[tohil::call a] == "ಠ"}
 } {1}
 
 test types-1.6 {return literal bytes} {
-	py eval {def a(): return '\xe0\xb2\xa0'}
-	expr {[py call a] == "\xe0\xb2\xa0"}
+	tohil::exec {def a(): return '\xe0\xb2\xa0'}
+	expr {[tohil::call a] == "\xe0\xb2\xa0"}
 } {1}
 
 test types-1.7 {return nested lists and dictionaries} {
-	py eval {def a(): return [
+	tohil::exec {def a(): return [
 			(1,2),
 			[u"a",["b",7]],
 			{"x":[(3,4),{'a':{'b':'c'}}],"y":(4,5,6)}]}
-	set a [py call a]
+	set a [tohil::call a]
 	set ad [lindex $a 2]
 	set ada [lindex [dict get $ad x] 1]
 	list \
@@ -199,45 +199,45 @@ test types-1.7 {return nested lists and dictionaries} {
 } {{1 2} {a {b 7}} {3 4} {4 5 6} c}
 
 test types-1.8 {return float} {
-	py eval {def a(): return 1.0/3}
-	py call a
+	tohil::exec {def a(): return 1.0/3}
+	tohil::call a
 } {0.3333333333333333}
 
 test types-1.9 {return large integer} {
-	py eval {def a(): return 3 << 5000}
-	expr {[py call a] == 3 << 5000}
+	tohil::exec {def a(): return 3 << 5000}
+	expr {[tohil::call a] == 3 << 5000}
 } {1}
 
 # =========
 # MODULES
 # =========
 test modules-1.1 {hashlib module} {
-	py import hashlib
-	py eval {def a(): return hashlib.sha1('password'.encode('utf8')).hexdigest()}
-	py call a
+	tohil::import hashlib
+	tohil::exec {def a(): return hashlib.sha1('password'.encode('utf8')).hexdigest()}
+	tohil::call a
 } {5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8}
 
 test modules-1.2 {zlib module} {
-	py import zlib
-	py eval {def a(): return zlib.decompress(b'x\x9cKLL\x04\x00\x02I\x01$')}
-	py call a
+	tohil::import zlib
+	tohil::exec {def a(): return zlib.decompress(b'x\x9cKLL\x04\x00\x02I\x01$')}
+	tohil::call a
 } {aaa}
 
 test modules-1.3 {datetime module} {
-	py import datetime
-	py eval {def a(): return datetime.datetime.utcfromtimestamp(0).isoformat()}
-	py call a
+	tohil::import datetime
+	tohil::exec {def a(): return datetime.datetime.utcfromtimestamp(0).isoformat()}
+	tohil::call a
 } {1970-01-01T00:00:00}
 
 test module-1.4 {sqlite3 module} {
-	py import sqlite3
-	py eval {def a(): global b; b = sqlite3.connect(":memory:").cursor()}
-	py call a
-	py call b.execute "create table x(y integer)"
-	py call b.execute "insert into x values (1)"
-	py call b.execute "insert into x values (18)"
-	py call b.execute "select avg(y) from x"
-	py call b.fetchone
+	tohil::import sqlite3
+	tohil::exec {def a(): global b; b = sqlite3.connect(":memory:").cursor()}
+	tohil::call a
+	tohil::call b.execute "create table x(y integer)"
+	tohil::call b.execute "insert into x values (1)"
+	tohil::call b.execute "insert into x values (18)"
+	tohil::call b.execute "select avg(y) from x"
+	tohil::call b.fetchone
 } {9.5}
 
 # =========
