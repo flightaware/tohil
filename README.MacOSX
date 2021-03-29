@@ -1,2 +1,5 @@
 
+
+#./configure --prefix=/opt/local --exec-prefix=/opt/local --with-python-version=3.9
+
 ./configure --prefix=/usr/local --with-tcl=/usr/local/lib/ --with-python-version=3.8

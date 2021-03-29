@@ -296,8 +296,15 @@ PyReturnException(Tcl_Interp *interp, char *description)
 
 	// call tohil python exception handler function
 	// return to me a tuple containing the error string, error code, and traceback
-	if (pExceptionResult == NULL)
+	if (pExceptionResult == NULL) {
+		// NB debug break out the exception
+		PyObject *pType = NULL, *pVal = NULL, *pTrace = NULL;
+		PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
+		PyErr_NormalizeException(&pType, &pVal, &pTrace);
+		PyObject_Print(pType, stdout, 0);
+		PyObject_Print(pVal, stdout, 0);
 		return PyReturnTclError(interp, "some problem running the tohil python exception handler");
+	}
 
 	if (!PyTuple_Check(pExceptionResult) || PyTuple_GET_SIZE(pExceptionResult) != 2) {
 		return PyReturnTclError(interp, "malfunction in tohil python exception handler, did not return tuple or tuple did not contain 2 elements");
@@ -982,13 +989,12 @@ Tohil_Init(Tcl_Interp *interp)
 	pTohilMod = PyImport_Import(pTohilModStr);
 	Py_DECREF(pTohilModStr);
 	if (pTohilMod == NULL) {
-		// break out the exception
+		// NB debug break out the exception
 		PyObject *pType = NULL, *pVal = NULL, *pTrace = NULL;
 		PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
 		PyErr_NormalizeException(&pType, &pVal, &pTrace);
 		PyObject_Print(pType, stdout, 0);
 		PyObject_Print(pVal, stdout, 0);
-		PyObject_Print(pTrace, stdout, 0);
 
 		return PyReturnTclError(interp, "unable to import tohil module to python interpreter");
 	}

@@ -10,13 +10,17 @@ import traceback
 # we call exec.  it's necessary.
 #pylint: disable=W0122
 
-def handle_exception(exception_type, val, traceback_object):
+def handle_exception(exception_type, val, traceback_object = None):
     """handle_exception - the tohil C code that handles uncaught
     python exceptions invokes this to turn an exception type, value
     and traceback object into a tcl error code and error info"""
     error_code = ["PYTHON", exception_type.__name__, val]
-    tb_list = traceback.format_tb(traceback_object)
-    error_info = "\nfrom python code executed by tohil\n" + " ".join(tb_list).rstrip()
+
+    if traceback_object is None:
+        tb_list = list()
+    else:
+        tb_list = traceback.format_tb(traceback_object)
+    error_info = "\nfrom python code executed by tohil" + " ".join(tb_list).rstrip()
     return error_code, error_info
 
 
