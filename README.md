@@ -200,7 +200,7 @@ Elements can be read form the python side using dictionary notation, for example
 
 Changes made from the Python side occur on the Tcl side, and all accesses, traversals, etc, are made using the Tcl array.  In other words, ShadowDicts never cache values from the Tcl array on the python side.
 
-In the example below we set up a Tcl array, create a ShadowDict of it in python, get a string representation of the dict, read from the dict, insert into it, delete from it, and demonstrate that the changes we made are present on the Tcl side.
+In the example below we set up a Tcl array, create a ShadowDict of it in python, get a string representation of the dict, read from the dict, insert into it, delete from it, and demonstrate that the changes we made are present on the Tcl side.  Finally, it iterates over the shadow dict, showing the same keys from python that tcl was shown to have.
 
 ```
 >>> tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
@@ -220,6 +220,13 @@ x(b) = 2
 x(c) = 3
 x(e) = 5
 ''
+>>> for i in x:
+...     print(i)
+...
+a
+b
+c
+e
 ```
 
 #### Examples using tohil from Python
