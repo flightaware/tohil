@@ -730,11 +730,10 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 static PyObject *
 tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"var", "to", NULL};
+	static char *kwlist[] = {"var", NULL};
 	char *var = NULL;
-	PyObject *to = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &var, &to))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$", kwlist, &var))
 		return NULL;
 
 	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
@@ -771,6 +770,27 @@ tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
+
+// tohil.unset - from python unset a variable or array element in the tcl
+//   interpreter.  it is not an error if the variable or element doesn't
+//   exist.  if passed the name of an array with no subscripted element,
+//   the entire array is deleted
+static PyObject *
+tohil_unset(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"var", NULL};
+	char *var = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$", kwlist, &var))
+		return NULL;
+
+	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
+
+	Tcl_UnsetVar(interp, var, 0);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
 
 static PyObject *
 tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
@@ -862,6 +882,9 @@ static PyMethodDef TohilMethods[] = {
 	{"exists",  (PyCFunction)tohil_exists,
 		METH_VARARGS | METH_KEYWORDS,
 		"check whether vars and array elements exist in the tcl interpreter"},
+	{"unset",  (PyCFunction)tohil_unset,
+		METH_VARARGS | METH_KEYWORDS,
+		"unset variables, array elements, or arrays from the tcl interpreter"},
 	{"subst",  (PyCFunction)tohil_subst,
 		METH_VARARGS | METH_KEYWORDS,
 		"perform Tcl command, variable and backslash substitutions on a string"},

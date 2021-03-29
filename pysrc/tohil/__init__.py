@@ -12,15 +12,16 @@ from tohil.trampoline import handle_exception, run
 # which looks for it upon load
 
 from tohil._tohil import (
+    call,
     eval,
     exists,
     expr,
     getvar,
     interp,
+    plug,
     setvar,
     subst,
-    call,
-    plug,
+    unset,
 )
 
 from tohil.tcller import TclWriter

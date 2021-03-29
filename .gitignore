@@ -6,14 +6,16 @@ tohil.o
 # Build output
 libtohil*.so
 libtohil*.dylib
-pkgIndex.tcl
 
+# files substituted from .in versions
 Makefile
+setup.py
+configure
+pkgIndex.tcl
 
 autom4te.cache
 config.log
 config.status
-configure
 
 build
 

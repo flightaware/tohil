@@ -130,6 +130,27 @@ False
 False
 ```
 
+#### tohil.unset
+
+Tohil can be used to unset variables, array elements, and arrays in the Tcl interpreter.
+
+Unsetting an array element uses the subscrit notation, for example `x(e)`.
+
+Unsetting an array by name with a subscript will unset the entire array.
+
+It is not an error to attempt to unset a variable that doesn't exist.
+
+```
+>>> tohil.setvar("x(e)", "5")
+>>> tohil.getvar("x(e)")
+'5'
+>>> tohil.unset("x(e)")
+>>> tohil.getvar("x(e)")
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+RuntimeError: can't read "x(e)": no such element in array
+```
+
 
 #### tohil.expr
 
