@@ -26,6 +26,8 @@ from tohil._tohil import (
 
 from tohil.tcller import TclWriter
 
+from tohil.shadowdict import ShadowDict
+
 
 class RivetControl:
     """probably lame stuff to redirect python stdout to tcl,

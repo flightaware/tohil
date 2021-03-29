@@ -186,6 +186,49 @@ Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, com
 
 Although we could easily make tohil.subst support the "to=" way of request a type conversion, is there any case where you wouldn't just expect it to return a string?
 
+#### Shadow Dictionaries
+
+Shadow Dictionaries, aka ShadowDicts, create a python dict-like object that shadows a Tcl array.
+
+Tcl arrays are kind of the Tcl equivalent of Python's dicts, by the way.
+
+Anyway, let's assume we have an array "x" in Tcl that we want to shadow as a dictionary "x" in Python, we would write `x = tohil.ShadowDict("x")`
+
+Once created, the shadowdict can be gotten as a string using str() or print(), etc.
+
+Elements can be read form the python side using dictionary notation, for example `x['d']`, set in a standard way (`x['e'] = '5'`), and deleted using del (`del x['e']`).  Also you can iterate on the keys as with dicts.
+
+Changes made from the Python side occur on the Tcl side, and all accesses, traversals, etc, are made using the Tcl array.  In other words, ShadowDicts never cache values from the Tcl array on the python side.
+
+In the example below we set up a Tcl array, create a ShadowDict of it in python, get a string representation of the dict, read from the dict, insert into it, delete from it, and demonstrate that the changes we made are present on the Tcl side.  Finally, it iterates over the shadow dict, showing the same keys from python that tcl was shown to have.
+
+```
+>>> tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
+''
+>>> x = tohil.ShadowDict("x")
+>>> x
+{'d': '4', 'e': '5', 'a': '1', 'b': '2', 'c': '3'}
+>>> x['d']
+'4'
+>>> x['e'] = '5'
+>>> x['e']
+'5'
+>>> del x['d']            
+>>> tohil.eval("parray x")
+x(a) = 1
+x(b) = 2
+x(c) = 3
+x(e) = 5
+''
+>>> for i in x:
+...     print(i)
+...
+a
+b
+c
+e
+```
+
 #### Examples using tohil from Python
 
 ```python
