@@ -6,7 +6,7 @@ import tohil
 
 class ShadowDictIterator():
     def __init__(self, tcl_array):
-        self.keys = tohil.eval(f"array names {tcl_array}", to=list)
+        self.keys = tohil.call("array", "names", tcl_array, to=list)
         self.keys.sort()
 
     def __iter__(self):
@@ -33,10 +33,10 @@ class ShadowDict(MutableMapping):
         tohil.setvar(f"{self.tcl_array}({key})", value)
 
     def __len__(self):
-        return tohil.eval(f"array size {self.tcl_array}", to=int)
+        return tohil.call("array", "size", self.tcl_array, to=int)
 
     def __repr__(self):
-        return str(tohil.eval(f"array get {self.tcl_array}", to=dict))
+        return str(tohil.call("array", "get", self.tcl_array, to=dict))
 
     def __iter__(self):
         return ShadowDictIterator(self.tcl_array)
