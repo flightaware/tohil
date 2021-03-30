@@ -8,70 +8,86 @@ package require tohil
 # =========
 # tohil::eval
 # =========
-test tohil_eval-1.1 {incorrect usage of eval -- not enough arguments} {
-	list [catch {tohil::eval} errMsg] $errMsg
-} {1 {wrong # args: should be "tohil::eval evalString"}}
+test tohil_eval-1.1 {incorrect usage of eval -- not enough arguments} \
+	-body {tohil::eval} \
+	-returnCodes error \
+	-result {wrong # args: should be "tohil::eval evalString"}
 
-test tohil_eval-1.2 {incorrect usage of eval -- too many arguments} {
-	list [catch {tohil::eval 1 2} errMsg] $errMsg
-} {1 {wrong # args: should be "tohil::eval evalString"}}
+test tohil_eval-1.2 {incorrect usage of eval -- too many arguments} \
+	-body {tohil::eval 1 2} \
+	-returnCodes error \
+	-result {wrong # args: should be "tohil::eval evalString"}
 
-test tohil_eval-1.3 {correct usage of eval} {
-	list [catch {tohil::eval "5 + 5"} errMsg] $errMsg
-} {0 10}
+test tohil_eval-1.3 {correct usage of eval} \
+	-body {tohil::eval "5 + 5"} \
+	-result 10
 
-test tohil_eval-1.4 {incorrect usage of eval} {
-	list [catch {tohil::eval "a = 5"} errMsg] $errMsg
-} {1 {invalid syntax (tohil, line 1)}}
+test tohil_eval-1.4 {incorrect usage of eval} \
+	-body {tohil::eval "a = 5"} \
+	-returnCodes error \
+	-result {invalid syntax (tohil, line 1)}
 
 # =========
 # tohil::exec
 # =========
-test tohil_exec-1.1 {incorrect usage of exec -- not enough arguments} {
-	list [catch {tohil::exec} errMsg] $errMsg
-} {1 {wrong # args: should be "tohil::exec execString"}}
+test tohil_exec-1.1 {incorrect usage of exec -- not enough arguments} \
+	-body {tohil::exec} \
+	-returnCodes error \
+	-result {wrong # args: should be "tohil::exec execString"}
 
-test tohil_exec-1.2 {incorrect usage of exec -- too many arguments} {
-	list [catch {tohil::exec 1 2} errMsg] $errMsg
-} {1 {wrong # args: should be "tohil::exec execString"}}
+test tohil_exec-1.2 {incorrect usage of exec -- too many arguments} \
+	-body {tohil::exec 1 2} \
+	-returnCodes error \
+	-result {wrong # args: should be "tohil::exec execString"}
 
-test tohil_exec-1.3 {correct usage of exec} {
-	list [catch {tohil::exec "a = 5"} errMsg] $errMsg
-} {0 {}}
+test tohil_exec-1.3 {correct usage of exec} \
+	-body {tohil::exec "a = 5"}
 
-test tohil_exec-1.4 {incorrect usage of exec} {
-	list [catch {tohil::exec "a = nosuchvar"} errMsg] $errMsg
-} {1 {name 'nosuchvar' is not defined}}
+test tohil_exec-1.4 {incorrect usage of exec} \
+	-body {tohil::exec "a = nosuchvar"} \
+	-returnCodes error \
+	-result {name 'nosuchvar' is not defined}
 
 # =========
 # tohil::import
 # =========
-test tohil_import-1.1 {incorrect import usage} {
-	list [catch {tohil::import} errMsg1] $errMsg1\
-	     [catch {tohil::import -from os} errMsg2] $errMsg2
-} {1 {wrong # args: should be "tohil::import module"}\
-   1 {wrong # args: should be "tohil::import module"}}
+test tohil_import-1.1 {incorrect import usage -- not enough arguments} \
+	-body {tohil::import} \
+	-returnCodes error \
+	-result {wrong # args: should be "tohil::import module"}
 
-test tohil_import-1.2 {basic import} -body {
-	tohil::import re
-	tohil::exec "import sys; assert 're' in sys.modules; assert 're' in globals()"
-} -result {}
+test tohil_import-1.2 {incorrect import usage -- too many arguments} \
+	-body {tohil::import -from os} \
+	-returnCodes error \
+	-result {wrong # args: should be "tohil::import module"}
 
-test tohil_import-1.3 {submodule import} -body {
-	tohil::import xml.dom
-	tohil::exec "assert 'dom' in dir(xml)"
-} -result {}
+test tohil_import-1.3 {basic import} \
+	-body {
+		tohil::import re
+		tohil::exec "import sys; assert 're' in sys.modules; assert 're' in globals()"
+	} -result {}
 
-test tohil_import-1.4 {non-existent import} -body {
-	list [catch {tohil::import aosidas} err] $err
-} -result {1 {No module named 'aosidas'}}
+test tohil_import-1.4 {submodule import} \
+	-body {
+		tohil::import xml.dom
+		tohil::exec "assert 'dom' in dir(xml)"
+	} \
+	-result {}
 
-test tohil_import-1.5 {non-existent import with full trace} -body {
-	proc aaa {} {
-		tohil::import aosidas
-	}
-	list [catch {aaa} err] $err $::errorInfo
-} -result {1 {No module named 'aosidas'} {No module named 'aosidas'
+test tohil_import-1.5 {non-existent import} \
+	-body {tohil::import aosidas} \
+	-returnCodes error \
+	-result {No module named 'aosidas'}
+
+test tohil_import-1.6 {non-existent import with full trace} \
+	-body {
+		proc aaa {} {
+			tohil::import aosidas
+		}
+
+		list [catch {aaa} err] $err $::errorInfo
+	} \
+	-result {1 {No module named 'aosidas'} {No module named 'aosidas'
 from python code executed by tohil
     invoked from within
 "tohil::import aosidas"
@@ -82,35 +98,45 @@ from python code executed by tohil
 # =========
 # tohil::call
 # =========
-test tohil_call-1.1 {incorrect call usage} {
-	list [catch {tohil::call} errMsg1] $errMsg1
-} {1 {wrong # args: should be "tohil::call ?-kwlist list? func ?arg ...?"}}
+test tohil_call-1.1 {incorrect call usage} \
+	-body {tohil::call} \
+	-returnCodes error \
+	-result {wrong # args: should be "tohil::call ?-kwlist list? func ?arg ...?"}
 
-test tohil_call-1.2 {basic call} {
-	tohil::exec {def a(): return 5**2}
-	tohil::call a
-} {25}
+test tohil_call-1.2 {basic call} \
+	-body {tohil::exec {def a(): return 5**2}
+	tohil::call a} \
+	-result 25
 
-test tohil_call-1.3 {basic call with args} {
-	tohil::exec {def a(x,y): return x+y}
-	tohil::call a string1 string2
-} {string1string2}
+test tohil_call-1.3 {basic call with args} \
+	-body {
+		tohil::exec {def a(x,y): return x+y}
+		tohil::call a string1 string2
+	} \
+	-result "string1string2"
 
-test tohil_call-1.4 {call of module function} {
-	tohil::import base64
-	tohil::call base64.b64decode YXRlc3Q=
-} {atest}
+test tohil_call-1.4 {call of module function} \
+	-body {
+		tohil::import base64
+		tohil::call base64.b64decode YXRlc3Q=
+	} \
+	-result atest
 
-test tohil_call-1.5 {call of object methods} {
-	tohil::import io
-	tohil::exec {a = io.StringIO(); a.write('btest'); a.seek(0)}
-	tohil::call a.read
-} {btest}
+test tohil_call-1.5 {call of object methods} \
+	-body {
+		tohil::import io
+		tohil::exec {a = io.StringIO(); a.write('btest'); a.seek(0)}
+		tohil::call a.read
+	} \
+	-result "btest"
 
-test tohil_call-1.6 {simple call exception} {
-	tohil::exec {a = lambda: 1/0}
-	list [catch {tohil::call a} err] $err
-} {1 {division by zero}}
+test tohil_call-1.6 {simple call exception} \
+	-body {
+		tohil::exec {a = lambda: 1/0}
+		tohil::call a
+	} \
+	-returnCodes error \
+	-result {division by zero}
 
 test tohil_call-1.7 {stacked call exception} {
 	tohil::exec {def a(): return 5 + dict()}
@@ -139,14 +165,14 @@ test tohil_call-1.7 {stacked call exception} {
 
 # TODO: this error message is terrible
 test tohil_call-1.8 {call of nonexistent functions} {
-	list [catch {tohil call aosdin} err] $err
+	list [catch {tohil::call aosdin} err] $err
 } {1 {AttributeError: module '__main__' has no attribute 'aosdin'
 ----- tcl -> tohilthon interface -----}}
 
 # TODO: this error message could be improved ("has no method")
 test tohil_call-1.9 {call of nonexistent object methods} {
-	tohil eval {a = "aaa"}
-	list [catch {tohil call a.aosdin} err] $err
+	tohil::eval {a = "aaa"}
+	list [catch {tohil::call a.aosdin} err] $err
 } {1 {AttributeError: 'str' object has no attribute 'aosdin'
 ----- tcl -> tohilthon interface -----}}
 
