@@ -26,7 +26,7 @@ LIBS = """ @LIBS@ """
 prefix = "@prefix@"
 exec_prefix = "@exec_prefix@"
 
-TOHIL_VERSION = "1.0.0"
+TOHIL_VERSION = "@PACKAGE_VERSION@"
 
 import re
 
