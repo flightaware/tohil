@@ -171,6 +171,8 @@ You can also evaluate tcl expressions from python using tohil.expr:
 25571
 ```
 
+NB Remember that, like eval, expr evaluates its arguments and will execute square-bracketed code embedded in the passed expression.
+
 #### tohil.subst
 
 Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, command and variable substitutions, but doesn't evaluate the final result, like eval would.
