@@ -138,7 +138,34 @@ test tohil_call-1.6 {simple call exception} \
 	-returnCodes error \
 	-result {division by zero}
 
-test tohil_call-1.7 {stacked call exception} {
+tohil::exec {
+def no_arg_kw(**kwlist):
+    return str(kwlist)
+
+def one_arg_kw(arg1, **kwlist):
+    return str(arg1), str(kwlist)
+
+def two_arg_kw(arg1, arg2, **kwlist):
+    return str(arg1), str(arg2), str(kwlist)
+}
+
+test tohil_call-1.7 {kwlist stuff} \
+	-body {tohil::call -kwlist "foo bar" no_arg_kw} \
+	-result "{'foo': 'bar'}"
+
+test tohil_call-1.8 {kwlist stuff} \
+	-body {tohil::call -kwlist "foo bar" no_arg_kw 5} \
+	-returnCodes error \
+	-result "no_arg_kw() takes 0 positional arguments but 1 was given"
+
+# not completely sure about this result
+test tohil_call-1.9 {kwlist stuff} \
+	-body {tohil::call -kwlist "foo bar" one_arg_kw 5} \
+	-result "5 {{'foo': 'bar'}}"
+
+
+
+test tohil_call-1.10 {stacked call exception} {
 	tohil::exec {def a(): return 5 + dict()}
 	tohil::exec {def b(): return a()}
 	tohil::exec {def c(): return b()}
@@ -164,13 +191,13 @@ test tohil_call-1.7 {stacked call exception} {
 "e"}}
 
 # TODO: this error message is terrible
-test tohil_call-1.8 {call of nonexistent functions} {
+test tohil_call-1.11 {call of nonexistent functions} {
 	list [catch {tohil::call aosdin} err] $err
 } {1 {module '__main__' has no attribute 'aosdin'
 ----- tcl -> tohilthon interface -----}}
 
 # TODO: this error message could be improved ("has no method")
-test tohil_call-1.9 {call of nonexistent object methods} {
+test tohil_call-1.12 {call of nonexistent object methods} {
 	tohil::eval {a = "aaa"}
 	list [catch {tohil::call a.aosdin} err] $err
 } {1 {AttributeError: 'str' object has no attribute 'aosdin'
