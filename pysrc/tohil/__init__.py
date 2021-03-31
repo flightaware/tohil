@@ -63,7 +63,7 @@ def run(command):
     finally:
         sys.stdout = their_stdout
 
-    return my_stdout.getvalue()
+    return my_stdout.getvalue().rstrip()
 
 ### shadow dictionaries
 

@@ -3,6 +3,9 @@
 #
 
 namespace eval ::tohil {
+	proc run {pythonCode} {
+		return [tohil::call tohil.run $pythonCode]
+	}
 }
 
 proc whee {python} {
