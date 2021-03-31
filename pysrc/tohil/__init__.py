@@ -18,12 +18,12 @@ class TclWriter:
 
     def write(self, string):
         """write a string, to Tcl"""
-        tohil.call("puts", "-nonewline", string)
+        call("puts", "-nonewline", string)
         # self.flush()
 
     def flush(self):
         """flush tcl's stdout"""
-        tohil.call("flush", "stdout")
+        call("flush", "stdout")
 
 
 ### trampoline support functions for tohil
