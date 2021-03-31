@@ -205,14 +205,14 @@ In the example below we set up a Tcl array, create a ShadowDict of it in python,
 ```
 >>> tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
 ''
->>> x = tohil.ShadowDict("x")
+>>> x = tohil.ShadowDict("x", to=int)
 >>> x
 {'d': '4', 'e': '5', 'a': '1', 'b': '2', 'c': '3'}
 >>> x['d']
-'4'
+4
 >>> x['e'] = '5'
 >>> x['e']
-'5'
+5
 >>> del x['d']            
 >>> tohil.eval("parray x")
 x(a) = 1
