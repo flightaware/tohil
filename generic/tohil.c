@@ -323,7 +323,7 @@ PyReturnException(Tcl_Interp *interp, char *description)
 //   NB we need one like this going the other direction
 //
 static int
-PyCall_Cmd(
+TohilCall_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
 	int objc,               /* Number of arguments */
@@ -422,7 +422,7 @@ PyCall_Cmd(
 }
 
 static int
-PyImport_Cmd(
+TohilImport_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
 	int objc,               /* Number of arguments */
@@ -463,7 +463,7 @@ PyImport_Cmd(
 }
 
 static int
-PyEval_Cmd(
+TohilEval_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
 	int objc,               /* Number of arguments */
@@ -499,10 +499,10 @@ PyEval_Cmd(
 	return TCL_OK;
 }
 
-// awfully similar to PyEval_Cmd above
+// awfully similar to TohilEval_Cmd above
 // but expecting to do more like capture stdout
 static int
-PyExec_Cmd(
+TohilExec_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
 	int objc,               /* Number of arguments */
@@ -956,22 +956,22 @@ Tohil_Init(Tcl_Interp *interp)
 		return TCL_ERROR;
 
 	if (Tcl_CreateObjCommand(interp, "::tohil::eval",
-		(Tcl_ObjCmdProc *) PyEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		(Tcl_ObjCmdProc *) TohilEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
 	if (Tcl_CreateObjCommand(interp, "::tohil::exec",
-		(Tcl_ObjCmdProc *) PyExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		(Tcl_ObjCmdProc *) TohilExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
 	if (Tcl_CreateObjCommand(interp, "::tohil::call",
-		(Tcl_ObjCmdProc *) PyCall_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		(Tcl_ObjCmdProc *) TohilCall_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
 	if (Tcl_CreateObjCommand(interp, "::tohil::import",
-		(Tcl_ObjCmdProc *) PyImport_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		(Tcl_ObjCmdProc *) TohilImport_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
