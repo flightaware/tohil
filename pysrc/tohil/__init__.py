@@ -69,7 +69,7 @@ def run(command):
 
 class ShadowDictIterator():
     def __init__(self, tcl_array):
-        self.keys = tohil.call("array", "names", tcl_array, to=list)
+        self.keys = call("array", "names", tcl_array, to=list)
         self.keys.sort()
 
     def __iter__(self):
@@ -82,30 +82,31 @@ class ShadowDictIterator():
         return self.keys.pop(0)
 
 class ShadowDict(MutableMapping):
-    def __init__(self, tcl_array):
+    def __init__(self, tcl_array, to=str):
         self.tcl_array = tcl_array
+        self.to_type = to
 
     def __getitem__(self, key):
-        return tohil.getvar(f"{self.tcl_array}({key})")
+        return getvar(f"{self.tcl_array}({key})", to=self.to_type)
 
     def __delitem__(self, key):
-        tohil.unset(f"{self.tcl_array}({key})")
+        unset(f"{self.tcl_array}({key})")
         return
 
     def __setitem__(self, key, value):
-        tohil.setvar(f"{self.tcl_array}({key})", value)
+        setvar(f"{self.tcl_array}({key})", value)
 
     def __len__(self):
-        return tohil.call("array", "size", self.tcl_array, to=int)
+        return call("array", "size", self.tcl_array, to=int)
 
     def __repr__(self):
-        return str(tohil.call("array", "get", self.tcl_array, to=dict))
+        return str(call("array", "get", self.tcl_array, to=dict))
 
     def __iter__(self):
         return ShadowDictIterator(self.tcl_array)
 
     def __contains__(self, key):
-        return tohil.exists(f"{self.tcl_array}({key})")
+        return exists(f"{self.tcl_array}({key})")
 
 
 ### rivet stuff
