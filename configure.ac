@@ -18,7 +18,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([tohil], [1.1.0])
+AC_INIT([tohil],[1.1.0])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -239,4 +239,5 @@ TEA_PROG_TCLSH
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
-AC_OUTPUT([Makefile pkgIndex.tcl setup.py])
+AC_CONFIG_FILES([Makefile pkgIndex.tcl setup.py])
+AC_OUTPUT
