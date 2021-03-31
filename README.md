@@ -186,6 +186,10 @@ Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, com
 
 Although we could easily make tohil.subst support the "to=" way of request a type conversion, is there any case where you wouldn't just expect it to return a string?
 
+#### tohil.interact
+
+Run the Tcl interactive command loop on stdin, hopefully a terminal, until you send an EOF.  See also tohil::interact.  (tohil::interact is way better than tohil.interact.)
+
 #### Shadow Dictionaries
 
 Shadow Dictionaries, aka ShadowDicts, create a python dict-like object that shadows a Tcl array.
@@ -327,6 +331,22 @@ tohil::call provides a way to invoke one python function, with zero or more argu
 #### tohil::import
 
 tohil::import provides a way to import python modules, although I'm not sure that it's much different from doing a tohil::exec "import module"
+
+#### tohil::interact
+
+Take tohil to eleven.  You're on ten... all the way up... You're on ten on your guitar... where can you go from there?   What we do is if we need that extra...push over the cliff...you know what we do?
+
+We run tohil::interact from tcl and enter the python interactive loop.  When we're done, we send end of file (^D).
+
+```
+tcl % tohil::interact
+>>> def foo():
+...   print("bar")
+...
+>>> ^D
+tcl % tohil::eval foo()
+bar
+```
 
 #### Reference
 

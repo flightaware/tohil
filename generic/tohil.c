@@ -543,6 +543,27 @@ TohilExec_Cmd(
 	return TCL_OK;
 }
 
+static int
+TohilInteract_Cmd(
+	ClientData clientData,  /* Not used. */
+	Tcl_Interp *interp,     /* Current interpreter */
+	int objc,               /* Number of arguments */
+	Tcl_Obj *const objv[]   /* Argument strings */
+	)
+{
+	if (objc != 1) {
+		Tcl_WrongNumArgs(interp, 1, objv, "");
+		return TCL_ERROR;
+	}
+
+	int result = PyRun_InteractiveLoop(stdin, "stdin");
+	if (result < 0) {
+		return PyReturnException(interp, "interactive loop failure");
+	}
+
+	return TCL_OK;
+}
+
 /* PYTHON LIBRARY BEGINS HERE */
 
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
@@ -856,12 +877,15 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 	// and store it in the tcl object vector
 	for (i = 0; i < objc; i++) {
 		objv[i] = pyObjToTcl(interp, PyTuple_GET_ITEM(args, i));
+		Tcl_IncrRefCount(objv[i]);
 	}
 
 	// invoke tcl using the objv array we just constructed
 	int tcl_result = Tcl_EvalObjv(interp, objc, objv, 0);
 
-	// NB do we need to decr the ref counts, maybe incr them above?
+	for (i = 0; i < objc; i++) {
+		Tcl_DecrRefCount(objv[i]);
+	}
 	ckfree(objv);
 
 	return tohil_python_return(interp, tcl_result, to, Tcl_GetObjResult(interp));
@@ -967,6 +991,11 @@ Tohil_Init(Tcl_Interp *interp)
 
 	if (Tcl_CreateObjCommand(interp, "::tohil::import",
 		(Tcl_ObjCmdProc *) TohilImport_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		== NULL)
+		return TCL_ERROR;
+
+	if (Tcl_CreateObjCommand(interp, "::tohil::interact",
+		(Tcl_ObjCmdProc *) TohilInteract_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 

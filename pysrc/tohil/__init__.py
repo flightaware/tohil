@@ -65,6 +65,11 @@ def run(command):
 
     return my_stdout.getvalue().rstrip()
 
+def interact():
+    """start interacting with the tcl interpreter"""
+    eval("package require Tclx")
+    call("commandloop", "-prompt1", 'return  " % "', "-prompt2", 'return "> "')
+
 ### shadow dictionaries
 
 class ShadowDictIterator():
