@@ -68,6 +68,8 @@ def run(command):
 ### shadow dictionaries
 
 class ShadowDictIterator():
+    """shadow dict iterator - one of these is returned by shadow dict
+    iter function to iterate over a shadow dict"""
     def __init__(self, tcl_array):
         self.keys = call("array", "names", tcl_array, to=list)
         self.keys.sort()
@@ -82,6 +84,7 @@ class ShadowDictIterator():
         return self.keys.pop(0)
 
 class ShadowDict(MutableMapping):
+    """shadow dicts - python dict-like objects that shadow a tcl array"""
     def __init__(self, tcl_array, to=str):
         self.tcl_array = tcl_array
         self.to_type = to
