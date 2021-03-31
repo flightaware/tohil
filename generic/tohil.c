@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <dlfcn.h>
 
+#include <stdio.h>
+
 /* TCL LIBRARY BEGINS HERE */
 
 static PyObject *pTohilHandleException = NULL;
@@ -323,7 +325,7 @@ PyReturnException(Tcl_Interp *interp, char *description)
 //   NB we need one like this going the other direction
 //
 static int
-PyCall_Cmd(
+TohilCall_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
 	int objc,               /* Number of arguments */
@@ -422,7 +424,7 @@ PyCall_Cmd(
 }
 
 static int
-PyImport_Cmd(
+TohilImport_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
 	int objc,               /* Number of arguments */
@@ -463,7 +465,7 @@ PyImport_Cmd(
 }
 
 static int
-PyEval_Cmd(
+TohilEval_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
 	int objc,               /* Number of arguments */
@@ -499,10 +501,10 @@ PyEval_Cmd(
 	return TCL_OK;
 }
 
-// awfully similar to PyEval_Cmd above
+// awfully similar to TohilEval_Cmd above
 // but expecting to do more like capture stdout
 static int
-PyExec_Cmd(
+TohilExec_Cmd(
 	ClientData clientData,  /* Not used. */
 	Tcl_Interp *interp,     /* Current interpreter */
 	int objc,               /* Number of arguments */
@@ -922,28 +924,16 @@ static struct PyModuleDef TohilModule = {
 	NULL, // m_free
 };
 
-/* SHARED INITIALISATION BEGINS HERE */
+/* Shared initialisation begins here */
 
-/* Keep track of the top level interpreter */
-typedef enum {
-	NO_PARENT,
-	TCL_PARENT,
-	PY_PARENT
-} ParentInterp;
-static ParentInterp parentInterp = NO_PARENT;
 
 int Tohil_Init(Tcl_Interp *interp);
-PyObject *init_python_tohil(Tcl_Interp* interp);
 
+// this is the entry point when tcl loads the tohil shared library
 int
 Tohil_Init(Tcl_Interp *interp)
 {
 	/* TODO: all TCL_ERRORs should set an error return */
-
-	if (parentInterp == TCL_PARENT)
-		return TCL_ERROR;
-	if (parentInterp == NO_PARENT)
-		parentInterp = TCL_PARENT;
 
 	if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
 		return TCL_ERROR;
@@ -956,30 +946,39 @@ Tohil_Init(Tcl_Interp *interp)
 		return TCL_ERROR;
 
 	if (Tcl_CreateObjCommand(interp, "::tohil::eval",
-		(Tcl_ObjCmdProc *) PyEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		(Tcl_ObjCmdProc *) TohilEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
 	if (Tcl_CreateObjCommand(interp, "::tohil::exec",
-		(Tcl_ObjCmdProc *) PyExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		(Tcl_ObjCmdProc *) TohilExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
 	if (Tcl_CreateObjCommand(interp, "::tohil::call",
-		(Tcl_ObjCmdProc *) PyCall_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		(Tcl_ObjCmdProc *) TohilCall_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
 	if (Tcl_CreateObjCommand(interp, "::tohil::import",
-		(Tcl_ObjCmdProc *) PyImport_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
+		(Tcl_ObjCmdProc *) TohilImport_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL)
 		== NULL)
 		return TCL_ERROR;
 
-	if (parentInterp != PY_PARENT) {
-		Py_Initialize(); /* void */
-		if (init_python_tohil(interp) == NULL)
-			return TCL_ERROR;
+	// if i haven't been told python is up, tcl is the parent,
+	// and we need to initialize the python interpreter and
+	// our python module
+	// if !py_IsInitialized() Py_Initialize()?
+	if (!Py_IsInitialized()) {
+		Py_Initialize();
 	}
+
+	PyObject *main_module = PyImport_AddModule("__main__");
+	PyObject *pCap = PyCapsule_New(interp, "tohil.interp", NULL);
+	if (PyObject_SetAttrString(main_module, "interp", pCap) == -1) {
+		return TCL_ERROR;
+	}
+	Py_DECREF(pCap);
 
 	// import tohil to get at the python parts
 	// and grab a reference to tohil's exception handler
@@ -1009,63 +1008,57 @@ Tohil_Init(Tcl_Interp *interp)
 	return TCL_OK;
 }
 
-//
-// this is called both from python module initialization
-//   and tcl extension initialization
-//
-//   there is a parent interpreter.  it is either python or tcl, depending
-//   on which language pulled in tohil first.o
-//
-//
-PyObject *
-init_python_tohil(Tcl_Interp* interp)
-{
-	// if python is already the parent then we've already
-	// initialized so do nothing
-	if (parentInterp == PY_PARENT)
-		return NULL;
 
-	// if there is no parent then we're the parent so python
-	// creates the tcl interpreter, etc.
-	//
-	// The tcl init routine in this file, Tohil_Init, has similar
-	// logic to figure out if its first and do its thing.
-	if (parentInterp == NO_PARENT)
-		parentInterp = PY_PARENT;
-
-	// if tcl's the parent then there must be a tcl interpreter
-	if (parentInterp == TCL_PARENT)
-		assert(interp != NULL);
-
-	// if there's no tcl interpreter, create one and initialize it
-	if (interp == NULL)
-		interp = Tcl_CreateInterp();
-
-	if (Tcl_Init(interp) != TCL_OK)
-		return NULL;
-
-	// if python's the parent then invoke Tohil_Init to load us
-	// into the interpreter
-	// NB uh this probably isn't enough and we need to do a
-	// package require tohil as there is tcl code in files in
-	// the package now
-	// OTOH you know you've got the right shared library
-	if (parentInterp == PY_PARENT && Tohil_Init(interp) == TCL_ERROR)
-		return NULL;
-
-	PyObject *m = PyModule_Create(&TohilModule);
-	if (m == NULL)
-		return NULL;
-	PyObject *pCap = PyCapsule_New(interp, "tohil.interp", NULL);
-	if (PyObject_SetAttrString(m, "interp", pCap) == -1)
-		return NULL;
-	Py_DECREF(pCap);
-
-	return m;
-}
-
+// this is the entrypoint for when python loads us as a shared library
 PyMODINIT_FUNC
 PyInit__tohil(void)
 {
-	return init_python_tohil(NULL);
+	Tcl_Interp *interp = NULL;
+
+	// see if the tcl interpreter already exists by looking
+	// for an attribute we stashed in __main__
+	PyObject *main_module = PyImport_AddModule("__main__");
+	PyObject *pCap = PyObject_GetAttrString(main_module, "interp");
+	if (pCap == NULL) {
+		// stashed attribute doesn't exist.
+		// tcl interp hasn't been set up.
+		// python is the parent.
+		// create and initialize the tcl interpreter.
+		PyErr_Clear();
+		interp = Tcl_CreateInterp();
+
+		if (Tcl_Init(interp) != TCL_OK) {
+			return NULL;
+		}
+
+		// invoke Tohil_Init to load us into the tcl interpreter
+		// NB uh this probably isn't enough and we need to do a
+		// package require tohil as there is tcl code in files in
+		// the package now
+		// OTOH you know you've got the right shared library
+		if (Tohil_Init(interp) == TCL_ERROR) {
+			return NULL;
+		}
+	} else {
+		// python interpreter-containing attribute exists, get the interpreter
+		interp = PyCapsule_GetPointer(pCap, "tohil.interp");
+		Py_DECREF(pCap);
+	}
+
+	// create the python module
+	PyObject *m = PyModule_Create(&TohilModule);
+	if (m == NULL) {
+		return NULL;
+	}
+
+	// ..and stash a pointer to the tcl interpreter in a python
+	// capsule so we can find it when we're doing python stuff
+	// and need to talk to tcl
+	pCap = PyCapsule_New(interp, "tohil.interp", NULL);
+	if (PyObject_SetAttrString(m, "interp", pCap) == -1) {
+		return NULL;
+	}
+	Py_DECREF(pCap);
+
+	return m;
 }
