@@ -30,7 +30,7 @@ class TestEval(unittest.TestCase):
 
     def test_eval6(self):
         """exercise tohil.eval and to=set"""
-        self.assertEqual(sorted(tohil.eval("list 1 2 3 4 5 6", to=set)), ['1', '2', '3', '4', '5', '6'])
+        self.assertEqual(sorted(tohil.eval("list 1 2 3 4 5 6 6", to=set)), ['1', '2', '3', '4', '5', '6'])
 
 
 if __name__ == "__main__":
