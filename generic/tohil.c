@@ -392,8 +392,13 @@ TohilCall_Cmd(
 		return PyReturnException(interp, "function is not callable");
 	}
 
+	// if there are no positional arguments, we will
+	// call PyTuple_New with a 0 argument, producing
+	// a 0-length tuple.  whil PyObject_Call's kwargs
+	// argument can be NULL, args must not; an empty
+	// tuple should be used
 	int i;
-	PyObject *pArgs = PyTuple_New(objc - 2);
+	PyObject *pArgs = PyTuple_New(objc - objStart);
 	PyObject* curarg = NULL;
 	for (i = objStart; i < objc; i++) {
 		curarg = PyUnicode_FromString(Tcl_GetString(objv[i]));
@@ -403,7 +408,7 @@ TohilCall_Cmd(
 			return PyReturnException(interp, "unicode string conversion failed");
 		}
 		/* Steals a reference */
-		PyTuple_SET_ITEM(pArgs, i - 2, curarg);
+		PyTuple_SET_ITEM(pArgs, i - objStart, curarg);
 	}
 
 	PyObject *pRet = PyObject_Call(pFn, pArgs, kwObj);
@@ -1010,6 +1015,7 @@ Tohil_Init(Tcl_Interp *interp)
 
 
 // this is the entrypoint for when python loads us as a shared library
+// note the double underscore, we are _tohil, not tohil, actually tohil._tohil
 PyMODINIT_FUNC
 PyInit__tohil(void)
 {
@@ -1017,6 +1023,9 @@ PyInit__tohil(void)
 
 	// see if the tcl interpreter already exists by looking
 	// for an attribute we stashed in __main__
+	// NB i'm sure there's a better place to put this, but
+	// it is opaque to python -- need expert help from
+	// a python C API maven
 	PyObject *main_module = PyImport_AddModule("__main__");
 	PyObject *pCap = PyObject_GetAttrString(main_module, "interp");
 	if (pCap == NULL) {
