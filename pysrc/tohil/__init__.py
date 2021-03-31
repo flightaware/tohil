@@ -9,23 +9,6 @@ import traceback
 # too few public methods.  come on, man.
 #pylint: disable=R0903
 
-# handle_exception must be defined before importing from
-# _tohil, which triggers loading of the C shared library,
-# which looks for it upon load
-
-from tohil._tohil import (
-    call,
-    eval,
-    exists,
-    expr,
-    getvar,
-    interp,
-    plug,
-    setvar,
-    subst,
-    unset,
-)
-
 ### tcl support stuff - TclWriter class can plug python's stdout into Tcl's
 
 class TclWriter:
@@ -152,4 +135,23 @@ rivet_control = RivetControl()
 def rivet():
     """redirect python's stdout to write to tcl's stdout"""
     rivet_control.activate()
+
+### import our C language stuff
+
+# handle_exception must be defined before importing from
+# _tohil, which triggers loading of the C shared library,
+# which looks for it upon load
+
+from tohil._tohil import (
+    call,
+    eval,
+    exists,
+    expr,
+    getvar,
+    interp,
+    plug,
+    setvar,
+    subst,
+    unset,
+)
 
