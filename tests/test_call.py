@@ -20,6 +20,7 @@ class TestCall(unittest.TestCase):
 
     def test_call3(self):
         self.assertEqual(tohil.call("clock", "format", 1, "-gmt", 1, "-locale", "fr_FR"), "jeu. janv. 01 00:00:01 GMT 1970")
+        self.assertEqual(tohil.call("clock", "format", 1, "-gmt", 1, "-locale", "fr_FR"), tohil.eval("clock format 1 -gmt 1 -locale fr_FR"))
 
 
 if __name__ == "__main__":
