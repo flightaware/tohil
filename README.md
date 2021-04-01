@@ -190,7 +190,7 @@ Although we could easily make tohil.subst support the "to=" way of request a typ
 
 #### tohil.interact
 
-Run the Tcl interactive command loop on stdin, hopefully a terminal, until you send an EOF.  See also tohil::interact.  (tohil::interact is way better than tohil.interact.)
+Run the Tcl interactive command loop on stdin, hopefully a terminal, until you send an EOF, at which point you'll be returned to the python command line.  See also tohil::interact.
 
 #### Shadow Dictionaries
 
@@ -336,9 +336,9 @@ tohil::import provides a way to import python modules, although I'm not sure tha
 
 #### tohil::interact
 
-Take tohil to eleven.  You're on ten... all the way up... You're on ten on your guitar... where can you go from there?   What we do is if we need that extra...push over the cliff...you know what we do?
+Take tohil to eleven.  You're on ten here... all the way up... You're on ten on your guitar... where can you go from there?  Where?  Nowhere.  Exactly.  What we do is if we need that extra... push over the cliff... you know what we do?
 
-We run tohil::interact from tcl and enter the python interactive loop.  When we're done, we send end of file (^D).
+We run tohil::interact from tcl and enter the python interactive loop.  When we're done, we send end of file (^D) to end the python loop and return to the tcl one.
 
 ```
 tcl % tohil::interact

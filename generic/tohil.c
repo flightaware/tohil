@@ -1,4 +1,16 @@
+// tohil C interface library
+//
+// ...contains all the C code for both Python and TCL
+//
+// GO TOE HEELS
+//
+// There is also python support code in pysrc/tohil,
+// and TCL support code in tclsrc
+//
+// https://github.com/flightaware/tohil
+//
 
+// include Python.h before including any standard header files
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
@@ -428,6 +440,10 @@ TohilCall_Cmd(
 	return TCL_OK;
 }
 
+//
+// implements tcl command tohil::import, to import a python module
+//   into the python interpreter.
+//
 static int
 TohilImport_Cmd(
 	ClientData clientData,  /* Not used. */
@@ -543,6 +559,10 @@ TohilExec_Cmd(
 	return TCL_OK;
 }
 
+//
+// implements tcl-side tohil::interact command to launch the python
+//   interpreter's interactive loop
+//
 static int
 TohilInteract_Cmd(
 	ClientData clientData,  /* Not used. */
@@ -564,10 +584,10 @@ TohilInteract_Cmd(
 	return TCL_OK;
 }
 
-/* PYTHON LIBRARY BEGINS HERE */
+/* Python library begins here */
 
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
-// from a function in this library that accepts a to=python_data_type argument,
+// from any python C function in this library that accepts a to=python_data_type argument,
 // and this routine ought to handle it
 PyObject *
 tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Obj *resultObj) {
@@ -682,6 +702,9 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
 	return NULL;
 }
 
+//
+// tohil.eval command for python to eval code in the tcl interpreter
+//
 static PyObject *
 tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -700,6 +723,9 @@ tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tohil_python_return(interp, result, to, resultObj);
 }
 
+//
+// tohil.expr command for python to evaluate expressions using the tcl interpreter
+//
 static PyObject *
 tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -722,7 +748,9 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tohil_python_return(interp, TCL_OK, to, resultObj);
 }
 
+//
 // tohil.getvar - from python get the contents of a variable
+//
 static PyObject *
 tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -761,7 +789,9 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tohil_python_return(interp, TCL_OK, to, obj);
 }
 
+//
 // tohil.exists - from python see if a variable or array element exists in tcl
+//
 static PyObject *
 tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -780,7 +810,9 @@ tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
 	return p;
 }
 
+//
 // tohil.setvar - set a variable or array element in tcl from python
+//
 static PyObject *
 tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -826,7 +858,11 @@ tohil_unset(PyObject *self, PyObject *args, PyObject *kwargs)
 	return Py_None;
 }
 
-
+//
+// tohil.subst - perform tcl "subst" substitution on the passed string,
+// evaluating square-bracketed stuff and expanding $-prefaced variables,
+// without evaluating the ultimate result, like eval would
+//
 static PyObject *
 tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -851,8 +887,10 @@ tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 	return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
+//
 // tohil.call function for python that's like the tohil::call in tcl, something
-// that doesn't make you pass everything through eval.  here it is.
+// that lets you explicitly specify a tcl command and its arguments and lets
+// you avoid passing everything through eval.  here it is.
 //
 static PyObject *
 tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
@@ -891,6 +929,9 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tohil_python_return(interp, tcl_result, to, Tcl_GetObjResult(interp));
 }
 
+//
+// python C extension structure defining functions
+//
 static PyMethodDef TohilMethods[] = {
 	{"eval",  (PyCFunction)tohil_eval,
 		METH_VARARGS | METH_KEYWORDS,
@@ -935,8 +976,6 @@ static struct PyModuleDef TohilModule = {
 /* Shared initialisation begins here */
 
 
-int Tohil_Init(Tcl_Interp *interp);
-
 // this is the entry point when tcl loads the tohil shared library
 int
 Tohil_Init(Tcl_Interp *interp)
@@ -945,8 +984,10 @@ Tohil_Init(Tcl_Interp *interp)
 
 	if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
 		return TCL_ERROR;
+
 	if (Tcl_PkgRequire(interp, "Tcl", "8.6", 0) == NULL)
 		return TCL_ERROR;
+
 	if (Tcl_PkgProvide(interp, "tohil", PACKAGE_VERSION) != TCL_OK)
 		return TCL_ERROR;
 
@@ -981,11 +1022,11 @@ Tohil_Init(Tcl_Interp *interp)
 	// if i haven't been told python is up, tcl is the parent,
 	// and we need to initialize the python interpreter and
 	// our python module
-	// if !py_IsInitialized() Py_Initialize()?
 	if (!Py_IsInitialized()) {
 		Py_Initialize();
 	}
 
+	// stash the Tcl interpreter pointer so the python side can find it later
 	PyObject *main_module = PyImport_AddModule("__main__");
 	PyObject *pCap = PyCapsule_New(interp, "tohil.interp", NULL);
 	if (PyObject_SetAttrString(main_module, "interp", pCap) == -1) {
@@ -1011,7 +1052,7 @@ Tohil_Init(Tcl_Interp *interp)
 		return PyReturnTclError(interp, "unable to import tohil module to python interpreter");
 	}
 
-	pTohilHandleException =     PyObject_GetAttrString(pTohilMod, "handle_exception");
+	pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
 	Py_DECREF(pTohilMod);
 	if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
 		Py_XDECREF(pTohilHandleException);
@@ -1021,9 +1062,13 @@ Tohil_Init(Tcl_Interp *interp)
 	return TCL_OK;
 }
 
-
+//
 // this is the entrypoint for when python loads us as a shared library
-// note the double underscore, we are _tohil, not tohil, actually tohil._tohil
+// note the double underscore, we are _tohil, not tohil, actually tohil._tohil.
+// that helps us be able to load other tohil python stuff that's needed, like
+// the handle_exception function, before we trigger a load of the shared library,
+// by importing from it, see pysrc/tohil/__init__.py
+//
 PyMODINIT_FUNC
 PyInit__tohil(void)
 {
