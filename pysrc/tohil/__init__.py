@@ -158,7 +158,6 @@ from tohil._tohil import (
     expr,
     getvar,
     interp,
-    plug,
     setvar,
     subst,
     unset,

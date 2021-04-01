@@ -891,24 +891,6 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 	return tohil_python_return(interp, tcl_result, to, Tcl_GetObjResult(interp));
 }
 
-static PyObject *
-tohil_plug(PyObject *self, PyObject *args, PyObject *kwargs)
-{
-	PyObject_Print(kwargs, stdout, 0);
-	printf("\n");
-
-	PyObject *to_object = PyDict_GetItemString(kwargs, "foo");
-	if (to_object != NULL) {
-		printf("found foo object\n");
-		if (PyType_Check(to_object)) {
-			printf(" it's a type\n");
-			PyTypeObject *pt = (PyTypeObject *)to_object;
-			printf("  jackpot: %s\n", pt->tp_name);
-		}
-	}
-	return Py_None;
-}
-
 static PyMethodDef TohilMethods[] = {
 	{"eval",  (PyCFunction)tohil_eval,
 		METH_VARARGS | METH_KEYWORDS,
@@ -934,9 +916,6 @@ static PyMethodDef TohilMethods[] = {
 	{"call",  (PyCFunction)tohil_call,
 		METH_VARARGS | METH_KEYWORDS,
 		"invoke a tcl command with arguments"},
-	{"plug",  (PyCFunction)tohil_plug,
-		METH_VARARGS | METH_KEYWORDS,
-		"karl's microscope"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 };
 
