@@ -788,6 +788,13 @@ PyTclObj_lindex(PyTclObj *self, PyObject *args, PyObject *kwargs)
 	return tohil_python_return(tcl_interp, TCL_OK, to, resultObj);
 }
 
+static PyObject *
+PyTclObj_refcount(PyTclObj *self, PyObject *dummy)
+{
+	return PyLong_FromLong(self->tclobj->refCount);
+}
+
+
 static PyMethodDef PyTclObj_methods[] = {
 	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the object"},
 	{"as_str", (PyCFunction) PyTclObj_as_string, METH_NOARGS, "return object as str"},
@@ -803,6 +810,7 @@ static PyMethodDef PyTclObj_methods[] = {
 	{"setvar", (PyCFunction) PyTclObj_setvar, METH_O, "set tcl var or array element to object"},
 	{"set", (PyCFunction) PyTclObj_set, METH_O, "set object from some python object"},
 	{"lindex", (PyCFunction) PyTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from list"},
+	{"refcount", (PyCFunction) PyTclObj_refcount, METH_NOARGS, "get object's reference count"},
 	{NULL} // sentinel
 };
 
