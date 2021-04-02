@@ -1069,7 +1069,9 @@ tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 	int result = Tcl_Eval(tcl_interp, tclCode);
 	Tcl_Obj *resultObj = Tcl_GetObjResult(tcl_interp);
 
-	return tohil_python_return(tcl_interp, result, to, resultObj);
+	PyObject *ret = tohil_python_return(tcl_interp, result, to, resultObj);
+	Tcl_DecrRefCount(resultObj);
+	return ret;
 }
 
 //
@@ -1092,7 +1094,9 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 		return NULL;
 	}
 
-	return tohil_python_return(tcl_interp, TCL_OK, to, resultObj);
+	PyObject *ret = tohil_python_return(tcl_interp, TCL_OK, to, resultObj);
+	Tcl_DecrRefCount(resultObj);
+	return ret;
 }
 
 //
