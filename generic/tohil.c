@@ -21,6 +21,17 @@
 
 #include <stdio.h>
 
+// forward definitions
+
+// tcl obj python data type
+typedef struct {
+	PyObject_HEAD
+	Tcl_Obj *tclobj;
+} PyTclObj;
+
+int PyTclObj_Check(PyObject *pyObj);
+static PyTypeObject PyTclObjType;
+
 /* TCL library begins here */
 
 Tcl_Interp *tcl_interp = NULL;
@@ -179,6 +190,9 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
 		tObj = Tcl_NewObj();
 	} else if (pObj == Py_True || pObj == Py_False) {
 		tObj = Tcl_NewBooleanObj(pObj == Py_True);
+	} else if (PyTclObj_Check(pObj)) {
+		PyTclObj *pyTclObj = (PyTclObj *)pObj;
+		tObj = pyTclObj->tclobj;
 	} else if (PyBytes_Check(pObj)) {
 		tObj = Tcl_NewByteArrayObj(
 			(const unsigned char *)PyBytes_AS_STRING(pObj),
@@ -588,11 +602,12 @@ TohilInteract_Cmd(
 /* Python library begins here */
 
 
-// tcl obj python data type
-typedef struct {
-	PyObject_HEAD
-	Tcl_Obj *tclobj;
-} PyTclObj;
+
+int
+PyTclObj_Check(PyObject *pyObj)
+{
+	return PyObject_TypeCheck(pyObj, &PyTclObjType);
+}
 
 static void
 PyTclObj_dealloc(PyTclObj *self)
