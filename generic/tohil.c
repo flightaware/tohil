@@ -604,6 +604,7 @@ PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	PyTclObj *self = (PyTclObj *)type->tp_alloc(type, 0);
 	if (self != NULL) {
 		self->tclobj = Tcl_NewObj();
+		Tcl_IncrRefCount(self->tclobj);
 	}
 	return (PyObject *) self;
 }
@@ -635,6 +636,7 @@ PyTclObj_reset(PyTclObj *self, PyObject *pyobj)
 {
 	Tcl_DecrRefCount(self->tclobj);
 	self->tclobj = Tcl_NewObj();
+	Tcl_IncrRefCount(self->tclobj);
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -730,6 +732,7 @@ PyTclObj_getvar(PyTclObj *self, PyObject *var)
 	}
 	Tcl_DecrRefCount(self->tclobj);
 	self->tclobj = newObj;
+	Tcl_IncrRefCount(self->tclobj);
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -757,18 +760,11 @@ PyTclObj_set(PyTclObj *self, PyObject *pyObject)
 	}
 	Tcl_DecrRefCount(self->tclobj);
 	self->tclobj = newObj;
+	Tcl_IncrRefCount(self->tclobj);
 
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
-// use pyObjToTcl
-
-// attach a var
-// assign from a python object
-//static PyObject *
-//PyTclObj_
-//pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
 
 static PyMethodDef PyTclObj_methods[] = {
 	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the object"},
