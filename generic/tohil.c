@@ -874,15 +874,27 @@ PyTclObj_lindex(PyTclObj *self, PyObject *args, PyObject *kwargs)
 	static char *kwlist[] = {"index", "to", NULL};
 	PyObject *to = NULL;
 	int index = 0;
+	int length = 0;
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i|$O", kwlist, &index, &to))
 		return NULL;
+
+	if (Tcl_ListObjLength(tcl_interp, self->tclobj, &length) == TCL_ERROR) {
+		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+		return NULL;
+	}
+
+	if (index < 0 || index >= length) {
+		PyErr_SetString(PyExc_IndexError, "list index out of range");
+		return NULL;
+	}
 
 	Tcl_Obj *resultObj = NULL;
 	if (Tcl_ListObjIndex(tcl_interp, self->tclobj, index, &resultObj) == TCL_ERROR) {
 		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
 		return NULL;
 	}
+
 	return tohil_python_return(tcl_interp, TCL_OK, to, resultObj);
 }
 
