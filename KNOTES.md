@@ -110,3 +110,16 @@ intercept stdout when exec'ing python in rivet and pump it to rivet
 
 
 https://github.com/python/cpython/blob/master/Modules/_tkinter.c
+
+
+### what wizardry is this
+
+how about a python object that wraps a tcl object and can do things with it
+
+it would need to be implemented in C
+
+it would be able to get the object as a string, an int, a float, a list, etc, if it can be represented that way.
+
+for example if you try to do list stuff with it it'll do a Tcl_GetListFromObj and if it returns an error it'll throw an exception.
+
+
