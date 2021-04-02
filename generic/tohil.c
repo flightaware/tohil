@@ -23,6 +23,7 @@
 
 /* TCL library begins here */
 
+Tcl_Interp *tcl_interp = NULL;
 static PyObject *pTohilHandleException = NULL;
 
 // turn a tcl list into a python list
@@ -587,22 +588,23 @@ TohilInteract_Cmd(
 /* Python library begins here */
 
 
+// tcl obj python data type
 typedef struct {
 	PyObject_HEAD
 	Tcl_Obj *tclobj;
-} TclObj;
+} PyTclObj;
 
 static void
-TclObj_dealloc(TclObj *self)
+PyTclObj_dealloc(PyTclObj *self)
 {
 	Tcl_DecrRefCount(self->tclobj);
 	Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
 static PyObject *
-TclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-	TclObj *self = (TclObj *)type->tp_alloc(type, 0);
+	PyTclObj *self = (PyTclObj *)type->tp_alloc(type, 0);
 	if (self != NULL) {
 		self->tclobj = Tcl_NewObj();
 	}
@@ -610,13 +612,21 @@ TclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static int
-TclObj_init(TclObj *self, PyObject *args, PyObject *kwds)
+PyTclObj_init(PyTclObj *self, PyObject *args, PyObject *kwds)
 {
 	return 0;
 }
 
 static PyObject *
-TclObj_reset(TclObj *self, PyObject *pyobj)
+PyTclObj_repr(PyTclObj *self)
+{
+	int tclStringSize;
+	char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
+	return Py_BuildValue("s#", tclString, tclStringSize);
+}
+
+static PyObject *
+PyTclObj_reset(PyTclObj *self, PyObject *pyobj)
 {
 	Tcl_DecrRefCount(self->tclobj);
 	self->tclobj = Tcl_NewObj();
@@ -624,25 +634,75 @@ TclObj_reset(TclObj *self, PyObject *pyobj)
 	return Py_None;
 }
 
-static PyMethodDef TclObj_methods[] = {
-	{"reset", (PyCFunction) TclObj_reset, METH_NOARGS,
-		"reset the object"
-	},
+static PyObject *
+PyTclObj_as_int(PyTclObj *self, PyObject *pyobj)
+{
+	long longValue;
+
+	if (Tcl_GetLongFromObj(tcl_interp, self->tclobj, &longValue) == TCL_OK) {
+		return PyLong_FromLong(longValue);
+	}
+	PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+	return NULL;
+}
+
+static PyObject *
+PyTclObj_as_string(PyTclObj *self, PyObject *pyobj)
+{
+	int tclStringSize;
+	char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
+	return Py_BuildValue("s#", tclString, tclStringSize);
+}
+
+static PyObject *
+PyTclObj_as_list(PyTclObj *self, PyObject *pyobj)
+{
+	return tclListObjToPyListObject(tcl_interp, self->tclobj);
+}
+
+static PyObject *
+PyTclObj_as_set(PyTclObj *self, PyObject *pyobj)
+{
+	return tclListObjToPySetObject(tcl_interp, self->tclobj);
+}
+
+static PyObject *
+PyTclObj_as_tuple(PyTclObj *self, PyObject *pyobj)
+{
+	return tclListObjToPyTupleObject(tcl_interp, self->tclobj);
+}
+
+static PyObject *
+PyTclObj_as_dict(PyTclObj *self, PyObject *pyobj)
+{
+	return tclListObjToPyDictObject(tcl_interp, self->tclobj);
+}
+
+static PyMethodDef PyTclObj_methods[] = {
+	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the object"},
+	{"as_str", (PyCFunction) PyTclObj_as_string, METH_NOARGS, "return object as str"},
+	{"as_int", (PyCFunction) PyTclObj_as_int, METH_NOARGS, "return object as int"},
+	{"as_list", (PyCFunction) PyTclObj_as_list, METH_NOARGS, "return object as list"},
+	{"as_set", (PyCFunction) PyTclObj_as_set, METH_NOARGS, "return object as set"},
+	{"as_tuple", (PyCFunction) PyTclObj_as_tuple, METH_NOARGS, "return object as tuple"},
+	{"as_dict", (PyCFunction) PyTclObj_as_dict, METH_NOARGS, "return object as dict"},
 	{NULL} // sentinel
 };
 
-static PyTypeObject TclObjType = {
+static PyTypeObject PyTclObjType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
 	.tp_name = "tohil.tclobj",
 	.tp_doc = "Tcl Object",
-	.tp_basicsize = sizeof(TclObj),
+	.tp_basicsize = sizeof(PyTclObj),
 	.tp_itemsize = 0,
 	.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-	.tp_new = TclObj_new,
-	.tp_init = (initproc) TclObj_init,
-	.tp_dealloc = (destructor) TclObj_dealloc,
-	.tp_methods = TclObj_methods,
+	.tp_new = PyTclObj_new,
+	.tp_init = (initproc) PyTclObj_init,
+	.tp_dealloc = (destructor) PyTclObj_dealloc,
+	.tp_methods = PyTclObj_methods,
+	.tp_repr = (reprfunc)PyTclObj_repr,
 };
+// end of tcl obj python data type
 
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
 // from any python C function in this library that accepts a to=python_data_type argument,
@@ -1164,9 +1224,10 @@ PyInit__tohil(void)
 		interp = PyCapsule_GetPointer(pCap, "tohil.interp");
 		Py_DECREF(pCap);
 	}
+	tcl_interp = interp;
 
 	// turn up the tclobj python type
-	if (PyType_Ready(&TclObjType) < 0) {
+	if (PyType_Ready(&PyTclObjType) < 0) {
 		return NULL;
 	}
 
@@ -1176,9 +1237,9 @@ PyInit__tohil(void)
 		return NULL;
 	}
 
-	Py_INCREF(&TclObjType);
-	if (PyModule_AddObject(m, "TclObj", (PyObject *) &TclObjType) < 0) {
-		Py_DECREF(&TclObjType);
+	Py_INCREF(&PyTclObjType);
+	if (PyModule_AddObject(m, "TclObj", (PyObject *) &PyTclObjType) < 0) {
+		Py_DECREF(&PyTclObjType);
 		Py_DECREF(m);
 		return NULL;
 	}
