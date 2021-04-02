@@ -648,6 +648,31 @@ PyTclObj_as_int(PyTclObj *self, PyObject *pyobj)
 }
 
 static PyObject *
+PyTclObj_as_float(PyTclObj *self, PyObject *pyobj)
+{
+	double doubleValue;
+
+	if (Tcl_GetDoubleFromObj(tcl_interp, self->tclobj, &doubleValue) == TCL_OK) {
+		return PyFloat_FromDouble(doubleValue);
+	}
+	PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+	return NULL;
+}
+
+static PyObject *
+PyTclObj_as_bool(PyTclObj *self, PyObject *pyobj)
+{
+	int intValue;
+	if (Tcl_GetBooleanFromObj(tcl_interp, self->tclobj, &intValue) == TCL_OK) {
+		PyObject *p = (intValue ? Py_True : Py_False);
+		Py_INCREF(p);
+		return p;
+	}
+	PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+	return NULL;
+}
+
+static PyObject *
 PyTclObj_as_string(PyTclObj *self, PyObject *pyobj)
 {
 	int tclStringSize;
@@ -683,6 +708,8 @@ static PyMethodDef PyTclObj_methods[] = {
 	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the object"},
 	{"as_str", (PyCFunction) PyTclObj_as_string, METH_NOARGS, "return object as str"},
 	{"as_int", (PyCFunction) PyTclObj_as_int, METH_NOARGS, "return object as int"},
+	{"as_float", (PyCFunction) PyTclObj_as_float, METH_NOARGS, "return object as float"},
+	{"as_bool", (PyCFunction) PyTclObj_as_bool, METH_NOARGS, "return object as bool"},
 	{"as_list", (PyCFunction) PyTclObj_as_list, METH_NOARGS, "return object as list"},
 	{"as_set", (PyCFunction) PyTclObj_as_set, METH_NOARGS, "return object as set"},
 	{"as_tuple", (PyCFunction) PyTclObj_as_tuple, METH_NOARGS, "return object as tuple"},
