@@ -903,6 +903,13 @@ PyTclObj_type(PyTclObj *self, PyObject *dummy)
 	return Py_BuildValue("s", self->tclobj->typePtr->name);
 }
 
+static PyObject *
+PyTclObjIter(PyObject *self)
+{
+	assert(pyTclObjIterator != NULL);
+	PyObject *pyRet = PyObject_CallFunction(pyTclObjIterator, "O", self);
+	return pyRet;
+}
 
 static PyMethodDef PyTclObj_methods[] = {
 	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the tclobj"},
@@ -937,6 +944,7 @@ static PyTypeObject PyTclObjType = {
 	.tp_dealloc = (destructor) PyTclObj_dealloc,
 	.tp_methods = PyTclObj_methods,
 	.tp_str = (reprfunc)PyTclObj_repr,
+	.tp_iter = (getiterfunc)PyTclObjIter,
 };
 	// .tp_repr = (reprfunc)PyTclObj_repr,
 
@@ -1440,7 +1448,6 @@ PyInit__tohil(void)
 		return NULL;
 	}
 
-#if 0
 	// import tohil to get at the python parts
 	PyObject *pTohilModStr, *pTohilMod;
 	pTohilModStr = PyUnicode_FromString("tohil");
@@ -1450,17 +1457,15 @@ PyInit__tohil(void)
 		return NULL;
 	}
 
-	// find the TclObjIterator class and plug it into the PyTclObjType structure
+	// find the TclObjIterator class and keep a reference to it
 	pyTclObjIterator = PyObject_GetAttrString(pTohilMod, "TclObjIterator");
 	if (pyTclObjIterator == NULL || !PyCallable_Check(pyTclObjIterator)) {
-		printf("%lx\n", pyTclObjIterator);
 		Py_DECREF(pTohilMod);
 		Py_XDECREF(pyTclObjIterator);
 		PyErr_SetString(PyExc_RuntimeError, "unable to find tohil.TclObjIterator class in python interpreter");
 		return NULL;
 	}
-#endif
-	// PyTclObjType.tp_iter = (getiterfunc)pyTclObjIterator;
+	Py_INCREF(pyTclObjIterator);
 
 	// add our tclobj type to python
 	Py_INCREF(&PyTclObjType);
@@ -1481,3 +1486,4 @@ PyInit__tohil(void)
 
 	return m;
 }
+
