@@ -794,6 +794,17 @@ PyTclObj_refcount(PyTclObj *self, PyObject *dummy)
 	return PyLong_FromLong(self->tclobj->refCount);
 }
 
+static PyObject *
+PyTclObj_type(PyTclObj *self, PyObject *dummy)
+{
+	const Tcl_ObjType *typePtr = self->tclobj->typePtr;
+	if (typePtr == NULL) {
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+	return Py_BuildValue("s", self->tclobj->typePtr->name);
+}
+
 
 static PyMethodDef PyTclObj_methods[] = {
 	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the object"},
@@ -811,6 +822,7 @@ static PyMethodDef PyTclObj_methods[] = {
 	{"set", (PyCFunction) PyTclObj_set, METH_O, "set object from some python object"},
 	{"lindex", (PyCFunction) PyTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from list"},
 	{"refcount", (PyCFunction) PyTclObj_refcount, METH_NOARGS, "get object's reference count"},
+	{"type", (PyCFunction) PyTclObj_type, METH_NOARGS, "return the object's type from tcl, or None if it doesn't have one"},
 	{NULL} // sentinel
 };
 
