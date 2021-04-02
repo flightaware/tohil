@@ -41,6 +41,7 @@ static PyObject * PyTclObj_FromTclObj(Tcl_Obj *obj);
 
 Tcl_Interp *tcl_interp = NULL;
 static PyObject *pTohilHandleException = NULL;
+static PyObject *pyTclObjIterator = NULL;
 
 // turn a tcl list into a python list
 PyObject *
@@ -1443,6 +1444,29 @@ PyInit__tohil(void)
 		return NULL;
 	}
 
+#if 0
+	// import tohil to get at the python parts
+	PyObject *pTohilModStr, *pTohilMod;
+	pTohilModStr = PyUnicode_FromString("tohil");
+	pTohilMod = PyImport_Import(pTohilModStr);
+	Py_DECREF(pTohilModStr);
+	if (pTohilMod == NULL) {
+		return NULL;
+	}
+
+	// find the TclObjIterator class and plug it into the PyTclObjType structure
+	pyTclObjIterator = PyObject_GetAttrString(pTohilMod, "TclObjIterator");
+	if (pyTclObjIterator == NULL || !PyCallable_Check(pyTclObjIterator)) {
+		printf("%lx\n", pyTclObjIterator);
+		Py_DECREF(pTohilMod);
+		Py_XDECREF(pyTclObjIterator);
+		PyErr_SetString(PyExc_RuntimeError, "unable to find tohil.TclObjIterator class in python interpreter");
+		return NULL;
+	}
+#endif
+	// PyTclObjType.tp_iter = (getiterfunc)pyTclObjIterator;
+
+	// add our tclobj type to python
 	Py_INCREF(&PyTclObjType);
 	if (PyModule_AddObject(m, "tclobj", (PyObject *) &PyTclObjType) < 0) {
 		Py_DECREF(&PyTclObjType);
