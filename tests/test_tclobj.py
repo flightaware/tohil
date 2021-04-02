@@ -63,6 +63,13 @@ class TestTclObj(unittest.TestCase):
         x.setvar("foo")
         self.assertEqual(str(x), tohil.getvar("foo"))
 
+    def test_tclobj9(self):
+        """exercise tohil.tclobj reset()"""
+        x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
+        self.assertEqual(str(x), "1 2 3 4 5")
+        x.reset()
+        self.assertEqual(str(x), '')
+
 
 if __name__ == "__main__":
     unittest.main()
