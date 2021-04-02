@@ -52,6 +52,7 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	int count;
 
 	if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
+		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
 		return NULL;
 	}
 
@@ -73,6 +74,7 @@ tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	int count;
 
 	if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
+		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
 		return NULL;
 	}
 
@@ -885,47 +887,23 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
 	}
 
 	if (strcmp(toString, "list") == 0) {
-		PyObject *p = tclListObjToPyListObject(interp, resultObj);
-
 		Py_XDECREF(pt);
-		if (p == NULL) {
-			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-			return NULL;
-		}
-		return p;
+		return tclListObjToPyListObject(interp, resultObj);
 	}
 
 	if (strcmp(toString, "set") == 0) {
-		PyObject *p = tclListObjToPySetObject(interp, resultObj);
-
 		Py_XDECREF(pt);
-		if (p == NULL) {
-			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-			return NULL;
-		}
-		return p;
+		return tclListObjToPySetObject(interp, resultObj);
 	}
 
 	if (strcmp(toString, "dict") == 0) {
-		PyObject *p = tclListObjToPyDictObject(interp, resultObj);
-
 		Py_XDECREF(pt);
-		if (p == NULL) {
-			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-			return NULL;
-		}
-		return p;
+		return tclListObjToPyDictObject(interp, resultObj);
 	}
 
 	if (strcmp(toString, "tuple") == 0) {
-		PyObject *p = tclListObjToPyTupleObject(interp, resultObj);
-
 		Py_XDECREF(pt);
-		if (p == NULL) {
-			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
-			return NULL;
-		}
-		return p;
+		return tclListObjToPyTupleObject(interp, resultObj);
 	}
 
 	PyErr_SetString(PyExc_RuntimeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, or tohil.tclobj");
