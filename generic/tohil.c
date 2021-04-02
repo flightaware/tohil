@@ -594,13 +594,6 @@ typedef struct {
 	Tcl_Obj *tclobj;
 } PyTclObj;
 
-static void
-PyTclObj_dealloc(PyTclObj *self)
-{
-	Tcl_DecrRefCount(self->tclobj);
-	Py_TYPE(self)->tp_free((PyObject *) self);
-}
-
 static PyObject *
 PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -610,6 +603,14 @@ PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	}
 	return (PyObject *) self;
 }
+
+static void
+PyTclObj_dealloc(PyTclObj *self)
+{
+	Tcl_DecrRefCount(self->tclobj);
+	Py_TYPE(self)->tp_free((PyObject *) self);
+}
+
 
 static int
 PyTclObj_init(PyTclObj *self, PyObject *args, PyObject *kwds)
@@ -700,8 +701,19 @@ static PyTypeObject PyTclObjType = {
 	.tp_init = (initproc) PyTclObj_init,
 	.tp_dealloc = (destructor) PyTclObj_dealloc,
 	.tp_methods = PyTclObj_methods,
-	.tp_repr = (reprfunc)PyTclObj_repr,
+	// .tp_repr = (reprfunc)PyTclObj_repr,
 };
+
+static PyObject *
+PyTclObj_FromTclObj(Tcl_Obj *obj)
+{
+	PyTclObj *self = (PyTclObj *)PyTclObjType.tp_alloc(&PyTclObjType, 0);
+	if (self != NULL) {
+		self->tclobj = obj;
+	}
+	return (PyObject *) self;
+}
+
 // end of tcl obj python data type
 
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
@@ -771,6 +783,10 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
 		return NULL;
 	}
 
+	if (strcmp(toString, "tohil.tclobj") == 0) {
+		Py_XDECREF(pt);
+		return PyTclObj_FromTclObj(Tcl_GetObjResult(interp));
+	}
 
 	if (strcmp(toString, "list") == 0) {
 		PyObject *p = tclListObjToPyListObject(interp, resultObj);
@@ -816,7 +832,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
 		return p;
 	}
 
-	PyErr_SetString(PyExc_RuntimeError, "'to' conversion type must be str, int, bool, float, list, set, dict, or tuple");
+	PyErr_SetString(PyExc_RuntimeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, or tohil.tclobj");
 	return NULL;
 }
 
@@ -1238,7 +1254,7 @@ PyInit__tohil(void)
 	}
 
 	Py_INCREF(&PyTclObjType);
-	if (PyModule_AddObject(m, "TclObj", (PyObject *) &PyTclObjType) < 0) {
+	if (PyModule_AddObject(m, "tclobj", (PyObject *) &PyTclObjType) < 0) {
 		Py_DECREF(&PyTclObjType);
 		Py_DECREF(m);
 		return NULL;
