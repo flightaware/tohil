@@ -704,6 +704,17 @@ PyTclObj_as_dict(PyTclObj *self, PyObject *pyobj)
 	return tclListObjToPyDictObject(tcl_interp, self->tclobj);
 }
 
+static PyObject *
+PyTclObj_llength(PyTclObj *self, PyObject *pyobj)
+{
+	int length;
+	if (Tcl_ListObjLength(tcl_interp, self->tclobj, &length) == TCL_OK) {
+		return PyLong_FromLong(length);
+	}
+	PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+	return NULL;
+}
+
 static PyMethodDef PyTclObj_methods[] = {
 	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the object"},
 	{"as_str", (PyCFunction) PyTclObj_as_string, METH_NOARGS, "return object as str"},
@@ -714,6 +725,7 @@ static PyMethodDef PyTclObj_methods[] = {
 	{"as_set", (PyCFunction) PyTclObj_as_set, METH_NOARGS, "return object as set"},
 	{"as_tuple", (PyCFunction) PyTclObj_as_tuple, METH_NOARGS, "return object as tuple"},
 	{"as_dict", (PyCFunction) PyTclObj_as_dict, METH_NOARGS, "return object as dict"},
+	{"llength", (PyCFunction) PyTclObj_llength, METH_NOARGS, "length of list object"},
 	{NULL} // sentinel
 };
 
