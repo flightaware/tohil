@@ -835,12 +835,13 @@ PyTclObj_getvar(PyTclObj *self, PyObject *var)
 }
 
 //
-// getvar - set set tcl var to point to the tcl object of a python tclobj
+// setvar - set set tcl var to point to the tcl object of a python tclobj
 //
 static PyObject *
 PyTclObj_setvar(PyTclObj *self, PyObject *var)
 {
 	char *varString = (char *)PyUnicode_1BYTE_DATA(var);
+	// setvar handles incrementing the reference count
 	if (Tcl_SetVar2Ex(tcl_interp, varString, NULL, self->tclobj, (TCL_LEAVE_ERR_MSG)) == NULL) {
 		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
 		return NULL;
@@ -1025,7 +1026,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
 
 	if (strcmp(toString, "tohil.tclobj") == 0) {
 		Py_XDECREF(pt);
-		return PyTclObj_FromTclObj(Tcl_GetObjResult(interp));
+		return PyTclObj_FromTclObj(resultObj);
 	}
 
 	if (strcmp(toString, "list") == 0) {
@@ -1084,7 +1085,7 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &expression, &to))
 		return NULL;
 
-	Tcl_Obj *resultObj;
+	Tcl_Obj *resultObj = NULL;
 	if (Tcl_ExprObj(tcl_interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
 		char *errMsg = Tcl_GetString(Tcl_GetObjResult(tcl_interp));
 		PyErr_SetString(PyExc_RuntimeError, errMsg);
