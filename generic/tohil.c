@@ -93,11 +93,13 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj) {
 	int count;
 
 	if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
+		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
 		return NULL;
 	}
 
 	if (count % 2 != 0) {
 		// list doesn't have an even number of elements
+		PyErr_SetString(PyExc_RuntimeError, "list doesn't have an even number of elements");
 		return NULL;
 	}
 
@@ -715,6 +717,57 @@ PyTclObj_llength(PyTclObj *self, PyObject *pyobj)
 	return NULL;
 }
 
+static PyObject *
+PyTclObj_getvar(PyTclObj *self, PyObject *var)
+{
+	char *varString = PyBytes_AS_STRING(var);
+	Tcl_Obj *newObj = Tcl_GetVar2Ex(tcl_interp, varString, NULL, (TCL_LEAVE_ERR_MSG));
+	if (newObj == NULL) {
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+		return NULL;
+	}
+	Tcl_DecrRefCount(self->tclobj);
+	self->tclobj = newObj;
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+static PyObject *
+PyTclObj_setvar(PyTclObj *self, PyObject *var)
+{
+	char *varString = PyBytes_AS_STRING(var);
+	if (Tcl_SetVar2Ex(tcl_interp, varString, NULL, self->tclobj, (TCL_LEAVE_ERR_MSG)) == NULL) {
+		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+		return NULL;
+	}
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+// set - tclobj type set method can set an object to a lot
+// of possible python stuff -- NB there must be a better way
+static PyObject *
+PyTclObj_set(PyTclObj *self, PyObject *pyObject)
+{
+	Tcl_Obj *newObj = pyObjToTcl(tcl_interp, pyObject);
+	if (newObj == NULL) {
+		return NULL;
+	}
+	Tcl_DecrRefCount(self->tclobj);
+	self->tclobj = newObj;
+
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+// use pyObjToTcl
+
+// attach a var
+// assign from a python object
+//static PyObject *
+//PyTclObj_
+//pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
+
 static PyMethodDef PyTclObj_methods[] = {
 	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the object"},
 	{"as_str", (PyCFunction) PyTclObj_as_string, METH_NOARGS, "return object as str"},
@@ -726,6 +779,9 @@ static PyMethodDef PyTclObj_methods[] = {
 	{"as_tuple", (PyCFunction) PyTclObj_as_tuple, METH_NOARGS, "return object as tuple"},
 	{"as_dict", (PyCFunction) PyTclObj_as_dict, METH_NOARGS, "return object as dict"},
 	{"llength", (PyCFunction) PyTclObj_llength, METH_NOARGS, "length of list object"},
+	{"getvar", (PyCFunction) PyTclObj_getvar, METH_O, "set object to tcl var or array element"},
+	{"setvar", (PyCFunction) PyTclObj_setvar, METH_O, "set tcl var or array element to object"},
+	{"set", (PyCFunction) PyTclObj_set, METH_O, "set object from some python object"},
 	{NULL} // sentinel
 };
 
@@ -740,8 +796,9 @@ static PyTypeObject PyTclObjType = {
 	.tp_init = (initproc) PyTclObj_init,
 	.tp_dealloc = (destructor) PyTclObj_dealloc,
 	.tp_methods = PyTclObj_methods,
-	// .tp_repr = (reprfunc)PyTclObj_repr,
+	.tp_str = (reprfunc)PyTclObj_repr,
 };
+	// .tp_repr = (reprfunc)PyTclObj_repr,
 
 static PyObject *
 PyTclObj_FromTclObj(Tcl_Obj *obj)
