@@ -562,4 +562,10 @@ Do you like the tohil logo?  It's from a creative commons-licensed image of the 
 
 A scan of the image can be found here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_telleriano.jpg.  A wikimedia user, https://commons.wikimedia.org/wiki/User:Di_(they-them), made an SVG file of it, available here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_feathered_serpent.svg
 
+### what magic is this
+
+```
+tohil.call("set", "mydict", tohil.call("dict", "create", *itertools.chain(*d.items())))
+```
+
 
