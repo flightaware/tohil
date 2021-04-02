@@ -35,6 +35,8 @@ static PyTypeObject PyTclObjType;
 PyObject *
 tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Obj *resultObj);
 
+static PyObject * PyTclObj_FromTclObj(Tcl_Obj *obj);
+
 /* TCL library begins here */
 
 Tcl_Interp *tcl_interp = NULL;
@@ -650,6 +652,9 @@ PyTclObj_repr(PyTclObj *self)
 	return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
+//
+// tclobj.reset()
+//
 static PyObject *
 PyTclObj_reset(PyTclObj *self, PyObject *pyobj)
 {
@@ -660,6 +665,9 @@ PyTclObj_reset(PyTclObj *self, PyObject *pyobj)
 	return Py_None;
 }
 
+//
+// tclobj.as_int()
+//
 static PyObject *
 PyTclObj_as_int(PyTclObj *self, PyObject *pyobj)
 {
@@ -672,6 +680,9 @@ PyTclObj_as_int(PyTclObj *self, PyObject *pyobj)
 	return NULL;
 }
 
+//
+// tclobj.as_float()
+//
 static PyObject *
 PyTclObj_as_float(PyTclObj *self, PyObject *pyobj)
 {
@@ -684,6 +695,9 @@ PyTclObj_as_float(PyTclObj *self, PyObject *pyobj)
 	return NULL;
 }
 
+//
+// tclobj.as_bool()
+//
 static PyObject *
 PyTclObj_as_bool(PyTclObj *self, PyObject *pyobj)
 {
@@ -697,6 +711,9 @@ PyTclObj_as_bool(PyTclObj *self, PyObject *pyobj)
 	return NULL;
 }
 
+//
+// tclobj.as_string()
+//
 static PyObject *
 PyTclObj_as_string(PyTclObj *self, PyObject *pyobj)
 {
@@ -705,28 +722,49 @@ PyTclObj_as_string(PyTclObj *self, PyObject *pyobj)
 	return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
+//
+// tclobj.as_list()
+//
 static PyObject *
 PyTclObj_as_list(PyTclObj *self, PyObject *pyobj)
 {
 	return tclListObjToPyListObject(tcl_interp, self->tclobj);
 }
 
+//
+// tclobj.as_set()
+//
 static PyObject *
 PyTclObj_as_set(PyTclObj *self, PyObject *pyobj)
 {
 	return tclListObjToPySetObject(tcl_interp, self->tclobj);
 }
 
+//
+// tclobj.as_tuple()
+//
 static PyObject *
 PyTclObj_as_tuple(PyTclObj *self, PyObject *pyobj)
 {
 	return tclListObjToPyTupleObject(tcl_interp, self->tclobj);
 }
 
+//
+// tclobj.as_dict()
+//
 static PyObject *
 PyTclObj_as_dict(PyTclObj *self, PyObject *pyobj)
 {
 	return tclListObjToPyDictObject(tcl_interp, self->tclobj);
+}
+
+//
+// tclobj.as_tclobj()
+//
+static PyObject *
+PyTclObj_as_tclobj(PyTclObj *self, PyObject *pyobj)
+{
+	return PyTclObj_FromTclObj(self->tclobj);
 }
 
 //
@@ -832,22 +870,23 @@ PyTclObj_type(PyTclObj *self, PyObject *dummy)
 
 
 static PyMethodDef PyTclObj_methods[] = {
-	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the object"},
-	{"as_str", (PyCFunction) PyTclObj_as_string, METH_NOARGS, "return object as str"},
-	{"as_int", (PyCFunction) PyTclObj_as_int, METH_NOARGS, "return object as int"},
-	{"as_float", (PyCFunction) PyTclObj_as_float, METH_NOARGS, "return object as float"},
-	{"as_bool", (PyCFunction) PyTclObj_as_bool, METH_NOARGS, "return object as bool"},
-	{"as_list", (PyCFunction) PyTclObj_as_list, METH_NOARGS, "return object as list"},
-	{"as_set", (PyCFunction) PyTclObj_as_set, METH_NOARGS, "return object as set"},
-	{"as_tuple", (PyCFunction) PyTclObj_as_tuple, METH_NOARGS, "return object as tuple"},
-	{"as_dict", (PyCFunction) PyTclObj_as_dict, METH_NOARGS, "return object as dict"},
-	{"llength", (PyCFunction) PyTclObj_llength, METH_NOARGS, "length of list object"},
-	{"getvar", (PyCFunction) PyTclObj_getvar, METH_O, "set object to tcl var or array element"},
-	{"setvar", (PyCFunction) PyTclObj_setvar, METH_O, "set tcl var or array element to object"},
-	{"set", (PyCFunction) PyTclObj_set, METH_O, "set object from some python object"},
-	{"lindex", (PyCFunction) PyTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from list"},
-	{"refcount", (PyCFunction) PyTclObj_refcount, METH_NOARGS, "get object's reference count"},
-	{"type", (PyCFunction) PyTclObj_type, METH_NOARGS, "return the object's type from tcl, or None if it doesn't have one"},
+	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the tclobj"},
+	{"as_str", (PyCFunction) PyTclObj_as_string, METH_NOARGS, "return tclobj as str"},
+	{"as_int", (PyCFunction) PyTclObj_as_int, METH_NOARGS, "return tclobj as int"},
+	{"as_float", (PyCFunction) PyTclObj_as_float, METH_NOARGS, "return tclobj as float"},
+	{"as_bool", (PyCFunction) PyTclObj_as_bool, METH_NOARGS, "return tclobj as bool"},
+	{"as_list", (PyCFunction) PyTclObj_as_list, METH_NOARGS, "return tclobj as list"},
+	{"as_set", (PyCFunction) PyTclObj_as_set, METH_NOARGS, "return tclobj as set"},
+	{"as_tuple", (PyCFunction) PyTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
+	{"as_dict", (PyCFunction) PyTclObj_as_dict, METH_NOARGS, "return tclobj as dict"},
+	{"as_tclobj", (PyCFunction) PyTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
+	{"llength", (PyCFunction) PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
+	{"getvar", (PyCFunction) PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
+	{"setvar", (PyCFunction) PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
+	{"set", (PyCFunction) PyTclObj_set, METH_O, "set tclobj from some python object"},
+	{"lindex", (PyCFunction) PyTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from tclobj as tcl list"},
+	{"refcount", (PyCFunction) PyTclObj_refcount, METH_NOARGS, "get tclobj's reference count"},
+	{"type", (PyCFunction) PyTclObj_type, METH_NOARGS, "return the tclobj's type from tcl, or None if it doesn't have one"},
 	{NULL} // sentinel
 };
 
@@ -872,6 +911,7 @@ PyTclObj_FromTclObj(Tcl_Obj *obj)
 	PyTclObj *self = (PyTclObj *)PyTclObjType.tp_alloc(&PyTclObjType, 0);
 	if (self != NULL) {
 		self->tclobj = obj;
+		Tcl_IncrRefCount(obj);
 	}
 	return (PyObject *) self;
 }
