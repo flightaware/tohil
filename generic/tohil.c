@@ -753,7 +753,7 @@ PyTclObj_getvar(PyTclObj *self, PyObject *var)
 	char *varString = (char *)PyUnicode_1BYTE_DATA(var);
 	Tcl_Obj *newObj = Tcl_GetVar2Ex(tcl_interp, varString, NULL, (TCL_LEAVE_ERR_MSG));
 	if (newObj == NULL) {
-		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+		PyErr_SetString(PyExc_NameError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
 		return NULL;
 	}
 	Tcl_DecrRefCount(self->tclobj);
@@ -1038,7 +1038,7 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 		obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, (TCL_LEAVE_ERR_MSG));
 
 		if (obj == NULL) {
-			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+			PyErr_SetString(PyExc_NameError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
 			return NULL;
 		}
 	} else {
