@@ -924,22 +924,6 @@ static PyMethodDef PyTclObj_methods[] = {
 	{NULL} // sentinel
 };
 
-// possibly nascent iterator stuff
-typedef struct {
-	PyObject_HEAD
-} PyTclObj_Iter;
-
-PyObject *PyTclObj_iter(PyObject *self)
-{
-	Py_INCREF(self);
-	return self;
-}
-
-PyObject *PyTclObj_next(PyObject *self)
-{
-	return NULL;
-}
-
 static PyTypeObject PyTclObjType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
 	.tp_name = "tohil.tclobj",

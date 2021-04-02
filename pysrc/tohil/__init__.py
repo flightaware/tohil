@@ -70,6 +70,25 @@ def interact():
     eval("package require Tclx")
     call("commandloop", "-prompt1", 'return  " % "', "-prompt2", 'return "> "')
 
+### tclobj iterator
+
+class TclObjIterator():
+    """tclobj iterator - one of these is returned by tclobj
+    iter function to iterate over a tclobj"""
+    def __init__(self, tclobj):
+        self.tclobj = tclobj
+        self.index = -1
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.index += 1
+        if self.index >= self.tclobj.llength():
+            raise StopIteration
+
+        return self.tclobj.lindex(self.index)
+
 ### shadow dictionaries
 
 class ShadowDictIterator():
