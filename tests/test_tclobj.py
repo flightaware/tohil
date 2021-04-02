@@ -57,6 +57,11 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(x.as_float(), 5.0)
         self.assertEqual(x.as_bool(), True)
 
+    def test_tclobj8(self):
+        """exercise tohil.tclobj setvar()"""
+        x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
+        x.setvar("foo")
+        self.assertEqual(str(x), tohil.getvar("foo"))
 
 
 if __name__ == "__main__":
