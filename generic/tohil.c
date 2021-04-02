@@ -21,7 +21,7 @@
 
 #include <stdio.h>
 
-/* TCL LIBRARY BEGINS HERE */
+/* TCL library begins here */
 
 static PyObject *pTohilHandleException = NULL;
 
@@ -586,6 +586,64 @@ TohilInteract_Cmd(
 
 /* Python library begins here */
 
+
+typedef struct {
+	PyObject_HEAD
+	Tcl_Obj *tclobj;
+} TclObj;
+
+static void
+TclObj_dealloc(TclObj *self)
+{
+	Tcl_DecrRefCount(self->tclobj);
+	Py_TYPE(self)->tp_free((PyObject *) self);
+}
+
+static PyObject *
+TclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+	TclObj *self = (TclObj *)type->tp_alloc(type, 0);
+	if (self != NULL) {
+		self->tclobj = Tcl_NewObj();
+	}
+	return (PyObject *) self;
+}
+
+static int
+TclObj_init(TclObj *self, PyObject *args, PyObject *kwds)
+{
+	return 0;
+}
+
+static PyObject *
+TclObj_reset(TclObj *self, PyObject *pyobj)
+{
+	Tcl_DecrRefCount(self->tclobj);
+	self->tclobj = Tcl_NewObj();
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+static PyMethodDef TclObj_methods[] = {
+	{"reset", (PyCFunction) TclObj_reset, METH_NOARGS,
+		"reset the object"
+	},
+	{NULL} // sentinel
+};
+
+static PyTypeObject TclObjType = {
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "tohil.tclobj",
+	.tp_doc = "Tcl Object",
+	.tp_basicsize = sizeof(TclObj),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+	.tp_new = TclObj_new,
+	.tp_init = (initproc) TclObj_init,
+	.tp_dealloc = (destructor) TclObj_dealloc,
+	.tp_methods = TclObj_methods,
+};
+
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
 // from any python C function in this library that accepts a to=python_data_type argument,
 // and this routine ought to handle it
@@ -1107,9 +1165,21 @@ PyInit__tohil(void)
 		Py_DECREF(pCap);
 	}
 
+	// turn up the tclobj python type
+	if (PyType_Ready(&TclObjType) < 0) {
+		return NULL;
+	}
+
 	// create the python module
 	PyObject *m = PyModule_Create(&TohilModule);
 	if (m == NULL) {
+		return NULL;
+	}
+
+	Py_INCREF(&TclObjType);
+	if (PyModule_AddObject(m, "TclObj", (PyObject *) &TclObjType) < 0) {
+		Py_DECREF(&TclObjType);
+		Py_DECREF(m);
 		return NULL;
 	}
 

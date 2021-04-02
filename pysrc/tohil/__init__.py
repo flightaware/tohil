@@ -161,5 +161,6 @@ from tohil._tohil import (
     setvar,
     subst,
     unset,
+    TclObj,
 )
 
