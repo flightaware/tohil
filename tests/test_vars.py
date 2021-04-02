@@ -35,7 +35,7 @@ class TestVars(unittest.TestCase):
     def test_unset3(self):
         # make sure unset doesn't do anything if the var or element doesn't exist
         tohil.unset("x(d)")
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NameError):
             tohil.getvar("x(d)")
 
 
