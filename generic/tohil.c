@@ -611,20 +611,53 @@ TohilInteract_Cmd(
 
 /* Python library begins here */
 
+// python tcl object "tclobj"
 
-
+//
+// return true if python object is a tclobj type
+//
 int
 PyTclObj_Check(PyObject *pyObj)
 {
 	return PyObject_TypeCheck(pyObj, &PyTclObjType);
 }
 
+//
+// create a new python tclobj object from a tclobj
+//
 static PyObject *
-PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+PyTclObj_FromTclObj(Tcl_Obj *obj)
 {
+	PyTclObj *self = (PyTclObj *)PyTclObjType.tp_alloc(&PyTclObjType, 0);
+	if (self != NULL) {
+		self->tclobj = obj;
+		Tcl_IncrRefCount(obj);
+	}
+	return (PyObject *) self;
+}
+
+//
+// create a new python tclobj object
+//
+// currently just creates an empty object but could use args
+// and keywords to do other interesting stuff?
+//
+static PyObject *
+PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+	PyObject *pSource = NULL;
+	static char *kwlist[] = {"from", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", kwlist, &pSource))
+		return NULL;
+
 	PyTclObj *self = (PyTclObj *)type->tp_alloc(type, 0);
 	if (self != NULL) {
-		self->tclobj = Tcl_NewObj();
+		if (pSource == NULL) {
+			self->tclobj = Tcl_NewObj();
+		} else {
+			self->tclobj = pyObjToTcl(tcl_interp, pSource);
+			Py_XDECREF(pSource);
+		}
 		Tcl_IncrRefCount(self->tclobj);
 	}
 	return (PyObject *) self;
@@ -890,6 +923,22 @@ static PyMethodDef PyTclObj_methods[] = {
 	{NULL} // sentinel
 };
 
+// possibly nascent iterator stuff
+typedef struct {
+	PyObject_HEAD
+} PyTclObj_Iter;
+
+PyObject *PyTclObj_iter(PyObject *self)
+{
+	Py_INCREF(self);
+	return self;
+}
+
+PyObject *PyTclObj_next(PyObject *self)
+{
+	return NULL;
+}
+
 static PyTypeObject PyTclObjType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
 	.tp_name = "tohil.tclobj",
@@ -904,17 +953,6 @@ static PyTypeObject PyTclObjType = {
 	.tp_str = (reprfunc)PyTclObj_repr,
 };
 	// .tp_repr = (reprfunc)PyTclObj_repr,
-
-static PyObject *
-PyTclObj_FromTclObj(Tcl_Obj *obj)
-{
-	PyTclObj *self = (PyTclObj *)PyTclObjType.tp_alloc(&PyTclObjType, 0);
-	if (self != NULL) {
-		self->tclobj = obj;
-		Tcl_IncrRefCount(obj);
-	}
-	return (PyObject *) self;
-}
 
 // end of tcl obj python data type
 
