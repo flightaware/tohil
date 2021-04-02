@@ -750,7 +750,7 @@ PyTclObj_llength(PyTclObj *self, PyObject *pyobj)
 static PyObject *
 PyTclObj_getvar(PyTclObj *self, PyObject *var)
 {
-	char *varString = PyBytes_AS_STRING(var);
+	char *varString = (char *)PyUnicode_1BYTE_DATA(var);
 	Tcl_Obj *newObj = Tcl_GetVar2Ex(tcl_interp, varString, NULL, (TCL_LEAVE_ERR_MSG));
 	if (newObj == NULL) {
 		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
@@ -769,7 +769,8 @@ PyTclObj_getvar(PyTclObj *self, PyObject *var)
 static PyObject *
 PyTclObj_setvar(PyTclObj *self, PyObject *var)
 {
-	char *varString = PyBytes_AS_STRING(var);
+	char *varString = (char *)PyUnicode_1BYTE_DATA(var);
+	printf("setting %s\n", varString);
 	if (Tcl_SetVar2Ex(tcl_interp, varString, NULL, self->tclobj, (TCL_LEAVE_ERR_MSG)) == NULL) {
 		PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
 		return NULL;
