@@ -919,12 +919,10 @@ tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &tclCode, &to))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
+	int result = Tcl_Eval(tcl_interp, tclCode);
+	Tcl_Obj *resultObj = Tcl_GetObjResult(tcl_interp);
 
-	int result = Tcl_Eval(interp, tclCode);
-	Tcl_Obj *resultObj = Tcl_GetObjResult(interp);
-
-	return tohil_python_return(interp, result, to, resultObj);
+	return tohil_python_return(tcl_interp, result, to, resultObj);
 }
 
 //
@@ -940,16 +938,14 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &expression, &to))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
-
 	Tcl_Obj *resultObj;
-	if (Tcl_ExprObj(interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
-		char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
+	if (Tcl_ExprObj(tcl_interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
+		char *errMsg = Tcl_GetString(Tcl_GetObjResult(tcl_interp));
 		PyErr_SetString(PyExc_RuntimeError, errMsg);
 		return NULL;
 	}
 
-	return tohil_python_return(interp, TCL_OK, to, resultObj);
+	return tohil_python_return(tcl_interp, TCL_OK, to, resultObj);
 }
 
 //
@@ -967,21 +963,19 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$OO", kwlist, &var, &to, &defaultPyObj))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
-
 	if (defaultPyObj == NULL) {
 		// a default wasn't specified, it's an error if the var or array
 		// element doesn't exist
-		obj = Tcl_GetVar2Ex(interp, var, NULL, (TCL_LEAVE_ERR_MSG));
+		obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, (TCL_LEAVE_ERR_MSG));
 
 		if (obj == NULL) {
-			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+			PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
 			return NULL;
 		}
 	} else {
 		// a default was specified, it's not an error if the var or array
 		// element doesn't exist, we simply return the default value
-		obj = Tcl_GetVar2Ex(interp, var, NULL, 0);
+		obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, 0);
 		if (obj == NULL) {
 			Py_INCREF(defaultPyObj);
 			return defaultPyObj;
@@ -990,7 +984,7 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 
 	// the var or array element exists in tcl, return the value to python,
 	// possibly to a specific datatype
-	return tohil_python_return(interp, TCL_OK, to, obj);
+	return tohil_python_return(tcl_interp, TCL_OK, to, obj);
 }
 
 //
@@ -1005,9 +999,7 @@ tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$", kwlist, &var))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
-
-	Tcl_Obj *obj = Tcl_GetVar2Ex(interp, var, NULL, 0);
+	Tcl_Obj *obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, 0);
 
 	PyObject *p = (obj == NULL ? Py_False : Py_True);
 	Py_INCREF(p);
@@ -1027,14 +1019,12 @@ tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO", kwlist, &var, &pyValue))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
+	Tcl_Obj *tclValue = pyObjToTcl(tcl_interp, pyValue);
 
-	Tcl_Obj *tclValue = pyObjToTcl(interp, pyValue);
-
-	Tcl_Obj *obj = Tcl_SetVar2Ex(interp, var, NULL, tclValue, (TCL_LEAVE_ERR_MSG));
+	Tcl_Obj *obj = Tcl_SetVar2Ex(tcl_interp, var, NULL, tclValue, (TCL_LEAVE_ERR_MSG));
 
 	if (obj == NULL) {
-		char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
+		char *errMsg = Tcl_GetString(Tcl_GetObjResult(tcl_interp));
 		PyErr_SetString(PyExc_RuntimeError, errMsg);
 		return NULL;
 	}
@@ -1055,9 +1045,7 @@ tohil_unset(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$", kwlist, &var))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
-
-	Tcl_UnsetVar(interp, var, 0);
+	Tcl_UnsetVar(tcl_interp, var, 0);
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -1076,11 +1064,9 @@ tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &string))
 		return NULL;
 
-	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
-
-	Tcl_Obj *obj = Tcl_SubstObj(interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
+	Tcl_Obj *obj = Tcl_SubstObj(tcl_interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
 	if (obj == NULL) {
-		char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
+		char *errMsg = Tcl_GetString(Tcl_GetObjResult(tcl_interp));
 		PyErr_SetString(PyExc_RuntimeError, errMsg);
 		return NULL;
 	}
@@ -1101,7 +1087,6 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 {
 	Py_ssize_t objc = PyTuple_GET_SIZE(args);
 	int i;
-	Tcl_Interp *interp = PyCapsule_Import("tohil.interp", 0);
 	PyObject *to = NULL;
 	//
 	// allocate an array of Tcl object pointers the same size
@@ -1118,19 +1103,19 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 	// for each argument convert the python object to a tcl object
 	// and store it in the tcl object vector
 	for (i = 0; i < objc; i++) {
-		objv[i] = pyObjToTcl(interp, PyTuple_GET_ITEM(args, i));
+		objv[i] = pyObjToTcl(tcl_interp, PyTuple_GET_ITEM(args, i));
 		Tcl_IncrRefCount(objv[i]);
 	}
 
 	// invoke tcl using the objv array we just constructed
-	int tcl_result = Tcl_EvalObjv(interp, objc, objv, 0);
+	int tcl_result = Tcl_EvalObjv(tcl_interp, objc, objv, 0);
 
 	for (i = 0; i < objc; i++) {
 		Tcl_DecrRefCount(objv[i]);
 	}
 	ckfree(objv);
 
-	return tohil_python_return(interp, tcl_result, to, Tcl_GetObjResult(interp));
+	return tohil_python_return(tcl_interp, tcl_result, to, Tcl_GetObjResult(tcl_interp));
 }
 
 //
