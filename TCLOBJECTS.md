@@ -29,12 +29,35 @@ obj.lappend() will append python stuff to the list stored in the tclobj.
 
 Thanks to tohil's increasingly thorough tclobj object implementation and python's excellent support for such things, you can use the indexing syntax to access and even change certain elements.
 
+```
+>>> x = tohil.eval("list 1 2 3 4 5 6", to=tohil.tclobj)
+>>> x
+<tohil.tclobj: '1 2 3 4 5 6'>
+>>> x[2]
+<tohil.tclobj: '3'>
+>>> x[3:]
+[<tohil.tclobj: '4'>, <tohil.tclobj: '5'>, <tohil.tclobj: '6'>]
+>>> x[-2:]
+[<tohil.tclobj: '5'>, <tohil.tclobj: '6'>]
+>>> x[-2:-1]
+[<tohil.tclobj: '5'>]
+```
 
 
+Tclobjs can be compared.  If equality check is requested, first their internal
+tclobj pointers are compared for absolute equality.  Following that, and for all
+other cases (<, <=, >, >=), their string representations are obtained and compared.
+Not something you probably should rely on for complicated objects but should be
+fine for simple ones.
+
+Comparisons are really permissive, too, in what the tclobj implementation accepts from python.
+
+It seems pretty good, but this is new stuff, so be careful and let us know how it's going.
 
 
+You can examine the tcl reference count.
 
-
+```
 x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
 
 x.lindex(0)
@@ -54,11 +77,13 @@ str(x)
 y = x
 
 y.refcount()
+```
 
 You can create a tclobj from most python stuff.
 
 a list:
 
+```
 >>> l = [1, 2, 3, 4, 5]
 >>> type(l)
 <class 'list'>
@@ -67,19 +92,24 @@ a list:
 '1 2 3 4 5'
 >>> kl.llength()
 5
+```
 
 a tuple:
 
+```
 >>> z = tohil.tclobj((1, 2, 3))
 >>> str(z)
 '1 2 3'
+```
 
 a dict:
 
+```
 >>> d = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
 >>> z = tohil.tclobj(d)
 >>> str(z)
 'a 0 b 1 c 2 d 3'
+```
 
 
 

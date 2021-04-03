@@ -91,29 +91,38 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(x.as_byte_array(), bytearray(b'1 2 3 4 5 6 7'))
 
     def test_tclobj13(self):
-        """tohil.tclobj slice stuff"""
+        """tohil.tclobj slice stuff, 4 to the end"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertEqual(repr(x[4:]),"[<tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]");
 
     def test_tclobj14(self):
-        """tohil.tclobj slice stuff"""
+        """tohil.tclobj slice stuff, the beginning until 4"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertEqual(repr(x[:4]),"[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>, <tohil.tclobj: '4'>]");
 
     def test_tclobj15(self):
-        """tohil.tclobj slice stuff"""
+        """tohil.tclobj slice stuff, from the beginning to 4 from the end"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertEqual(repr(x[:-4]),"[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>]");
 
     def test_tclobj16(self):
-        """tohil.tclobj slice stuff"""
+        """tohil.tclobj slice stuff, from 4 from the end to the end"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertEqual(repr(x[-4:]),"[<tohil.tclobj: '4'>, <tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]");
 
     def test_tclobj17(self):
-        """tohil.tclobj slice stuff"""
+        """tohil.tclobj slice stuff, the whole thing with a :"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertEqual(repr(x[:]),"[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>, <tohil.tclobj: '4'>, <tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]");
+
+    def test_tclobj18(self):
+        """tohil.tclobj comparing tclobjs with stuff"""
+        x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
+        self.assertTrue(x[2] == x[2])
+        self.assertTrue(x[2] == 3)
+        self.assertTrue(x[2] == '3')
+        self.assertTrue(x[2] < 4.0)
+        self.assertFalse(x[2] > 4.0)
 
 
 if __name__ == "__main__":
