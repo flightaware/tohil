@@ -651,13 +651,22 @@ static PyObject *PyTclObj_richcompare(PyTclObj *self, PyObject *other, int op)
 
     // if you want equal and they point to the exact same object,
     // we are donezo
-    if (op == Py_EQ && PyTclObj_Check(other) && self->tclobj == other->tclobj) {
+    if (op == Py_EQ && PyTclObj_Check(other) && self->tclobj == ((PyTclObj *)other)->tclobj) {
         Py_INCREF(Py_True);
         return Py_True;
     }
 
     char *selfString = Tcl_GetString(self->tclobj);
-    char *otherString = Tcl_GetString(other->tclobj);
+
+	char *otherString = NULL;
+	Tcl_Obj *otherObj = NULL;
+    if (PyTclObj_Check(other)) {
+		otherString = Tcl_GetString(((PyTclObj *)other)->tclobj);
+	} else {
+		otherObj = pyObjToTcl(tcl_interp, other);
+		otherString = Tcl_GetString(otherObj);
+	}
+
     int cmp = strcmp(selfString, otherString);
     int res;
 
@@ -689,6 +698,9 @@ static PyObject *PyTclObj_richcompare(PyTclObj *self, PyObject *other, int op)
         default:
             assert(0 == 1);
     }
+	if (otherObj != NULL) {
+		Tcl_DecrRefCount(otherObj);
+	}
     PyObject *p = (res ? Py_True : Py_False);
     Py_INCREF(p);
     return p;
