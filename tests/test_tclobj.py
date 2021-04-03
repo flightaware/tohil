@@ -76,6 +76,13 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(str(x[2]), '3')
         self.assertEqual(repr(x[2]), "<tohil.tclobj: '3'>")
 
+    def test_tclobj11(self):
+        """exercise tohil.tclobj lappend()"""
+        x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
+        x.lappend('6')
+        x.lappend(7)
+        self.assertEqual(str(x), '1 2 3 4 5 6 7')
+
 
 if __name__ == "__main__":
     unittest.main()

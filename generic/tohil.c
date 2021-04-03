@@ -186,6 +186,7 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
      * to be a string rather than a list. Suggested order below:
      * - None -> {}
      * - True -> 1, False -> 0
+     * - tclobj -> tclobj
      * - bytes -> tcl byte string
      * - unicode -> tcl unicode string
      * - number protocol -> tcl number
@@ -963,6 +964,32 @@ PyTclObj_lindex(PyTclObj *self, PyObject *args, PyObject *kwargs)
     return tohil_python_return(tcl_interp, TCL_OK, to, resultObj);
 }
 
+//
+// lappend something to the tclobj
+//
+static PyObject *
+PyTclObj_lappend(PyTclObj *self, PyObject *pObject)
+{
+    Tcl_Obj *newObj = pyObjToTcl(tcl_interp, pObject);
+    if (newObj == NULL) {
+        return NULL;
+    }
+
+    // we are about to modify the object so if it's shared we need to copy
+    if (Tcl_IsShared(self->tclobj)) {
+        self->tclobj = Tcl_DuplicateObj(self->tclobj);
+    }
+
+    if (Tcl_ListObjAppendElement(tcl_interp, self->tclobj, newObj) == TCL_ERROR) {
+        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        Tcl_DecrRefCount(newObj);
+        return NULL;
+    }
+    // it worked
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
 static PyObject *
 PyTclObj_refcount(PyTclObj *self, PyObject *dummy)
 {
@@ -1233,6 +1260,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
     {"set", (PyCFunction)PyTclObj_set, METH_O, "set tclobj from some python object"},
     {"lindex", (PyCFunction)PyTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from tclobj as tcl list"},
+    {"lappend", (PyCFunction)PyTclObj_lappend, METH_O, "lappend (list-append) something to tclobj"},
     {"refcount", (PyCFunction)PyTclObj_refcount, METH_NOARGS, "get tclobj's reference count"},
     {"type", (PyCFunction)PyTclObj_type, METH_NOARGS, "return the tclobj's type from tcl, or None if it doesn't have one"},
     {NULL} // sentinel
