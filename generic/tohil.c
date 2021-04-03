@@ -1011,6 +1011,44 @@ PyTclObj_item(PyTclObj *self, Py_ssize_t i)
 	return ret;
 }
 
+static int
+PyTclObj_ass_item(PyTclObj *self, Py_ssize_t i, PyObject *v)
+{
+	int size = 0;
+
+	if (Tcl_ListObjLength(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
+		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+		return -1;
+	}
+
+	if (i < 0 || i >= size) {
+		PyErr_SetString(PyExc_IndexError, "list assignment index out of range");
+		return -1;
+	}
+
+    if (v == NULL) {
+		PyErr_SetString(PyExc_RuntimeError, "slice assignment not implemented");
+		return -1;
+        //return list_ass_slice(self, i, i+1, v);
+	}
+
+	Tcl_Obj *obj = pyObjToTcl(tcl_interp, v);
+	if (obj == NULL) {
+		return -1;
+	}
+
+	// we are about to modify the object so if it's shared we need to copy
+	if (Tcl_IsShared(self->tclobj)) {
+		self->tclobj = Tcl_DuplicateObj(self->tclobj);
+	}
+
+	if (Tcl_ListObjReplace(tcl_interp, self->tclobj, i, 1, 1, &obj) == TCL_ERROR) {
+		PyErr_SetString(PyExc_IndexError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+		return -1;
+	}
+    return 0;
+}
+
 static Py_ssize_t
 PyTclObj_length(PyTclObj *self, Py_ssize_t i)
 {
@@ -1112,7 +1150,7 @@ static PySequenceMethods tclobj_as_sequence = {
 	// .sq_concat = (binaryfunc)tclobj_concat,
     // .sq_repeat = (ssizeargfunc)tclobj_repeat,
     .sq_item = (ssizeargfunc)PyTclObj_item,
-    // .sq_ass_item = (ssizeobjargproc)list_ass_item,
+    .sq_ass_item = (ssizeobjargproc)PyTclObj_ass_item,
     // .sq_contains = (objobjproc)list_contains,
     //.sq_inplace_concat = (binaryfunc)list_inplace_concat,
     //.sq_inplace_repeat = (ssizeargfunc)list_inplace_repeat,
