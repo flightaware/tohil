@@ -866,12 +866,49 @@ PyTclObj_as_tclobj(PyTclObj *self, PyObject *pyobj)
     return PyTclObj_FromTclObj(self->tclobj);
 }
 
+//
+// tclobj.as_byte_array()
+//
 static PyObject *
 PyTclObj_as_byte_array(PyTclObj *self, PyObject *pyobj)
 {
     int size;
     unsigned char *byteArray = Tcl_GetByteArrayFromObj(self->tclobj, &size);
     return PyByteArray_FromStringAndSize((const char *)byteArray, size);
+}
+
+//
+// td - tcl dict stuff
+//
+
+//
+// td_get(key) - do a dict get on the tcl object
+//
+static PyObject *
+PyTclObj_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"key", "to", NULL};
+    char *key = NULL;
+    PyObject *to = NULL;
+    Tcl_Obj *keyObj = NULL;
+    Tcl_Obj *valueObj = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &key, &to)) {
+        return NULL;
+    }
+
+    keyObj = Tcl_NewStringObj(key, -1);
+    if (Tcl_DictObjGet(tcl_interp, self->tclobj, keyObj, &valueObj) == TCL_ERROR) {
+        Tcl_DecrRefCount(keyObj);
+        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        return NULL;
+    }
+    Tcl_DecrRefCount(keyObj);
+
+    if (valueObj == NULL)
+        Py_RETURN_NONE;
+
+    return tohil_python_return(tcl_interp, TCL_OK, to, valueObj);
 }
 
 //
@@ -1299,6 +1336,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"as_tclobj", (PyCFunction)PyTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
     {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
+    {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
     {"set", (PyCFunction)PyTclObj_set, METH_O, "set tclobj from some python object"},

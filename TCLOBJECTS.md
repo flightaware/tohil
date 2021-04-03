@@ -56,6 +56,20 @@ Comparisons are really permissive, too, in what the tclobj implementation accept
 
 It seems pretty good, but this is new stuff, so be careful and let us know how it's going.
 
+### tcl dict access to tclobj objects
+
+To avoid confusion with python dicts, we are calling tcl dicts td's.
+
+The td_get method will do a dict get on a tclobj.  It returns the object in the style requested, str by default, but to= can be specified, as in:
+
+```
+>>> x = tohil.eval("list a 1 b 2 c 3", to=tohil.tclobj)
+>>> x.td_get('a')
+'1'
+>>> x.td_get('a',to=int)
+1
+```
+
 
 You can examine the tcl reference count.
 
