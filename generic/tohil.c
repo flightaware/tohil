@@ -775,7 +775,7 @@ PyTclObj_as_int(PyTclObj *self, PyObject *pyobj)
     if (Tcl_GetLongFromObj(tcl_interp, self->tclobj, &longValue) == TCL_OK) {
         return PyLong_FromLong(longValue);
     }
-    PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
     return NULL;
 }
 
@@ -790,7 +790,7 @@ PyTclObj_as_float(PyTclObj *self, PyObject *pyobj)
     if (Tcl_GetDoubleFromObj(tcl_interp, self->tclobj, &doubleValue) == TCL_OK) {
         return PyFloat_FromDouble(doubleValue);
     }
-    PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
     return NULL;
 }
 
@@ -806,7 +806,7 @@ PyTclObj_as_bool(PyTclObj *self, PyObject *pyobj)
         Py_INCREF(p);
         return p;
     }
-    PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
     return NULL;
 }
 
