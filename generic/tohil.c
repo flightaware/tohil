@@ -1569,7 +1569,7 @@ tohil_convert(PyObject *self, PyObject *args, PyObject *kwargs)
 
     Tcl_Obj *interimObj = pyObjToTcl(tcl_interp, pyInputObject);
     if (interimObj == NULL) {
-        Py_XDECREF(to);
+        // Py_XDECREF(to);
         return NULL;
     }
 

@@ -46,7 +46,7 @@ class TestMethods(unittest.TestCase):
 
     def test_convert8(self):
         """exercise tohil.convert and to=tohil.tclobj"""
-        self.assertEqual(sorted(tohil.convert("1 2 3", to=tohil.tclobj)), "<tclobj: '1 2 3'>")
+        self.assertEqual(repr(tohil.convert("1 2 3", to=tohil.tclobj)), "<tohil.tclobj: '1 2 3'>")
 
 
 if __name__ == "__main__":

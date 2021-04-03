@@ -149,7 +149,7 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(x.td_get('b'), '2')
         self.assertEqual(x.td_get('b', to=int), 2)
         x.td_remove('c')
-        self.assertEqual(repr(x), "<tohil.tclobj: 'a 1 b 2 d 4'>")
+        self.assertEqual(repr(x), "<tohil.tclobj: 'a 1 b 2'>")
 
 if __name__ == "__main__":
     unittest.main()
