@@ -867,6 +867,14 @@ PyTclObj_as_tclobj(PyTclObj *self, PyObject *pyobj)
     return PyTclObj_FromTclObj(self->tclobj);
 }
 
+static PyObject *
+PyTclObj_as_byte_array(PyTclObj *self, PyObject *pyobj)
+{
+    int size;
+    unsigned char *byteArray = Tcl_GetByteArrayFromObj(self->tclobj, &size);
+    return PyByteArray_FromStringAndSize((const char *)byteArray, size);
+}
+
 //
 // llength - return the length of a python tclobj's tcl object
 //   as a list.  exception thrown if tcl object isn't a list
@@ -1255,6 +1263,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"as_tuple", (PyCFunction)PyTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
     {"as_dict", (PyCFunction)PyTclObj_as_dict, METH_NOARGS, "return tclobj as dict"},
     {"as_tclobj", (PyCFunction)PyTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
+    {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
