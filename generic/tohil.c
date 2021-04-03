@@ -679,11 +679,22 @@ PyTclObj_init(PyTclObj *self, PyObject *args, PyObject *kwds)
 }
 
 static PyObject *
-PyTclObj_repr(PyTclObj *self)
+PyTclObj_str(PyTclObj *self)
 {
 	int tclStringSize;
 	char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
 	return Py_BuildValue("s#", tclString, tclStringSize);
+}
+
+static PyObject *
+PyTclObj_repr(PyTclObj *self)
+{
+	int tclStringSize;
+	char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
+	PyObject *stringRep = PyUnicode_FromFormat("%s", tclString);
+	PyObject *repr = PyUnicode_FromFormat("<%s: %R>", Py_TYPE(self)->tp_name, stringRep);
+	Py_DECREF(stringRep);
+	return repr;
 }
 
 //
@@ -1067,7 +1078,6 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
 {
 	int size = 0;
 
-	printf("PyTclObj_subscript is running\n");
 	if (Tcl_ListObjLength(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
 		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
 		return NULL;
@@ -1097,7 +1107,6 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
         size_t cur;
         PyObject* result;
         PyObject* it;
-        Tcl_Obj **src;
         PyObject **dest;
 
         if (PySlice_Unpack(item, &start, &stop, &step) < 0) {
@@ -1125,11 +1134,12 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
 			}
 
             // src = self->ob_item;
-			src = &listObjv[0];
+			// src = &listObjv[0];
             dest = ((PyListObject *)result)->ob_item;
             for (cur = start, i = 0; i < slicelength;
                 cur += (size_t)step, i++) {
-                it = tclObjToPy(src[cur]);
+                // it = tclObjToPy(src[cur]);
+				it = PyTclObj_FromTclObj(listObjv[cur]);
                 Py_INCREF(it);
                 dest[i] = it;
             }
@@ -1145,7 +1155,13 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
     }
 }
 
-static PySequenceMethods tclobj_as_sequence = {
+static PyMappingMethods PyTclObj_as_mapping = {
+	(lenfunc)PyTclObj_length,
+	(binaryfunc)PyTclObj_subscript,
+	NULL
+};
+
+static PySequenceMethods PyTclObj_as_sequence = {
     .sq_length = (lenfunc)PyTclObj_length,
 	// .sq_concat = (binaryfunc)tclobj_concat,
     // .sq_repeat = (ssizeargfunc)tclobj_repeat,
@@ -1189,11 +1205,12 @@ static PyTypeObject PyTclObjType = {
 	.tp_init = (initproc) PyTclObj_init,
 	.tp_dealloc = (destructor) PyTclObj_dealloc,
 	.tp_methods = PyTclObj_methods,
-	.tp_str = (reprfunc)PyTclObj_repr,
+	.tp_str = (reprfunc)PyTclObj_str,
 	.tp_iter = (getiterfunc)PyTclObjIter,
-	.tp_as_sequence = &tclobj_as_sequence,
+	.tp_as_sequence = &PyTclObj_as_sequence,
+	.tp_as_mapping = &PyTclObj_as_mapping,
+	.tp_repr = (reprfunc)PyTclObj_repr,
 };
-	// .tp_repr = (reprfunc)PyTclObj_repr,
 // end of tcl obj python data type
 
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
