@@ -1,6 +1,6 @@
 
 
+# macports
 #./configure --prefix=/opt/local --exec-prefix=/opt/local --with-python-version=3.9
-# then edit setup.py and change tcl86 to tcl8.6 in libraries
 
 ./configure --prefix=/usr/local --with-tcl=/usr/local/lib/ --with-python-version=3.8

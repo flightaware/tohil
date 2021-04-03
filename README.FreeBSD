@@ -2,5 +2,8 @@
 # tohil configure for FreeBSD
 #
 
+echo "after configuration, edit setup.py, in libraries change tcl8.6 to tcl86"
+echo "hope to fix soon"
+
 autoreconf
 ./configure --with-tcl=/usr/local/lib/tcl8.6 --mandir=/usr/local/man --with-python-include=/usr/local/include/python3.7m --with-python-lib=/usr/local/lib --with-python-version=3.7m --enable-symbols
