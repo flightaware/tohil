@@ -27,6 +27,8 @@ You can get the length of the list with obj.llength(), while obj.lindex(i) will 
 
 obj.lappend() will append python stuff to the list stored in the tclobj.
 
+obj.lappend_list() will append a tcl object comprising a list, or a python list, to a list, making it flat, i.e. each element of the list is appended to obj's list.
+
 Thanks to tohil's increasingly thorough tclobj object implementation and python's excellent support for such things, you can use the indexing syntax to access and even change certain elements.
 
 ```

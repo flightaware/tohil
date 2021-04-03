@@ -124,6 +124,18 @@ class TestTclObj(unittest.TestCase):
         self.assertTrue(x[2] < 4.0)
         self.assertFalse(x[2] > 4.0)
 
+    def test_tclobj19(self):
+        """tohil.tclobj lappend_list"""
+        x = tohil.eval("list 1 2 3 4 5 6", to=tohil.tclobj)
+        y = tohil.eval("list 7 8 9", to=tohil.tclobj)
+        x.lappend(y)
+        self.assertEqual(repr(x), "<tohil.tclobj: '1 2 3 4 5 6 {7 8 9}'>")
+        x = tohil.eval("list 1 2 3 4 5 6", to=tohil.tclobj)
+        x.lappend_list(y)
+        self.assertEqual(repr(x), "<tohil.tclobj: '1 2 3 4 5 6 7 8 9'>")
+        l = [10, 11, 12, 13]
+        x.lappend_list(l)
+        self.assertEqual(repr(x), "<tohil.tclobj: '1 2 3 4 5 6 7 8 9 10 11 12 13'>")
 
 if __name__ == "__main__":
     unittest.main()

@@ -993,6 +993,67 @@ PyTclObj_lappend(PyTclObj *self, PyObject *pObject)
     Py_RETURN_NONE;
 }
 
+//
+// lappend_list, lappend a list of something to the tclobj
+//
+// if append object is a tclobj and the tclobj contents can be
+// treated as a list, it will be appended as the list
+//
+// if append object is a python list then its contents will be
+// appended to the list while being converted to tcl objects
+//
+static PyObject *
+PyTclObj_lappend_list(PyTclObj *self, PyObject *pObject)
+{
+
+    // if passed python object is a tclobj, use tcl list C stuff
+    // to append the list to the list
+    if (PyTclObj_Check(pObject)) {
+        Tcl_Obj *appendListObj = ((PyTclObj *)pObject)->tclobj;
+
+        if (Tcl_IsShared(self->tclobj)) {
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+
+        if (Tcl_ListObjAppendList(tcl_interp, self->tclobj, appendListObj) == TCL_ERROR) {
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            Tcl_DecrRefCount(appendListObj);
+            return NULL;
+        }
+        // if passed python object is a python list, use that and our
+        // python-to-tcl stuff to make a tcl list of it, and append
+        // that list to the tclobj's object, which is a list or an error
+        // is forthcoming
+    } else if (PyList_Check(pObject)) {
+        int i;
+        Py_ssize_t objc = PyList_GET_SIZE(pObject);
+
+        Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
+        for (i = 0; i < objc; i++) {
+            objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(pObject, i));
+        }
+
+        Tcl_Obj *appendListObj = Tcl_NewListObj(objc, objv);
+
+        if (Tcl_IsShared(self->tclobj)) {
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+
+        if (Tcl_ListObjAppendList(tcl_interp, self->tclobj, appendListObj) == TCL_ERROR) {
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            Tcl_DecrRefCount(appendListObj);
+            return NULL;
+        }
+        ckfree(objv);
+    } else {
+        PyErr_Format(PyExc_TypeError, "lappend_list argument must be a tclobj or list, not %.200s", Py_TYPE(pObject)->tp_name);
+        return NULL;
+    }
+
+    // it worked
+    Py_RETURN_NONE;
+}
+
 static PyObject *
 PyTclObj_refcount(PyTclObj *self, PyObject *dummy)
 {
@@ -1243,6 +1304,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"set", (PyCFunction)PyTclObj_set, METH_O, "set tclobj from some python object"},
     {"lindex", (PyCFunction)PyTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from tclobj as tcl list"},
     {"lappend", (PyCFunction)PyTclObj_lappend, METH_O, "lappend (list-append) something to tclobj"},
+    {"lappend_list", (PyCFunction)PyTclObj_lappend_list, METH_O, "lappend another tclobj or a python list of stuff to tclobj"},
     {"refcount", (PyCFunction)PyTclObj_refcount, METH_NOARGS, "get tclobj's reference count"},
     {"type", (PyCFunction)PyTclObj_type, METH_NOARGS, "return the tclobj's type from tcl, or None if it doesn't have one"},
     {NULL} // sentinel
