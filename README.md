@@ -568,4 +568,10 @@ A scan of the image can be found here https://commons.wikimedia.org/wiki/File:Qu
 tohil.call("set", "mydict", tohil.call("dict", "create", *itertools.chain(*d.items())))
 ```
 
+### formatting
+
+this needs to be built into the makefile or something
+
+clang-format -style=file -i generic/tohil.c
+
 
