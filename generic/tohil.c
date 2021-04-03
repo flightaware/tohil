@@ -1059,7 +1059,6 @@ PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
         PyObject *v = PyTclObj_FromTclObj(src[i]);
         PyList_SET_ITEM(np, i, v);
     }
-    // Py_SET_SIZE(np, len); // 3.9
     return (PyObject *)np;
 }
 
@@ -1176,7 +1175,6 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
         size_t cur;
         PyObject *result;
         PyObject *it;
-        PyObject **dest;
 
         if (PySlice_Unpack(item, &start, &stop, &step) < 0) {
             return NULL;
@@ -1200,14 +1198,10 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
                 return NULL;
             }
 
-            // src = self->ob_item;
-            // src = &listObjv[0];
-            dest = ((PyListObject *)result)->ob_item;
             for (cur = start, i = 0; i < slicelength; cur += (size_t)step, i++) {
                 it = PyTclObj_FromTclObj(listObjv[cur]);
                 PyList_SET_ITEM(result, i, it);
             }
-            // Py_SET_SIZE(result, slicelength); // 3.9
             return result;
         }
     } else {
