@@ -923,7 +923,10 @@ PyTclObjIter(PyObject *self)
 	return pyRet;
 }
 
+static PyObject *PyTclObj_subscript(PyTclObj *, PyObject *);
+
 static PyMethodDef PyTclObj_methods[] = {
+	{"__getitem__", (PyCFunction)PyTclObj_subscript, METH_O|METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
 	{"reset", (PyCFunction) PyTclObj_reset, METH_NOARGS, "reset the tclobj"},
 	{"as_str", (PyCFunction) PyTclObj_as_string, METH_NOARGS, "return tclobj as str"},
 	{"as_int", (PyCFunction) PyTclObj_as_int, METH_NOARGS, "return tclobj as int"},
@@ -959,6 +962,127 @@ static PyTypeObject PyTclObjType = {
 	.tp_iter = (getiterfunc)PyTclObjIter,
 };
 	// .tp_repr = (reprfunc)PyTclObj_repr,
+
+// somewhat cribbed from cpython source for listobjects
+static PyObject *
+PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
+{
+    PyListObject *np;
+	int listObjc;
+	Tcl_Obj **listObjv;
+	Tcl_Obj **src;
+    PyObject **dest;
+    Py_ssize_t i, len;
+    len = ihigh - ilow;
+
+	int size = 0;
+
+	if (Tcl_ListObjLength(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
+		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+		return NULL;
+	}
+
+	if (Tcl_ListObjGetElements(tcl_interp, self->tclobj, &listObjc, &listObjv) == TCL_ERROR) {
+		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+		return NULL;
+	}
+
+    np = (PyListObject *) list_new_prealloc(len);
+    if (np == NULL)
+        return NULL;
+
+	src = &listObjv[ilow];
+    dest = np->ob_item;
+    for (i = 0; i < len; i++) {
+        PyObject *v = tclObjToPy(src[i]);
+        Py_INCREF(v);
+        dest[i] = v;
+    }
+    Py_SET_SIZE(np, len);
+    return (PyObject *)np;
+}
+
+static PyObject *
+PyTclObj_subscript(PyTclObj *self, PyObject *item)
+{
+	int size = 0;
+
+	if (Tcl_ListObjLength(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
+		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+		return NULL;
+	}
+
+    if (_PyIndex_Check(item)) {
+        Py_ssize_t i;
+        i = PyNumber_AsSsize_t(item, PyExc_IndexError);
+        if (i == -1 && PyErr_Occurred())
+            return NULL;
+        if (i < 0)
+            i += size;
+
+		if (i < 0 || i >= size) {
+			PyErr_SetString(PyExc_IndexError, "list index out of range");
+			return NULL;
+		}
+
+		Tcl_Obj *resultObj = NULL;
+		if (Tcl_ListObjIndex(tcl_interp, self->tclobj, i, &resultObj) == TCL_ERROR) {
+			PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+			return NULL;
+		}
+		return PyTclObj_FromTclObj(resultObj);
+    } else if (PySlice_Check(item)) {
+        Py_ssize_t start, stop, step, slicelength, i;
+        size_t cur;
+        PyObject* result;
+        PyObject* it;
+        Tcl_Obj **src;
+        PyObject **dest;
+
+        if (PySlice_Unpack(item, &start, &stop, &step) < 0) {
+            return NULL;
+        }
+        slicelength = PySlice_AdjustIndices(Py_SIZE(self), &start, &stop,
+                                            step);
+
+        if (slicelength <= 0) {
+			return PyTclObj_FromTclObj(Tcl_NewObj());
+        }
+        else if (step == 1) {
+            return PyTclObj_slice(self, start, stop);
+        }
+        else {
+            result = list_new_prealloc(slicelength);
+            if (!result) return NULL;
+
+			int listObjc;
+			Tcl_Obj **listObjv;
+
+			if (Tcl_ListObjGetElements(tcl_interp, self->tclobj, &listObjc, &listObjv) == TCL_ERROR) {
+				PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+				return NULL;
+			}
+
+            // src = self->ob_item;
+			src = &listObjv[0];
+            dest = ((PyListObject *)result)->ob_item;
+            for (cur = start, i = 0; i < slicelength;
+                cur += (size_t)step, i++) {
+                it = tclObjToPy(src[cur]);
+                Py_INCREF(it);
+                dest[i] = it;
+            }
+            Py_SET_SIZE(result, slicelength);
+            return result;
+        }
+    }
+    else {
+        PyErr_Format(PyExc_TypeError,
+                     "list indices must be integers or slices, not %.200s",
+                     Py_TYPE(item)->tp_name);
+        return NULL;
+    }
+}
 
 // end of tcl obj python data type
 
