@@ -1179,7 +1179,8 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
         if (PySlice_Unpack(item, &start, &stop, &step) < 0) {
             return NULL;
         }
-        slicelength = PySlice_AdjustIndices(Py_SIZE(self), &start, &stop, step);
+
+        slicelength = PySlice_AdjustIndices(size, &start, &stop, step);
 
         if (slicelength <= 0) {
             return PyTclObj_FromTclObj(Tcl_NewObj());
