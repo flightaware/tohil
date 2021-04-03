@@ -898,9 +898,9 @@ PyTclObj_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
     }
 
     keyObj = Tcl_NewStringObj(key, -1);
-    if (Tcl_DictObjGet(tcl_interp, self->tclobj, keyObj, &valueObj) == TCL_ERROR) {
+    if (Tcl_DictObjGet(NULL, self->tclobj, keyObj, &valueObj) == TCL_ERROR) {
         Tcl_DecrRefCount(keyObj);
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
         return NULL;
     }
     Tcl_DecrRefCount(keyObj);
@@ -909,6 +909,21 @@ PyTclObj_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
         Py_RETURN_NONE;
 
     return tohil_python_return(tcl_interp, TCL_OK, to, valueObj);
+}
+
+//
+// td_size() - return the dict size of a python tclobj's tcl object
+//   exception thrown if tcl object isn't a proper tcl dict
+//
+static PyObject *
+PyTclObj_td_size(PyTclObj *self, PyObject *pyobj)
+{
+    int length;
+    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &length) == TCL_OK) {
+        return PyLong_FromLong(length);
+    }
+    PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+    return NULL;
 }
 
 //
@@ -1337,6 +1352,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
     {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
+    {"td_size", (PyCFunction)PyTclObj_td_size, METH_NOARGS, "get size of tcl dict"},
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
     {"set", (PyCFunction)PyTclObj_set, METH_O, "set tclobj from some python object"},
@@ -1504,6 +1520,29 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
     }
 
     return tohil_python_return(tcl_interp, TCL_OK, to, resultObj);
+}
+
+//
+// tohil.convert command for python to pass a python object through
+// to a tcl object and then convert it to a to= destination type
+//
+static PyObject *
+tohil_convert(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"pyobject", "to", NULL};
+    PyObject *pyInputObject = NULL;
+    PyObject *to = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$O", kwlist, &pyInputObject, &to))
+        return NULL;
+
+    Tcl_Obj *interimObj = pyObjToTcl(tcl_interp, pyInputObject);
+    if (interimObj == NULL) {
+        Py_XDECREF(to);
+        return NULL;
+    }
+
+    return tohil_python_return(tcl_interp, TCL_OK, to, interimObj);
 }
 
 //
@@ -1686,6 +1725,7 @@ static PyMethodDef TohilMethods[] = {
     {"unset", (PyCFunction)tohil_unset, METH_VARARGS | METH_KEYWORDS, "unset variables, array elements, or arrays from the tcl interpreter"},
     {"subst", (PyCFunction)tohil_subst, METH_VARARGS | METH_KEYWORDS, "perform Tcl command, variable and backslash substitutions on a string"},
     {"expr", (PyCFunction)tohil_expr, METH_VARARGS | METH_KEYWORDS, "evaluate Tcl expression"},
+    {"convert", (PyCFunction)tohil_convert, METH_VARARGS | METH_KEYWORDS, "convert python to tcl object then to whatever to= says or string and return"},
     {"call", (PyCFunction)tohil_call, METH_VARARGS | METH_KEYWORDS, "invoke a tcl command with arguments"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };

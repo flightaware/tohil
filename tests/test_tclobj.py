@@ -143,5 +143,10 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(x.td_get('a'), '1')
         self.assertEqual(x.td_get('a',to=int), 1)
 
+    def test_tclobj20(self):
+        """tohil.tclobj td_size """
+        x = tohil.eval("list a 1 b 2 c 3", to=tohil.tclobj)
+        self.assertEqual(x.td_size(), 3)
+
 if __name__ == "__main__":
     unittest.main()
