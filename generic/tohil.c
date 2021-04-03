@@ -13,6 +13,7 @@
 // include Python.h before including any standard header files
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <object.h>
 
 #include <tcl.h>
 
@@ -884,7 +885,7 @@ static PyObject *PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihig
         Py_INCREF(v);
         dest[i] = v;
     }
-    Py_SET_SIZE(np, len);
+    // Py_SET_SIZE(np, len); 3.9
     return (PyObject *)np;
 }
 
@@ -1026,7 +1027,7 @@ static PyObject *PyTclObj_subscript(PyTclObj *self, PyObject *item) {
                 Py_INCREF(it);
                 dest[i] = it;
             }
-            Py_SET_SIZE(result, slicelength);
+            // Py_SET_SIZE(result, slicelength); 3.9
             return result;
         }
     } else {
