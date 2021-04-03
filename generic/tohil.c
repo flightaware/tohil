@@ -713,7 +713,7 @@ PyTclObj_richcompare(PyTclObj *self, PyObject *other, int op)
     }
 
     int cmp = strcmp(selfString, otherString);
-    int res;
+    int res = 0;
 
     switch (op) {
     case Py_LT:
