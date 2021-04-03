@@ -927,6 +927,36 @@ PyTclObj_td_size(PyTclObj *self, PyObject *pyobj)
 }
 
 //
+// td_remove(key) - do a dict remove on the tcl object
+//
+static PyObject *
+PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"key", NULL};
+    char *key = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &key)) {
+        return NULL;
+    }
+
+    Tcl_Obj *keyObj = Tcl_NewStringObj(key, -1);
+
+    //
+    // we are about to try to modify the object, so if it's shared we need to copy
+    if (Tcl_IsShared(self->tclobj)) {
+        self->tclobj = Tcl_DuplicateObj(self->tclobj);
+    }
+
+    if (Tcl_DictObjRemove(NULL, self->tclobj, keyObj) == TCL_ERROR) {
+        Tcl_DecrRefCount(keyObj);
+        PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+//
 // llength - return the length of a python tclobj's tcl object
 //   as a list.  exception thrown if tcl object isn't a list
 //
@@ -1352,6 +1382,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
     {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
+    {"td_remove", (PyCFunction)PyTclObj_td_remove, METH_VARARGS | METH_KEYWORDS, "remove item from tcl dict"},
     {"td_size", (PyCFunction)PyTclObj_td_size, METH_NOARGS, "get size of tcl dict"},
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},

@@ -72,6 +72,7 @@ The td_get method will do a dict get on a tclobj.  It returns the object in the 
 
 td_size() returns the size of the dict or throws an error if the contents of the object can't be treated as a tcl dict.
 
+x.td_remove() removes an element from the dict.  It's not an error to remove something that doesn't exist.
 
 
 
