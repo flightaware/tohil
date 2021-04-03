@@ -761,8 +761,7 @@ PyTclObj_reset(PyTclObj *self, PyObject *pyobj)
     Tcl_DecrRefCount(self->tclobj);
     self->tclobj = Tcl_NewObj();
     Tcl_IncrRefCount(self->tclobj);
-    Py_INCREF(Py_None);
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 //
@@ -905,8 +904,7 @@ PyTclObj_getvar(PyTclObj *self, PyObject *var)
     Tcl_DecrRefCount(self->tclobj);
     self->tclobj = newObj;
     Tcl_IncrRefCount(self->tclobj);
-    Py_INCREF(Py_None);
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 //
@@ -921,8 +919,7 @@ PyTclObj_setvar(PyTclObj *self, PyObject *var)
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
     }
-    Py_INCREF(Py_None);
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 // set - tclobj type set method can set an object to a lot
@@ -938,8 +935,7 @@ PyTclObj_set(PyTclObj *self, PyObject *pyObject)
     self->tclobj = newObj;
     Tcl_IncrRefCount(self->tclobj);
 
-    Py_INCREF(Py_None);
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 static PyObject *
@@ -994,8 +990,7 @@ PyTclObj_lappend(PyTclObj *self, PyObject *pObject)
         return NULL;
     }
     // it worked
-    Py_INCREF(Py_None);
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 static PyObject *
@@ -1009,8 +1004,7 @@ PyTclObj_type(PyTclObj *self, PyObject *dummy)
 {
     const Tcl_ObjType *typePtr = self->tclobj->typePtr;
     if (typePtr == NULL) {
-        Py_INCREF(Py_None);
-        return Py_None;
+        Py_RETURN_NONE;
     }
     return Py_BuildValue("s", self->tclobj->typePtr->name);
 }
@@ -1523,8 +1517,7 @@ tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
         PyErr_SetString(PyExc_RuntimeError, errMsg);
         return NULL;
     }
-    Py_INCREF(Py_None);
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 // tohil.unset - from python unset a variable or array element in the tcl
@@ -1541,8 +1534,7 @@ tohil_unset(PyObject *self, PyObject *args, PyObject *kwargs)
         return NULL;
 
     Tcl_UnsetVar(tcl_interp, var, 0);
-    Py_INCREF(Py_None);
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 //
