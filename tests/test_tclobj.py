@@ -137,19 +137,5 @@ class TestTclObj(unittest.TestCase):
         x.lappend_list(l)
         self.assertEqual(repr(x), "<tohil.tclobj: '1 2 3 4 5 6 7 8 9 10 11 12 13'>")
 
-    def test_tclobj20(self):
-        """tohil.tclobj td_get """
-        x = tohil.eval("list a 1 b 2 c 3", to=tohil.tclobj)
-        self.assertEqual(x.td_get('a'), '1')
-        self.assertEqual(x.td_get('a',to=int), 1)
-
-    def test_tclobj21(self):
-        """tohil.tclobj td_remove """
-        x = tohil.eval("list a 1 b 2 c 3", to=tohil.tclobj)
-        self.assertEqual(x.td_get('b'), '2')
-        self.assertEqual(x.td_get('b', to=int), 2)
-        x.td_remove('c')
-        self.assertEqual(repr(x), "<tohil.tclobj: 'a 1 b 2'>")
-
 if __name__ == "__main__":
     unittest.main()
