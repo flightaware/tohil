@@ -963,7 +963,25 @@ static PyTypeObject PyTclObjType = {
 };
 	// .tp_repr = (reprfunc)PyTclObj_repr,
 
-// somewhat cribbed from cpython source for listobjects
+// slice stuff significantly cribbed from cpython source for listobjects...
+
+static PyObject *
+list_new_prealloc(Py_ssize_t size)
+{
+    PyListObject *op = (PyListObject *) PyList_New(0);
+    if (size == 0 || op == NULL) {
+        return (PyObject *) op;
+    }
+    assert(op->ob_item == NULL);
+    op->ob_item = PyMem_New(PyObject *, size);
+    if (op->ob_item == NULL) {
+        Py_DECREF(op);
+        return PyErr_NoMemory();
+    }
+    op->allocated = size;
+    return (PyObject *) op;
+}
+
 static PyObject *
 PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 {
@@ -1007,12 +1025,13 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
 {
 	int size = 0;
 
+	printf("PyTclObj_subscript is running\n");
 	if (Tcl_ListObjLength(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
 		PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
 		return NULL;
 	}
 
-    if (_PyIndex_Check(item)) {
+    if (PyIndex_Check(item)) {
         Py_ssize_t i;
         i = PyNumber_AsSsize_t(item, PyExc_IndexError);
         if (i == -1 && PyErr_Occurred())
