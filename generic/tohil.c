@@ -1022,33 +1022,12 @@ static PyObject *PyTclObj_subscript(PyTclObj *, PyObject *);
 // slice stuff significantly cribbed from cpython source for listobjects...
 
 static PyObject *
-list_new_prealloc(Py_ssize_t size)
-{
-    PyListObject *op = (PyListObject *)PyList_New(0);
-    if (size == 0 || op == NULL) {
-        return (PyObject *)op;
-    }
-    assert(op->ob_item == NULL);
-    op->ob_item = PyMem_New(PyObject *, size);
-    if (op->ob_item == NULL) {
-        Py_DECREF(op);
-        return PyErr_NoMemory();
-    }
-    op->allocated = size;
-    return (PyObject *)op;
-}
-
-//
-//
-//
-static PyObject *
 PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 {
     PyListObject *np;
     int listObjc;
     Tcl_Obj **listObjv;
     Tcl_Obj **src;
-    PyObject **dest;
     Py_ssize_t i, len;
     len = ihigh - ilow;
 
@@ -1066,7 +1045,7 @@ PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
         return NULL;
     }
 
-    np = (PyListObject *)list_new_prealloc(len);
+    np = (PyListObject *)PyList_New(len);
     if (np == NULL) {
         return NULL;
     }
@@ -1074,13 +1053,11 @@ PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
     // src is a pointer to an array of pointers of obj,
     // adjust it to the starting object and we'll walk it forward
     src = &listObjv[ilow];
-    dest = np->ob_item;
     for (i = 0; i < len; i++) {
         // create a new tclobj object and store
         // it into the python list we are making
         PyObject *v = PyTclObj_FromTclObj(src[i]);
-        Py_INCREF(v);
-        dest[i] = v;
+        PyList_SET_ITEM(np, i, v);
     }
     // Py_SET_SIZE(np, len); // 3.9
     return (PyObject *)np;
@@ -1211,7 +1188,7 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
         } else if (step == 1) {
             return PyTclObj_slice(self, start, stop);
         } else {
-            result = list_new_prealloc(slicelength);
+            result = PyList_New(slicelength);
             if (!result)
                 return NULL;
 
@@ -1227,10 +1204,8 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
             // src = &listObjv[0];
             dest = ((PyListObject *)result)->ob_item;
             for (cur = start, i = 0; i < slicelength; cur += (size_t)step, i++) {
-                // it = tclObjToPy(src[cur]);
                 it = PyTclObj_FromTclObj(listObjv[cur]);
-                Py_INCREF(it);
-                dest[i] = it;
+                PyList_SET_ITEM(result, i, it);
             }
             // Py_SET_SIZE(result, slicelength); // 3.9
             return result;
