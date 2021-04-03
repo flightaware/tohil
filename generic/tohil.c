@@ -644,6 +644,56 @@ static PyObject *PyTclObj_repr(PyTclObj *self) {
     return repr;
 }
 
+static PyObject *PyTclObj_richcompare(PyTclObj *self, PyObject *other, int op)
+{
+
+    // NB ugh other isn't necessarily a PyTclObj
+
+    // if you want equal and they point to the exact same object,
+    // we are donezo
+    if (op == Py_EQ && PyTclObj_Check(other) && self->tclobj == other->tclobj) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    char *selfString = Tcl_GetString(self->tclobj);
+    char *otherString = Tcl_GetString(other->tclobj);
+    int cmp = strcmp(selfString, otherString);
+    int res;
+
+    switch (op) {
+        case Py_LT:
+            res = (cmp < 0);
+            break;
+
+        case Py_LE:
+            res = (cmp <= 0);
+            break;
+
+        case Py_EQ:
+            res = (cmp == 0);
+            break;
+
+        case Py_NE:
+            res = (cmp != 0);
+            break;
+
+        case Py_GT:
+            res = (cmp > 0);
+            break;
+
+        case Py_GE:
+            res = (cmp >= 0);
+            break;
+
+        default:
+            assert(0 == 1);
+    }
+    PyObject *p = (res ? Py_True : Py_False);
+    Py_INCREF(p);
+    return p;
+}
+
 //
 // tclobj.reset()
 //
@@ -1086,6 +1136,7 @@ static PyTypeObject PyTclObjType = {
     .tp_as_sequence = &PyTclObj_as_sequence,
     .tp_as_mapping = &PyTclObj_as_mapping,
     .tp_repr = (reprfunc)PyTclObj_repr,
+    .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
 };
 // end of tcl obj python data type
 
@@ -1577,3 +1628,5 @@ PyMODINIT_FUNC PyInit__tohil(void) {
 
     return m;
 }
+
+
