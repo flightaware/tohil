@@ -1044,6 +1044,9 @@ list_new_prealloc(Py_ssize_t size)
     return (PyObject *)op;
 }
 
+//
+//
+//
 static PyObject *
 PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 {
@@ -1057,6 +1060,8 @@ PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 
     int size = 0;
 
+    // get the list size and crack the list into a list objc and objv.
+    // any failure here probably means the object can't be represented as a list.
     if (Tcl_ListObjLength(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
@@ -1072,14 +1077,18 @@ PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
         return NULL;
     }
 
+    // src is a pointer to an array of pointers of obj,
+    // adjust it to the starting object and we'll walk it forward
     src = &listObjv[ilow];
     dest = np->ob_item;
     for (i = 0; i < len; i++) {
-        PyObject *v = tclObjToPy(src[i]);
+        // create a new tclobj object and store
+        // it into the python list we are making
+        PyObject *v = PyTclObj_FromTclObj(src[i]);
         Py_INCREF(v);
         dest[i] = v;
     }
-    // Py_SET_SIZE(np, len); 3.9
+    // Py_SET_SIZE(np, len); // 3.9
     return (PyObject *)np;
 }
 
@@ -1229,7 +1238,7 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
                 Py_INCREF(it);
                 dest[i] = it;
             }
-            // Py_SET_SIZE(result, slicelength); 3.9
+            // Py_SET_SIZE(result, slicelength); // 3.9
             return result;
         }
     } else {
