@@ -1591,29 +1591,6 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 //
-// tohil.convert command for python to pass a python object through
-// to a tcl object and then convert it to a to= destination type
-//
-static PyObject *
-tohil_convert(PyObject *self, PyObject *args, PyObject *kwargs)
-{
-    static char *kwlist[] = {"pyobject", "to", NULL};
-    PyObject *pyInputObject = NULL;
-    PyObject *to = NULL;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$O", kwlist, &pyInputObject, &to))
-        return NULL;
-
-    Tcl_Obj *interimObj = pyObjToTcl(tcl_interp, pyInputObject);
-    if (interimObj == NULL) {
-        // Py_XDECREF(to);
-        return NULL;
-    }
-
-    return tohil_python_return(tcl_interp, TCL_OK, to, interimObj);
-}
-
-//
 // tohil.getvar - from python get the contents of a variable
 //
 static PyObject *
@@ -1793,7 +1770,6 @@ static PyMethodDef TohilMethods[] = {
     {"unset", (PyCFunction)tohil_unset, METH_VARARGS | METH_KEYWORDS, "unset variables, array elements, or arrays from the tcl interpreter"},
     {"subst", (PyCFunction)tohil_subst, METH_VARARGS | METH_KEYWORDS, "perform Tcl command, variable and backslash substitutions on a string"},
     {"expr", (PyCFunction)tohil_expr, METH_VARARGS | METH_KEYWORDS, "evaluate Tcl expression"},
-    {"convert", (PyCFunction)tohil_convert, METH_VARARGS | METH_KEYWORDS, "convert python to tcl object then to whatever to= says or string and return"},
     {"call", (PyCFunction)tohil_call, METH_VARARGS | METH_KEYWORDS, "invoke a tcl command with arguments"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
