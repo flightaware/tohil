@@ -4,6 +4,8 @@ import unittest
 
 import tohil
 
+from tohil import tclobj
+
 class TestTD(unittest.TestCase):
     def test_td1(self):
         """tohil.tclobj td_get """
@@ -28,6 +30,17 @@ class TestTD(unittest.TestCase):
         self.assertEqual(repr(x), "<tohil.tclobj: 'foo bar hey you'>")
         x.td_remove('foo')
         self.assertEqual(repr(x), "<tohil.tclobj: 'hey you'>")
+
+    def test_td4(self):
+        """tohil.tclobj td_set, get and remove """
+        x = tclobj()
+        x.td_set('foo',5)
+        x.td_set('foo',5)
+        self.assertEqual(x.td_get('foo'), '5')
+        self.assertEqual(x.td_get('foo', to=int), 5)
+        self.assertEqual(repr(x), "<tohil.tclobj: 'foo 5'>")
+        x.td_remove('foo')
+        self.assertEqual(repr(x), "<tohil.tclobj: ''>")
 
 if __name__ == "__main__":
     unittest.main()
