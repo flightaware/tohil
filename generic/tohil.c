@@ -1510,6 +1510,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
             return NULL;
         }
 
+        // toType/pt is a borrowed reference; do not decrement its reference count
         pt = (PyTypeObject *)toType;
         toString = pt->tp_name;
     }
@@ -1518,7 +1519,6 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         int tclStringSize;
         char *tclString;
 
-        Py_XDECREF(pt);
         tclString = Tcl_GetStringFromObj(resultObj, &tclStringSize);
         return Py_BuildValue("s#", tclString, tclStringSize);
     }
@@ -1526,7 +1526,6 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     if (strcmp(toString, "int") == 0) {
         long longValue;
 
-        Py_XDECREF(pt);
         if (Tcl_GetLongFromObj(interp, resultObj, &longValue) == TCL_OK) {
             return PyLong_FromLong(longValue);
         }
@@ -1537,7 +1536,6 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     if (strcmp(toString, "bool") == 0) {
         int boolValue;
 
-        Py_XDECREF(pt);
         if (Tcl_GetBooleanFromObj(interp, resultObj, &boolValue) == TCL_OK) {
             PyObject *p = (boolValue ? Py_True : Py_False);
             Py_INCREF(p);
@@ -1550,7 +1548,6 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     if (strcmp(toString, "float") == 0) {
         double doubleValue;
 
-        Py_XDECREF(pt);
         if (Tcl_GetDoubleFromObj(interp, resultObj, &doubleValue) == TCL_OK) {
             return PyFloat_FromDouble(doubleValue);
         }
@@ -1559,27 +1556,22 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     }
 
     if (strcmp(toString, "tohil.tclobj") == 0) {
-        Py_XDECREF(pt);
         return PyTclObj_FromTclObj(resultObj);
     }
 
     if (strcmp(toString, "list") == 0) {
-        Py_XDECREF(pt);
         return tclListObjToPyListObject(interp, resultObj);
     }
 
     if (strcmp(toString, "set") == 0) {
-        Py_XDECREF(pt);
         return tclListObjToPySetObject(interp, resultObj);
     }
 
     if (strcmp(toString, "dict") == 0) {
-        Py_XDECREF(pt);
         return tclListObjToPyDictObject(interp, resultObj);
     }
 
     if (strcmp(toString, "tuple") == 0) {
-        Py_XDECREF(pt);
         return tclListObjToPyTupleObject(interp, resultObj);
     }
 
