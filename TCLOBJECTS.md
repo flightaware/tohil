@@ -87,6 +87,18 @@ x.td_remove() removes an element from the dict.  It's not an error to remove som
 
 td_remove can also accept a list of elements and in that case it will delete a hierarchy of subordinate namespaces.  In the list case, if more than one element is specified in the list, it is an error if any of the keys don't exist.
 
+You can create new tclobjs as the contents of sub-parts of dictionaries and use them as dictionaries, or whatever.
+
+Say you have a tclobj t containing a dictionary of elements, one of which, 'a', contains a dictionary of elements, one of which, 'c', contains a dictionary of elements, 'd'.
+
+If you want a dictionary consisting of eveyrthing below c, you might do
+
+```
+x = t.td_get(['a','b','c'], to=tohil.tclobj)
+```
+
+Likewise you can compose a more complicated dictionaries by attaching a dictionary to a point within another dictionary, simply by doing a td_set with the value being a tclobj that itself contains a dictionary.
+
 
 ### misc stuff
 
