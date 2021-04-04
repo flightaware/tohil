@@ -1753,12 +1753,13 @@ tohil_unset(PyObject *self, PyObject *args, PyObject *kwargs)
 static PyObject *
 tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    static char *kwlist[] = {"string", NULL};
+    static char *kwlist[] = {"string", "to", NULL};
     char *string = NULL;
+    PyObject *to = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &string))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &string, &to)) {
         return NULL;
-
+    }
     Tcl_Obj *obj = Tcl_SubstObj(tcl_interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
     if (obj == NULL) {
         char *errMsg = Tcl_GetString(Tcl_GetObjResult(tcl_interp));
@@ -1766,10 +1767,7 @@ tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    int tclStringSize;
-    char *tclString;
-    tclString = Tcl_GetStringFromObj(obj, &tclStringSize);
-    return Py_BuildValue("s#", tclString, tclStringSize);
+    return tohil_python_return(tcl_interp, TCL_OK, to, obj);
 }
 
 //

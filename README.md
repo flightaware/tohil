@@ -154,7 +154,7 @@ RuntimeError: can't read "x(e)": no such element in array
 
 #### tohil.expr
 
-You can also evaluate tcl expressions from python using tohil.expr:
+You can also evaluate tcl expressions from python using tohil.expr.  As with many other tohil functions, to= can be used to request conversion to a specific python datatype.
 
 ```
 >>> tohil.expr('5+5')
@@ -164,7 +164,9 @@ You can also evaluate tcl expressions from python using tohil.expr:
 >>> tohil.expr('1/3')
 '0'
 >>> tohil.expr('1/3.')
-1
+'0.3333333333333333
+>>> tohil.expr('1/3.',to=float)
+0.3333333333333333
 >>> tohil.expr('[clock seconds] % 86400')
 '25571'
 >>> tohil.expr('[clock seconds] % 86400',to=int)
@@ -172,6 +174,16 @@ You can also evaluate tcl expressions from python using tohil.expr:
 ```
 
 NB Remember that, like eval, expr evaluates its arguments and will execute square-bracketed code embedded in the passed expression.
+
+#### tohil.convert
+
+Tohil.convert will some python thing passed to it into some other python thing, a string by default, but any type supported in accordance with the to= argument.
+
+It's an easy way to get a tclobj object `(t = tohil.convert(5, to=tohil.tclobj)`, but in that case it's easier to do `t = tohil.tclobj(5)`.
+
+Pass a python object to tohil.convert and get back a string by default, or use the same to=
+
+You can also evaluate tcl expressions from python using tohil.expr.  As with many other tohil functions, to= can be used to request conversion to a specific python datatype.
 
 #### tohil.subst
 
@@ -186,7 +198,7 @@ Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, com
 'hello, karl'
 ```
 
-Although we could easily make tohil.subst support the "to=" way of request a type conversion, is there any case where you wouldn't just expect it to return a string?
+The "to=" way of requesting a type conversion is supported.  Although you might not care about converting to int or float or something, you might want a tohil.tclobj for your efforts, anirite?
 
 #### tohil.interact
 
