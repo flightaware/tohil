@@ -351,7 +351,7 @@ dist: dist-clean
 # variable in configure.in
 #========================================================================
 
-clean:
+clean: clean-python-module
 	-test -z "$(BINARIES)" || rm -f $(BINARIES)
 	-rm -f *.$(OBJEXT) core *.core
 	-rm -rf autom4te.cache
@@ -449,6 +449,7 @@ uninstall-binaries:
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
 
+#
 # tohil python stuff
 #
 build-python-module:
@@ -456,3 +457,6 @@ build-python-module:
 
 install-python-module:
 	python3 setup.py install
+
+clean-python-module:
+	rm -rf setup.py build dist
