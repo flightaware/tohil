@@ -133,3 +133,6 @@ when we implement iterators on dicts, we'll use those in the iterator function t
 ### stuff
 
 https://github.com/python/cpython/blob/master/Modules/_tkinter.c
+
+
+look at tcl errorCode in tohil_python_return to set the python error code

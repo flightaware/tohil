@@ -1833,8 +1833,14 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
         // element doesn't exist, we simply return the default value
         obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, 0);
         if (obj == NULL) {
-            Py_INCREF(defaultPyObj);
-            return defaultPyObj;
+            if (to == NULL) {
+                // not there but they provided a default,
+                // give them their default
+                Py_INCREF(defaultPyObj);
+                return defaultPyObj;
+            } else {
+                obj = pyObjToTcl(tcl_interp, defaultPyObj);
+            }
         }
     }
 
