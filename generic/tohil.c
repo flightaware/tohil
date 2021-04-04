@@ -1015,7 +1015,7 @@ PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
 
         if (keyObj == NULL) {
             Py_XDECREF(keys);
-            PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be uised as a dictionary key");
+            PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be used as a dictionary key");
             return NULL;
         }
         Py_XDECREF(keys);
@@ -1038,35 +1038,77 @@ PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
 
 //
 // tclobj.td_set(key, value) - do a dict set on the tcl object
+//   if key is a python list, td_set operates on a nested tree
+//   of dictionaries
 //
 static PyObject *
 PyTclObj_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"key", "value", NULL};
-    char *key = NULL;
+    PyObject *keys = NULL;
     PyObject *pValue = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO|$", kwlist, &key, &pValue)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|$", kwlist, &keys, &pValue)) {
         return NULL;
     }
 
-    Tcl_Obj *keyObj = Tcl_NewStringObj(key, -1);
+    Tcl_Obj *valueObj = pyObjToTcl(tcl_interp, pValue);
+    if (valueObj == NULL) {
+        Py_XDECREF(keys);
+        Py_XDECREF(pValue);
+        return NULL;
+    }
+    Py_XDECREF(pValue);  // we're done with pValue; we have valueObj now
 
     // we are about to try to modify the object, so if it's shared we need to copy
     if (Tcl_IsShared(self->tclobj)) {
         self->tclobj = Tcl_DuplicateObj(self->tclobj);
     }
 
-    Tcl_Obj *valueObj = pyObjToTcl(tcl_interp, pValue);
-    if (valueObj == NULL) {
-        return NULL;
-    }
+    if (PyList_Check(keys)) {
+        int i;
+        Py_ssize_t objc = PyList_GET_SIZE(keys);
 
-    if (Tcl_DictObjPut(tcl_interp, self->tclobj, keyObj, valueObj) == TCL_ERROR) {
-        Tcl_DecrRefCount(keyObj);
-        Tcl_DecrRefCount(valueObj);
-        PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
-        return NULL;
+        // build up a tcl objv of the keys
+        Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
+        for (i = 0; i < objc; i++) {
+            objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(keys, i));
+            Tcl_IncrRefCount(objv[i]);
+        }
+
+        int status = (Tcl_DictObjPutKeyList(tcl_interp, self->tclobj, objc, objv, valueObj));
+
+        // tear down the objv of the keys we created
+        for (i = 0; i < objc; i++) {
+            Tcl_DecrRefCount(objv[i]);
+        }
+        ckfree(objv);
+
+        if (status == TCL_ERROR) {
+            Py_XDECREF(keys);
+            Tcl_DecrRefCount(valueObj);
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            return NULL;
+        }
+    } else {
+        Tcl_Obj *keyObj = _pyObjToTcl(tcl_interp, keys);
+
+        if (keyObj == NULL) {
+            Py_XDECREF(keys);
+            PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be used as a dictionary key");
+            return NULL;
+        }
+        Py_XDECREF(keys);
+
+        if (Tcl_DictObjPut(tcl_interp, self->tclobj, keyObj, valueObj) == TCL_ERROR) {
+            Tcl_DecrRefCount(keyObj);
+            Tcl_DecrRefCount(valueObj);
+            PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+            return NULL;
+        }
+        // something about this is a crash
+        // Tcl_DecrRefCount(keyObj);
+        // Tcl_DecrRefCount(valueObj);
     }
 
     Py_RETURN_NONE;

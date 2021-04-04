@@ -56,7 +56,7 @@ class TestTD(unittest.TestCase):
     def test_td5(self):
         """tohil.tclobj td_set with list of keys"""
         x = tclobj()
-        x.td_set(['a','b','c','d'],1)
+        x.td_set(['a','b','c','d'],'bar')
         self.assertEqual(repr(x), "<tohil.tclobj: 'a {b {c {d bar}}}'>")
 
 if __name__ == "__main__":

@@ -60,6 +60,13 @@ It seems pretty good, but this is new stuff, so be careful and let us know how i
 
 To avoid confusion with python dicts, we are calling tcl dicts td's.
 
+The td_set method will do dict set on a tclobj.  It takes a key and a value.  The value can be a tclobj object in which case tohil will do the right thing and grab a reference to the object rather than copying it.  The key can be a list of keys, in which case instead of working with dict as a single-level dictionary, it will treat it as a nested tree of dictionaries, with inner dictionaries stored as values inside outer dictionaries.
+
+```
+x.td_set('a',1)
+x.td_set(['a','b','c','d'],'bar')
+```
+
 The td_get method will do a dict get on a tclobj.  It returns the object in the style requested, str by default, but to= can be specified, as in:
 
 ```
