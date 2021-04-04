@@ -74,6 +74,7 @@ td_size() returns the size of the dict or throws an error if the contents of the
 
 x.td_remove() removes an element from the dict.  It's not an error to remove something that doesn't exist.
 
+td_remove can also accept a list of elements and in that case it will delete a hierarchy of subordinate namespaces.  In the list case, if more than one element is specified in the list, it is an error if any of the keys don't exist.
 
 
 ### misc stuff

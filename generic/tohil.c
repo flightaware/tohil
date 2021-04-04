@@ -966,30 +966,71 @@ PyTclObj_td_size(PyTclObj *self, PyObject *pyobj)
 }
 
 //
-// td_remove(key) - do a dict remove on the tcl object
+// td_remove(key) - if key is a python list, do a dict remove keylist on the tcl object,
+//   where the arg is a python list of a hierarchy of names to remove.
+//
+//   if key is not a python list, does a dict remove on the tcl object for that key
 //
 static PyObject *
 PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"key", NULL};
-    char *key = NULL;
+    PyObject *keys = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &key)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwlist, &keys)) {
         return NULL;
     }
 
-    Tcl_Obj *keyObj = Tcl_NewStringObj(key, -1);
+    if (PyList_Check(keys)) {
+        int i;
+        Py_ssize_t objc = PyList_GET_SIZE(keys);
 
-    //
-    // we are about to try to modify the object, so if it's shared we need to copy
-    if (Tcl_IsShared(self->tclobj)) {
-        self->tclobj = Tcl_DuplicateObj(self->tclobj);
-    }
+        // build up a tcl objv of the keys
+        Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
+        for (i = 0; i < objc; i++) {
+            objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(keys, i));
+            Tcl_IncrRefCount(objv[i]);
+        }
 
-    if (Tcl_DictObjRemove(NULL, self->tclobj, keyObj) == TCL_ERROR) {
+        // we are about to try to modify the object, so if it's shared we need to copy
+        if (Tcl_IsShared(self->tclobj)) {
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+
+        int status = (Tcl_DictObjRemoveKeyList(tcl_interp, self->tclobj, objc, objv));
+
+        // tear down the objv of the keys we created
+        for (i = 0; i < objc; i++) {
+            Tcl_DecrRefCount(objv[i]);
+        }
+        ckfree(objv);
+
+        if (status == TCL_ERROR) {
+            Py_XDECREF(keys);
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            return NULL;
+        }
+    } else {
+        Tcl_Obj *keyObj = _pyObjToTcl(tcl_interp, keys);
+
+        if (keyObj == NULL) {
+            Py_XDECREF(keys);
+            PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be uised as a dictionary key");
+            return NULL;
+        }
+        Py_XDECREF(keys);
+
+        // we are about to try to modify the object, so if it's shared we need to copy
+        if (Tcl_IsShared(self->tclobj)) {
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+
+        if (Tcl_DictObjRemove(NULL, self->tclobj, keyObj) == TCL_ERROR) {
+            Tcl_DecrRefCount(keyObj);
+            PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+            return NULL;
+        }
         Tcl_DecrRefCount(keyObj);
-        PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
-        return NULL;
     }
 
     Py_RETURN_NONE;
@@ -1457,7 +1498,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
     {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
-    {"td_remove", (PyCFunction)PyTclObj_td_remove, METH_VARARGS | METH_KEYWORDS, "remove item from tcl dict"},
+    {"td_remove", (PyCFunction)PyTclObj_td_remove, METH_VARARGS | METH_KEYWORDS, "remove item or list hierarchy from tcl dict"},
     {"td_set", (PyCFunction)PyTclObj_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
     {"td_size", (PyCFunction)PyTclObj_td_size, METH_NOARGS, "get size of tcl dict"},
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
@@ -1637,7 +1678,7 @@ tohil_convert(PyObject *self, PyObject *args, PyObject *kwargs)
 
     Tcl_Obj *interimObj = pyObjToTcl(tcl_interp, pyInputObject);
     if (interimObj == NULL) {
-        // Py_XDECREF(to);
+        Py_XDECREF(to);
         return NULL;
     }
 

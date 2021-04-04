@@ -42,5 +42,16 @@ class TestTD(unittest.TestCase):
         x.td_remove('foo')
         self.assertEqual(repr(x), "<tohil.tclobj: ''>")
 
+    def test_td4(self):
+        """tohil.tclobj list remove """
+        x = tclobj()
+        x.td_set('a',1)
+        x.td_set('b',2)
+        x.td_set('c',3)
+        x.td_remove('a')
+        x.td_remove(['c'])
+        x.td_remove(['c'])
+        self.assertEqual(repr(x), "<tohil.tclobj: 'b 2'>")
+
 if __name__ == "__main__":
     unittest.main()
