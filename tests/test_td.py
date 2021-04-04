@@ -85,5 +85,18 @@ class TestTD(unittest.TestCase):
         with self.assertRaises(TypeError):
             x.td_exists(['a','b','c'])
 
+    def test_td8(self):
+        """tohil.tclobj td_get of nested dictionaries"""
+        t = tclobj()
+        t.td_set(['a','b','c','d'],1)
+        t.td_set('b','bar')
+        self.assertEqual(t.td_get(['a','b','c','d']), '1')
+        self.assertEqual(t.td_get(['a','b']), 'c {d 1}')
+        x = t.td_get(['a','b'], to=tohil.tclobj)
+        with self.assertRaises(KeyError):
+            x.td_get('d')
+        self.assertEqual(x.td_get(['c','d']), '1')
+        self.assertEqual(x.td_exists(['c','d']), True)
+
 if __name__ == "__main__":
     unittest.main()
