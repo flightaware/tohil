@@ -24,25 +24,36 @@
 
 // forward definitions
 
-// tcl obj python data type
+// tclobj python data type that consists of a standard python
+// object header and then our sole addition, a pointer to
+// a Tcl_Obj.  we dig into tclobj using the tcl C api in our
+// methods and functions that implement the type.
 typedef struct {
-    PyObject_HEAD Tcl_Obj *tclobj;
+    PyObject_HEAD;
+    Tcl_Obj *tclobj;
 } PyTclObj;
 
 int PyTclObj_Check(PyObject *pyObj);
 static PyTypeObject PyTclObjType;
 
-PyObject *tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Obj *resultObj);
+PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyObject *toType, Tcl_Obj *resultObj);
 
-static PyObject *PyTclObj_FromTclObj(Tcl_Obj *obj);
+// TCL library begins here
 
-/* TCL library begins here */
+// maintain a pointer to the tcl interp - we need it from our stuff python calls where
+// we don't get passed an interpreter
 
-Tcl_Interp *tcl_interp = NULL;
+static Tcl_Interp *tcl_interp = NULL;
+
+// maintain pointers to our exception handler and python function that
+// we return as our iterator object
+// NB this could be a problem if either of these functions get redefined
 static PyObject *pTohilHandleException = NULL;
 static PyObject *pyTclObjIterator = NULL;
 
+//
 // turn a tcl list into a python list
+//
 PyObject *
 tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
@@ -63,7 +74,9 @@ tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     return plist;
 }
 
+//
 // turn a tcl list into a python set
+//
 PyObject *
 tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
@@ -86,7 +99,9 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     return pset;
 }
 
+//
 // turn a tcl list into a python tuple
+//
 PyObject *
 tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
@@ -107,7 +122,9 @@ tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     return ptuple;
 }
 
+//
 // turn a tcl list of key-value pairs into a python dict
+//
 PyObject *
 tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
@@ -134,8 +151,15 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     return pdict;
 }
 
+//
 // turn a tcl object into a python object by trying to convert it as a boolean,
 // then a long, then a double and finally a string
+//
+// NB not currently used, and could be better by peeking first at the tcl
+// object's internal rep.  i have concerns about using this because the python
+// dev may be surprised to get an int or float back instead of a string.
+// not sure but not ready to get rid of this; it still seems promising
+//
 static PyObject *
 tclObjToPy(Tcl_Obj *tObj)
 {
@@ -163,9 +187,11 @@ tclObjToPy(Tcl_Obj *tObj)
     return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
+//
 // convert a python object to a tcl object - amazing code by aidan
+//
 static Tcl_Obj *
-pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
+_pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
 {
     Tcl_Obj *tObj;
     PyObject *pBytesObj;
@@ -239,7 +265,7 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
             pVal = PySequence_GetItem(pObj, i);
             if (pVal == NULL)
                 return NULL;
-            tVal = pyObjToTcl(interp, pVal);
+            tVal = _pyObjToTcl(interp, pVal);
             Py_DECREF(pVal);
             if (tVal == NULL)
                 return NULL;
@@ -265,10 +291,10 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
             ONERR(pKey)
             pVal = PySequence_GetItem(pItem, 1);
             ONERR(pVal)
-            tKey = pyObjToTcl(interp, pKey);
+            tKey = _pyObjToTcl(interp, pKey);
             Py_DECREF(pKey);
             ONERR(tKey);
-            tVal = pyObjToTcl(interp, pVal);
+            tVal = _pyObjToTcl(interp, pVal);
             Py_DECREF(pVal);
             ONERR(tVal);
             Tcl_DictObjPut(interp, tObj, tKey, tVal);
@@ -294,6 +320,19 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
     }
 
     return tObj;
+}
+
+static Tcl_Obj *
+pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
+{
+    Tcl_Obj *ret = _pyObjToTcl(interp, pObj);
+    // NB tcl is not prepared to accept null pointers to set interpreter results
+    // and probably even variables and stuff yet pyObjToTcl can return them.
+    // here we look to detect if it does.  later we might choose to cause an
+    // error return or some kind, or, if necessary, do checks
+    // everywhere in the code that currently assumes pyObjToTcl can't fail
+    assert(ret != NULL);
+    return ret;
 }
 
 //
@@ -650,7 +689,6 @@ PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             self->tclobj = Tcl_NewObj();
         } else {
             self->tclobj = pyObjToTcl(tcl_interp, pSource);
-            Py_XDECREF(pSource);
         }
         Tcl_IncrRefCount(self->tclobj);
     }
@@ -775,7 +813,7 @@ PyTclObj_as_int(PyTclObj *self, PyObject *pyobj)
     if (Tcl_GetLongFromObj(tcl_interp, self->tclobj, &longValue) == TCL_OK) {
         return PyLong_FromLong(longValue);
     }
-    PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
     return NULL;
 }
 
@@ -790,7 +828,7 @@ PyTclObj_as_float(PyTclObj *self, PyObject *pyobj)
     if (Tcl_GetDoubleFromObj(tcl_interp, self->tclobj, &doubleValue) == TCL_OK) {
         return PyFloat_FromDouble(doubleValue);
     }
-    PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
     return NULL;
 }
 
@@ -806,7 +844,7 @@ PyTclObj_as_bool(PyTclObj *self, PyObject *pyobj)
         Py_INCREF(p);
         return p;
     }
-    PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
     return NULL;
 }
 
@@ -866,12 +904,290 @@ PyTclObj_as_tclobj(PyTclObj *self, PyObject *pyobj)
     return PyTclObj_FromTclObj(self->tclobj);
 }
 
+//
+// tclobj.as_byte_array()
+//
 static PyObject *
 PyTclObj_as_byte_array(PyTclObj *self, PyObject *pyobj)
 {
     int size;
     unsigned char *byteArray = Tcl_GetByteArrayFromObj(self->tclobj, &size);
     return PyByteArray_FromStringAndSize((const char *)byteArray, size);
+}
+
+//
+// td - tcl dict stuff
+//
+
+//
+// td_locate(key) - do a dict get on the tclobj object and
+//   return a pointer to a Tcl_Obj, or null
+//
+static Tcl_Obj *
+PyTclObj_td_locate(PyTclObj *self, PyObject *keys)
+{
+    Tcl_Obj *keyObj = NULL;
+    Tcl_Obj *valueObj = NULL;
+
+    if (PyList_Check(keys)) {
+        int i;
+        Tcl_Obj *dictPtrObj = self->tclobj;
+        Py_ssize_t nKeys = PyList_GET_SIZE(keys);
+
+        for (i = 0; i < nKeys; i++) {
+            PyObject *keyPyObj = PyList_GET_ITEM(keys, i);
+            keyObj = pyObjToTcl(tcl_interp, keyPyObj);
+
+            if (Tcl_DictObjGet(tcl_interp, dictPtrObj, keyObj, &valueObj) == TCL_ERROR) {
+                Tcl_DecrRefCount(keyObj);
+                PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+                return NULL;
+            }
+            if (valueObj == NULL) {
+                Tcl_DecrRefCount(keyObj);
+                return NULL;
+            }
+            dictPtrObj = valueObj;
+            Tcl_DecrRefCount(keyObj);
+        }
+
+        // at this point if there's been no error valueObj has our guy
+    } else {
+        // it's a singleton
+        Tcl_Obj *keyObj = pyObjToTcl(tcl_interp, keys);
+
+        if (Tcl_DictObjGet(NULL, self->tclobj, keyObj, &valueObj) == TCL_ERROR) {
+            Tcl_DecrRefCount(keyObj);
+            PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+            return NULL;
+        }
+        Tcl_DecrRefCount(keyObj);
+    }
+
+    return valueObj;
+}
+
+//
+// td_get(key) - do a dict get on the tcl object
+//
+static PyObject *
+PyTclObj_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"key", "to", "default", NULL};
+    PyObject *keys = NULL;
+    PyObject *to = NULL;
+    PyObject *pDefault = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$OO", kwlist, &keys, &to, &pDefault)) {
+        return NULL;
+    }
+
+    Tcl_Obj *valueObj = PyTclObj_td_locate(self, keys);
+    if (valueObj == NULL) {
+        if (pDefault != NULL) {
+            if (to == NULL) {
+                // not there but they provided a default,
+                // give them their default
+                Py_INCREF(pDefault);
+                return pDefault;
+            } else {
+                valueObj = pyObjToTcl(tcl_interp, pDefault);
+            }
+        } else {
+            // not there, no default.  it's an error.
+            // this is clean and the way python does it.
+            PyErr_SetObject(PyExc_KeyError, keys);
+            return NULL;
+        }
+    }
+
+    return tohil_python_return(tcl_interp, TCL_OK, to, valueObj);
+}
+
+//
+// td_exists(key) - do a dict get on a key or list of keys
+//   against our tclobj object and return true if the key's there
+//   and false if it isn't
+//
+static PyObject *
+PyTclObj_td_exists(PyTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"key", NULL};
+    PyObject *keys = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwlist, &keys)) {
+        return NULL;
+    }
+
+    Tcl_Obj *valueObj = PyTclObj_td_locate(self, keys);
+    if (valueObj == NULL) {
+        // see if an error occurred -- there is a difference between
+        // not finding something (valueObj == NULL) and not finding
+        // something (same) and there having been an error
+        if (PyErr_Occurred() == NULL) {
+            // an error didn't occur
+            Py_RETURN_FALSE;
+        }
+        return NULL;
+    }
+
+    Py_RETURN_TRUE;
+}
+
+//
+// td_size() - return the dict size of a python tclobj's tcl object
+//   exception thrown if tcl object isn't a proper tcl dict
+//
+static PyObject *
+PyTclObj_td_size(PyTclObj *self, PyObject *pyobj)
+{
+    int length;
+    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &length) == TCL_OK) {
+        return PyLong_FromLong(length);
+    }
+    PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+    return NULL;
+}
+
+//
+// td_remove(key) - if key is a python list, do a dict remove keylist on the tcl object,
+//   where the arg is a python list of a hierarchy of names to remove.
+//
+//   if key is not a python list, does a dict remove on the tcl object for that key
+//
+static PyObject *
+PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"key", NULL};
+    PyObject *keys = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwlist, &keys)) {
+        return NULL;
+    }
+
+    if (PyList_Check(keys)) {
+        int i;
+        Py_ssize_t objc = PyList_GET_SIZE(keys);
+
+        // build up a tcl objv of the keys
+        Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
+        for (i = 0; i < objc; i++) {
+            objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(keys, i));
+            Tcl_IncrRefCount(objv[i]);
+        }
+
+        // we are about to try to modify the object, so if it's shared we need to copy
+        if (Tcl_IsShared(self->tclobj)) {
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+
+        int status = (Tcl_DictObjRemoveKeyList(tcl_interp, self->tclobj, objc, objv));
+
+        // tear down the objv of the keys we created
+        for (i = 0; i < objc; i++) {
+            Tcl_DecrRefCount(objv[i]);
+        }
+        ckfree(objv);
+
+        if (status == TCL_ERROR) {
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            return NULL;
+        }
+    } else {
+        Tcl_Obj *keyObj = _pyObjToTcl(tcl_interp, keys);
+
+        if (keyObj == NULL) {
+            PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be used as a dictionary key");
+            return NULL;
+        }
+
+        // we are about to try to modify the object, so if it's shared we need to copy
+        if (Tcl_IsShared(self->tclobj)) {
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+
+        if (Tcl_DictObjRemove(NULL, self->tclobj, keyObj) == TCL_ERROR) {
+            Tcl_DecrRefCount(keyObj);
+            PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+            return NULL;
+        }
+        Tcl_DecrRefCount(keyObj);
+    }
+
+    Py_RETURN_NONE;
+}
+
+//
+// tclobj.td_set(key, value) - do a dict set on the tcl object
+//   if key is a python list, td_set operates on a nested tree
+//   of dictionaries
+//
+static PyObject *
+PyTclObj_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"key", "value", NULL};
+    PyObject *keys = NULL;
+    PyObject *pValue = NULL;
+
+    // remember, "O" sets our pointer to the object without incrementing its reference count
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|$", kwlist, &keys, &pValue)) {
+        return NULL;
+    }
+
+    Tcl_Obj *valueObj = pyObjToTcl(tcl_interp, pValue);
+    if (valueObj == NULL) {
+        return NULL;
+    }
+
+    // we are about to try to modify the object, so if it's shared we need to copy
+    if (Tcl_IsShared(self->tclobj)) {
+        self->tclobj = Tcl_DuplicateObj(self->tclobj);
+    }
+
+    if (PyList_Check(keys)) {
+        int i;
+        Py_ssize_t objc = PyList_GET_SIZE(keys);
+
+        // build up a tcl objv of the keys
+        Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
+        for (i = 0; i < objc; i++) {
+            objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(keys, i));
+            Tcl_IncrRefCount(objv[i]);
+        }
+
+        int status = (Tcl_DictObjPutKeyList(tcl_interp, self->tclobj, objc, objv, valueObj));
+
+        // tear down the objv of the keys we created
+        for (i = 0; i < objc; i++) {
+            Tcl_DecrRefCount(objv[i]);
+        }
+        ckfree(objv);
+
+        if (status == TCL_ERROR) {
+            Tcl_DecrRefCount(valueObj);
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            return NULL;
+        }
+    } else {
+        Tcl_Obj *keyObj = _pyObjToTcl(tcl_interp, keys);
+
+        if (keyObj == NULL) {
+            PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be used as a dictionary key");
+            return NULL;
+        }
+
+        if (Tcl_DictObjPut(tcl_interp, self->tclobj, keyObj, valueObj) == TCL_ERROR) {
+            Tcl_DecrRefCount(keyObj);
+            Tcl_DecrRefCount(valueObj);
+            PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+            return NULL;
+        }
+        // something about this is a crash
+        // Tcl_DecrRefCount(keyObj);
+        // Tcl_DecrRefCount(valueObj);
+    }
+
+    Py_RETURN_NONE;
 }
 
 //
@@ -1299,6 +1615,11 @@ static PyMethodDef PyTclObj_methods[] = {
     {"as_tclobj", (PyCFunction)PyTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
     {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
+    {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
+    {"td_exists", (PyCFunction)PyTclObj_td_exists, METH_VARARGS | METH_KEYWORDS, "see if key exists in tcl dict"},
+    {"td_remove", (PyCFunction)PyTclObj_td_remove, METH_VARARGS | METH_KEYWORDS, "remove item or list hierarchy from tcl dict"},
+    {"td_set", (PyCFunction)PyTclObj_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
+    {"td_size", (PyCFunction)PyTclObj_td_size, METH_NOARGS, "get size of tcl dict"},
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
     {"set", (PyCFunction)PyTclObj_set, METH_O, "set tclobj from some python object"},
@@ -1461,6 +1782,28 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 //
+// tohil.convert command for python to pass a python object through
+// to a tcl object and then convert it to a to= destination type
+//
+static PyObject *
+tohil_convert(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"pyobject", "to", NULL};
+    PyObject *pyInputObject = NULL;
+    PyObject *to = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$O", kwlist, &pyInputObject, &to))
+        return NULL;
+
+    Tcl_Obj *interimObj = pyObjToTcl(tcl_interp, pyInputObject);
+    if (interimObj == NULL) {
+        return NULL;
+    }
+
+    return tohil_python_return(tcl_interp, TCL_OK, to, interimObj);
+}
+
+//
 // tohil.getvar - from python get the contents of a variable
 //
 static PyObject *
@@ -1490,8 +1833,17 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
         // element doesn't exist, we simply return the default value
         obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, 0);
         if (obj == NULL) {
-            Py_INCREF(defaultPyObj);
-            return defaultPyObj;
+            // not there but they provided a default
+            if (to == NULL) {
+                // they didn't provide a to= conversion,
+                // give them their default as is
+                Py_INCREF(defaultPyObj);
+                return defaultPyObj;
+            } else {
+                // they provided a to= conversion, run
+                // their python through that and return it.
+                obj = pyObjToTcl(tcl_interp, defaultPyObj);
+            }
         }
     }
 
@@ -1569,12 +1921,13 @@ tohil_unset(PyObject *self, PyObject *args, PyObject *kwargs)
 static PyObject *
 tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    static char *kwlist[] = {"string", NULL};
+    static char *kwlist[] = {"string", "to", NULL};
     char *string = NULL;
+    PyObject *to = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &string))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &string, &to)) {
         return NULL;
-
+    }
     Tcl_Obj *obj = Tcl_SubstObj(tcl_interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
     if (obj == NULL) {
         char *errMsg = Tcl_GetString(Tcl_GetObjResult(tcl_interp));
@@ -1582,10 +1935,7 @@ tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    int tclStringSize;
-    char *tclString;
-    tclString = Tcl_GetStringFromObj(obj, &tclStringSize);
-    return Py_BuildValue("s#", tclString, tclStringSize);
+    return tohil_python_return(tcl_interp, TCL_OK, to, obj);
 }
 
 //
@@ -1640,6 +1990,8 @@ static PyMethodDef TohilMethods[] = {
     {"unset", (PyCFunction)tohil_unset, METH_VARARGS | METH_KEYWORDS, "unset variables, array elements, or arrays from the tcl interpreter"},
     {"subst", (PyCFunction)tohil_subst, METH_VARARGS | METH_KEYWORDS, "perform Tcl command, variable and backslash substitutions on a string"},
     {"expr", (PyCFunction)tohil_expr, METH_VARARGS | METH_KEYWORDS, "evaluate Tcl expression"},
+    {"convert", (PyCFunction)tohil_convert, METH_VARARGS | METH_KEYWORDS,
+     "convert python to tcl object then to whatever to= says or string and return"},
     {"call", (PyCFunction)tohil_call, METH_VARARGS | METH_KEYWORDS, "invoke a tcl command with arguments"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };

@@ -56,6 +56,51 @@ Comparisons are really permissive, too, in what the tclobj implementation accept
 
 It seems pretty good, but this is new stuff, so be careful and let us know how it's going.
 
+### tcl dict access to tclobj objects
+
+To avoid confusion with python dicts, we are calling tcl dicts td's.
+
+The td_set method will do dict set on a tclobj.  It takes a key and a value.  The value can be a tclobj object in which case tohil will do the right thing and grab a reference to the object rather than copying it.  The key can be a list of keys, in which case instead of working with dict as a single-level dictionary, it will treat it as a nested tree of dictionaries, with inner dictionaries stored as values inside outer dictionaries.
+
+```
+x.td_set('a',1)
+x.td_set(['a','b','c','d'],'bar')
+```
+
+The td_get method will do a dict get on a tclobj.  It returns the object in the style requested, str by default, but to= can be specified, as in:
+
+```
+>>> x = tohil.eval("list a 1 b 2 c 3", to=tohil.tclobj)
+>>> x.td_get('a')
+'1'
+>>> x.td_get('a',to=int)
+1
+```
+
+Likewise, td_get will accept a list of keys, treating the tcl object as a nested tree of dictionaries, with inner dictionaries stored as values inside outer dictionaries.  It is an error to try to get a key that doesn't exist.
+
+td_exists can be used to see if a key exists, and also accepts a list of keys to access a hierarchy.
+
+td_size() returns the size of the dict or throws an error if the contents of the object can't be treated as a tcl dict.
+
+x.td_remove() removes an element from the dict.  It's not an error to remove something that doesn't exist.
+
+td_remove can also accept a list of elements and in that case it will delete a hierarchy of subordinate namespaces.  In the list case, if more than one element is specified in the list, it is an error if any of the keys don't exist.
+
+You can create new tclobjs as the contents of sub-parts of dictionaries and use them as dictionaries, or whatever.
+
+Say you have a tclobj t containing a dictionary of elements, one of which, 'a', contains a dictionary of elements, one of which, 'c', contains a dictionary of elements, 'd'.
+
+If you want a dictionary consisting of eveyrthing below c, you might do
+
+```
+x = t.td_get(['a','b','c'], to=tohil.tclobj)
+```
+
+Likewise you can compose a more complicated dictionaries by attaching a dictionary to a point within another dictionary, simply by doing a td_set with the value being a tclobj that itself contains a dictionary.
+
+
+### misc stuff
 
 You can examine the tcl reference count.
 

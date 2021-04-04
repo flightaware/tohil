@@ -154,7 +154,7 @@ RuntimeError: can't read "x(e)": no such element in array
 
 #### tohil.expr
 
-You can also evaluate tcl expressions from python using tohil.expr:
+You can also evaluate tcl expressions from python using tohil.expr.  As with many other tohil functions, to= can be used to request conversion to a specific python datatype.
 
 ```
 >>> tohil.expr('5+5')
@@ -164,7 +164,9 @@ You can also evaluate tcl expressions from python using tohil.expr:
 >>> tohil.expr('1/3')
 '0'
 >>> tohil.expr('1/3.')
-1
+'0.3333333333333333
+>>> tohil.expr('1/3.',to=float)
+0.3333333333333333
 >>> tohil.expr('[clock seconds] % 86400')
 '25571'
 >>> tohil.expr('[clock seconds] % 86400',to=int)
@@ -172,6 +174,16 @@ You can also evaluate tcl expressions from python using tohil.expr:
 ```
 
 NB Remember that, like eval, expr evaluates its arguments and will execute square-bracketed code embedded in the passed expression.
+
+#### tohil.convert
+
+Tohil.convert will some python thing passed to it into some other python thing, a string by default, but any type supported in accordance with the to= argument.
+
+It's an easy way to get a tclobj object `(t = tohil.convert(5, to=tohil.tclobj)`, but in that case it's easier to do `t = tohil.tclobj(5)`.
+
+Pass a python object to tohil.convert and get back a string by default, or use the same to=
+
+You can also evaluate tcl expressions from python using tohil.expr.  As with many other tohil functions, to= can be used to request conversion to a specific python datatype.
 
 #### tohil.subst
 
@@ -186,7 +198,7 @@ Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, com
 'hello, karl'
 ```
 
-Although we could easily make tohil.subst support the "to=" way of request a type conversion, is there any case where you wouldn't just expect it to return a string?
+The "to=" way of requesting a type conversion is supported.  Although you might not care about converting to int or float or something, you might want a tohil.tclobj for your efforts, anirite?
 
 #### tohil.interact
 
@@ -556,12 +568,6 @@ In order of priority:
 
 The single tohil shared library created by building this software is loaded both by Python and Tcl, which is pretty cool and important to how it works.
 
-### image attribution
-
-Do you like the tohil logo?  It's from a creative commons-licensed image of the Mayan deity Quetzalcoatl (also known in some cultures as Tohil), from the Codex Telleriano-Remensis, from the 16th century.
-
-A scan of the image can be found here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_telleriano.jpg.  A wikimedia user, https://commons.wikimedia.org/wiki/User:Di_(they-them), made an SVG file of it, available here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_feathered_serpent.svg
-
 ### what magic is this
 
 ```
@@ -574,4 +580,28 @@ this needs to be built into the makefile or something
 
 clang-format -style=file -i generic/tohil.c
 
+### debugging tohil internals
+
+https://pythonextensionpatterns.readthedocs.io/en/latest/debugging/debug_python.html#debug-version-of-python-memory-alloc-label
+
+
+build and install python with something like
+
+mkdir linux
+cd linux
+../configure --with-pydebug --without-pymalloc --with-valgrind --enable-shared
+
+not sure about the enable shared
+
+build tohil
+
+./configure --prefix=/usr/local --exec-prefix=/usr/local --with-python-version=3.9d
+
+note 3.9d instead of just 3.9
+
+### image attribution
+
+Do you like the tohil logo?  It's from a creative commons-licensed image of the Mayan deity Quetzalcoatl (also known in some cultures as Tohil), from the Codex Telleriano-Remensis, from the 16th century.
+
+A scan of the image can be found here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_telleriano.jpg.  A wikimedia user, https://commons.wikimedia.org/wiki/User:Di_(they-them), made an SVG file of it, available here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_feathered_serpent.svg
 

@@ -109,7 +109,6 @@ intercept stdout when exec'ing python in rivet and pump it to rivet
 
 
 
-https://github.com/python/cpython/blob/master/Modules/_tkinter.c
 
 
 ### what wizardry is this
@@ -123,3 +122,17 @@ it would be able to get the object as a string, an int, a float, a list, etc, if
 for example if you try to do list stuff with it it'll do a Tcl_GetListFromObj and if it returns an error it'll throw an exception.
 
 
+
+### tcl dict walk
+
+tcl dict walks are done with Tcl_DictObjFirst, Tcl_DictObjNext and Tcl_DictObjDone.
+
+when we implement iterators on dicts, we'll use those in the iterator function that we return for the iterator.
+
+
+### stuff
+
+https://github.com/python/cpython/blob/master/Modules/_tkinter.c
+
+
+look at tcl errorCode in tohil_python_return to set the python error code
