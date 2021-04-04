@@ -973,17 +973,26 @@ PyTclObj_td_locate(PyTclObj *self, PyObject *keys)
 static PyObject *
 PyTclObj_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
 {
-    static char *kwlist[] = {"key", "to", NULL};
+    static char *kwlist[] = {"key", "to", "default", NULL};
     PyObject *keys = NULL;
     PyObject *to = NULL;
+    PyObject *pDefault = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$O", kwlist, &keys, &to)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$OO", kwlist, &keys, &to, &pDefault)) {
         return NULL;
     }
 
     Tcl_Obj *valueObj = PyTclObj_td_locate(self, keys);
     if (valueObj == NULL) {
-        // this is clean and the way python does it
+        if (pDefault != NULL) {
+            // not there but they provided a default,
+            // give them their default
+            Py_INCREF(pDefault);
+            return pDefault;
+        }
+
+        // not there, no default.  it's an error.
+        // this is clean and the way python does it.
         PyErr_SetObject(PyExc_KeyError, keys);
         return NULL;
     }

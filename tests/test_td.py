@@ -14,6 +14,10 @@ class TestTD(unittest.TestCase):
         self.assertEqual(x.td_get('a',to=int), 1)
         with self.assertRaises(KeyError):
             x.td_get('z')
+        self.assertEqual(x.td_get('z', default='bar'), 'bar')
+        self.assertEqual(x.td_get('z', default='bar', to=list), 'bar')
+        #with self.assertRaises(KeyError):
+        #    x.td_get('z',default='bar',to=int)
 
     def test_td2(self):
         """tohil.tclobj td_remove """
