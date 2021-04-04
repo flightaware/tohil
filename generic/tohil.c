@@ -24,25 +24,36 @@
 
 // forward definitions
 
-// tcl obj python data type
+// tclobj python data type that consists of a standard python
+// object header and then our sole addition, a pointer to
+// a Tcl_Obj.  we dig into tclobj using the tcl C api in our
+// methods and functions that implement the type.
 typedef struct {
-    PyObject_HEAD Tcl_Obj *tclobj;
+    PyObject_HEAD;
+    Tcl_Obj *tclobj;
 } PyTclObj;
 
 int PyTclObj_Check(PyObject *pyObj);
 static PyTypeObject PyTclObjType;
 
-PyObject *tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Obj *resultObj);
+PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyObject *toType, Tcl_Obj *resultObj);
 
-static PyObject *PyTclObj_FromTclObj(Tcl_Obj *obj);
+// TCL library begins here
 
-/* TCL library begins here */
+// maintain a pointer to the tcl interp - we need it from our stuff python calls where
+// we don't get passed an interpreter
 
-Tcl_Interp *tcl_interp = NULL;
+static Tcl_Interp *tcl_interp = NULL;
+
+// maintain pointers to our exception handler and python function that
+// we return as our iterator object
+// NB this could be a problem if either of these functions get redefined
 static PyObject *pTohilHandleException = NULL;
 static PyObject *pyTclObjIterator = NULL;
 
+//
 // turn a tcl list into a python list
+//
 PyObject *
 tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
@@ -63,7 +74,9 @@ tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     return plist;
 }
 
+//
 // turn a tcl list into a python set
+//
 PyObject *
 tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
@@ -86,7 +99,9 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     return pset;
 }
 
+//
 // turn a tcl list into a python tuple
+//
 PyObject *
 tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
@@ -107,7 +122,9 @@ tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     return ptuple;
 }
 
+//
 // turn a tcl list of key-value pairs into a python dict
+//
 PyObject *
 tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
@@ -134,8 +151,15 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     return pdict;
 }
 
+//
 // turn a tcl object into a python object by trying to convert it as a boolean,
 // then a long, then a double and finally a string
+//
+// NB not currently used, and could be better by peeking first at the tcl
+// object's internal rep.  i have concerns about using this because the python
+// dev may be surprised to get an int or float back instead of a string.
+// not sure but not ready to get rid of this; it still seems promising
+//
 static PyObject *
 tclObjToPy(Tcl_Obj *tObj)
 {
@@ -163,9 +187,11 @@ tclObjToPy(Tcl_Obj *tObj)
     return Py_BuildValue("s#", tclString, tclStringSize);
 }
 
+//
 // convert a python object to a tcl object - amazing code by aidan
+//
 static Tcl_Obj *
-pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
+_pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
 {
     Tcl_Obj *tObj;
     PyObject *pBytesObj;
@@ -239,7 +265,7 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
             pVal = PySequence_GetItem(pObj, i);
             if (pVal == NULL)
                 return NULL;
-            tVal = pyObjToTcl(interp, pVal);
+            tVal = _pyObjToTcl(interp, pVal);
             Py_DECREF(pVal);
             if (tVal == NULL)
                 return NULL;
@@ -265,10 +291,10 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
             ONERR(pKey)
             pVal = PySequence_GetItem(pItem, 1);
             ONERR(pVal)
-            tKey = pyObjToTcl(interp, pKey);
+            tKey = _pyObjToTcl(interp, pKey);
             Py_DECREF(pKey);
             ONERR(tKey);
-            tVal = pyObjToTcl(interp, pVal);
+            tVal = _pyObjToTcl(interp, pVal);
             Py_DECREF(pVal);
             ONERR(tVal);
             Tcl_DictObjPut(interp, tObj, tKey, tVal);
@@ -294,6 +320,19 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
     }
 
     return tObj;
+}
+
+static Tcl_Obj *
+pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
+{
+    Tcl_Obj *ret = _pyObjToTcl(interp, pObj);
+    // NB tcl is not prepared to accept null pointers to set interpreter results
+    // and probably even variables and stuff yet pyObjToTcl can return them.
+    // here we look to detect if it does.  later we might choose to cause an
+    // error return or some kind, or, if necessary, do checks
+    // everywhere in the code that currently assumes pyObjToTcl can't fail
+    assert(ret != NULL);
+    return ret;
 }
 
 //
