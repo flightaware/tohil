@@ -12,6 +12,8 @@ class TestTD(unittest.TestCase):
         x = tohil.eval("list a 1 b 2 c 3", to=tohil.tclobj)
         self.assertEqual(x.td_get('a'), '1')
         self.assertEqual(x.td_get('a',to=int), 1)
+        with self.assertRaises(KeyError):
+            x.td_get('z')
 
     def test_td2(self):
         """tohil.tclobj td_remove """
@@ -58,6 +60,25 @@ class TestTD(unittest.TestCase):
         x = tclobj()
         x.td_set(['a','b','c','d'],'bar')
         self.assertEqual(repr(x), "<tohil.tclobj: 'a {b {c {d bar}}}'>")
+
+    def test_td6(self):
+        """tohil.tclobj td_get with list of keys"""
+        x = tclobj()
+        x.td_set(['a','b','c','d'],'foo')
+        x.td_set('b','bar')
+        self.assertEqual(x.td_get(['a','b','c','d']), "foo")
+
+    def test_td7(self):
+        """tohil.tclobj td_exists"""
+        x = tclobj()
+        x.td_set(['a','b','c'],'foo')
+        x.td_set('b','bar')
+        self.assertEqual(x.td_get(['a','b','c']), "foo")
+        self.assertEqual(x.td_exists(['a','b','c']), True)
+        self.assertEqual(x.td_exists(['a','d','d']), False)
+        x.set("monkey")
+        with self.assertRaises(TypeError):
+            x.td_exists(['a','b','c'])
 
 if __name__ == "__main__":
     unittest.main()

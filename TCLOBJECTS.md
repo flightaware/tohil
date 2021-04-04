@@ -77,6 +77,10 @@ The td_get method will do a dict get on a tclobj.  It returns the object in the 
 1
 ```
 
+Likewise, td_get will accept a list of keys, treating the tcl object as a nested tree of dictionaries, with inner dictionaries stored as values inside outer dictionaries.  It is an error to try to get a key that doesn't exist.
+
+td_exists can be used to see if a key exists, and also accepts a list of keys to access a hierarchy.
+
 td_size() returns the size of the dict or throws an error if the contents of the object can't be treated as a tcl dict.
 
 x.td_remove() removes an element from the dict.  It's not an error to remove something that doesn't exist.
