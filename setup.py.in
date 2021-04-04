@@ -27,6 +27,8 @@ PYTHON_VERSION = """ @PYTHON_VERSION@ """
 PKG_LIB_FILE = """ @PKG_LIB_FILE@ """
 PKG_STUB_LIB_FILE = """ @PKG_STUB_LIB_FILE@ """
 LIBS = """ @LIBS@ """
+DEFS = """ @DEFS@ """
+PKG_CFLAGS = """ @PKG_CFLAGS@ """
 
 prefix = "@prefix@"
 exec_prefix = "@exec_prefix@"

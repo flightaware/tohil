@@ -985,16 +985,20 @@ PyTclObj_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
     Tcl_Obj *valueObj = PyTclObj_td_locate(self, keys);
     if (valueObj == NULL) {
         if (pDefault != NULL) {
-            // not there but they provided a default,
-            // give them their default
-            Py_INCREF(pDefault);
-            return pDefault;
+            if (to == NULL) {
+                // not there but they provided a default,
+                // give them their default
+                Py_INCREF(pDefault);
+                return pDefault;
+            } else {
+                valueObj = pyObjToTcl(tcl_interp, pDefault);
+            }
+        } else {
+            // not there, no default.  it's an error.
+            // this is clean and the way python does it.
+            PyErr_SetObject(PyExc_KeyError, keys);
+            return NULL;
         }
-
-        // not there, no default.  it's an error.
-        // this is clean and the way python does it.
-        PyErr_SetObject(PyExc_KeyError, keys);
-        return NULL;
     }
 
     return tohil_python_return(tcl_interp, TCL_OK, to, valueObj);
