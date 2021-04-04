@@ -556,12 +556,6 @@ In order of priority:
 
 The single tohil shared library created by building this software is loaded both by Python and Tcl, which is pretty cool and important to how it works.
 
-### image attribution
-
-Do you like the tohil logo?  It's from a creative commons-licensed image of the Mayan deity Quetzalcoatl (also known in some cultures as Tohil), from the Codex Telleriano-Remensis, from the 16th century.
-
-A scan of the image can be found here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_telleriano.jpg.  A wikimedia user, https://commons.wikimedia.org/wiki/User:Di_(they-them), made an SVG file of it, available here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_feathered_serpent.svg
-
 ### what magic is this
 
 ```
@@ -574,4 +568,28 @@ this needs to be built into the makefile or something
 
 clang-format -style=file -i generic/tohil.c
 
+### debugging tohil internals
+
+https://pythonextensionpatterns.readthedocs.io/en/latest/debugging/debug_python.html#debug-version-of-python-memory-alloc-label
+
+
+build and install python with something like
+
+mkdir linux
+cd linux
+../configure --with-pydebug --without-pymalloc --with-valgrind --enable-shared
+
+not sure about the enable shared
+
+build tohil
+
+./configure --prefix=/usr/local --exec-prefix=/usr/local --with-python-version=3.9d
+
+note 3.9d instead of just 3.9
+
+### image attribution
+
+Do you like the tohil logo?  It's from a creative commons-licensed image of the Mayan deity Quetzalcoatl (also known in some cultures as Tohil), from the Codex Telleriano-Remensis, from the 16th century.
+
+A scan of the image can be found here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_telleriano.jpg.  A wikimedia user, https://commons.wikimedia.org/wiki/User:Di_(they-them), made an SVG file of it, available here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_feathered_serpent.svg
 
