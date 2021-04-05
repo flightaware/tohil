@@ -129,10 +129,23 @@ tcl dict walks are done with Tcl_DictObjFirst, Tcl_DictObjNext and Tcl_DictObjDo
 
 when we implement iterators on dicts, we'll use those in the iterator function that we return for the iterator.
 
+### ideas
+
+look at tcl errorCode in tohil_python_return to set the python error code
+
+hmm pass the tcl error code as part of an exception object, as a python list
+
+maybe make a specific tcldict object so it can have all the tricked out iter semantics and stuff.  can it inherit from the tclobj object?  i bet it can
+
+make a .td_lappend and .td_incr that don't suck.
+
+make a .incr
+
+
 
 ### stuff
 
-https://github.com/python/cpython/blob/master/Modules/_tkinter.c
+look at https://github.com/python/cpython/blob/master/Modules/_tkinter.c
 
 
-look at tcl errorCode in tohil_python_return to set the python error code
+

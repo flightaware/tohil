@@ -920,6 +920,27 @@ PyTclObj_as_byte_array(PyTclObj *self, PyObject *pyobj)
 }
 
 //
+// tclobj.incr()
+//
+static PyObject *
+PyTclObj_incr(PyTclObj *self, PyObject *pyobj)
+{
+    long longValue;
+
+    if (Tcl_GetLongFromObj(tcl_interp, self->tclobj, &longValue) == TCL_OK) {
+        longValue++;
+        if (Tcl_IsShared(self->tclobj)) {
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+        Tcl_SetLongObj(self->tclobj, longValue);
+        return PyLong_FromLong(longValue);
+    }
+
+    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+    return NULL;
+}
+
+//
 // td - tcl dict stuff
 //
 
@@ -1755,6 +1776,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"as_dict", (PyCFunction)PyTclObj_as_dict, METH_NOARGS, "return tclobj as dict"},
     {"as_tclobj", (PyCFunction)PyTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
     {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
+    {"incr", (PyCFunction)PyTclObj_incr, METH_NOARGS, "increment tclobj as int"},
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
     {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
     {"td_exists", (PyCFunction)PyTclObj_td_exists, METH_VARARGS | METH_KEYWORDS, "see if key exists in tcl dict"},
