@@ -32,6 +32,11 @@ class TestEval(unittest.TestCase):
         """exercise tohil.eval and to=set"""
         self.assertEqual(sorted(tohil.eval("list 1 2 3 4 5 6 6", to=set)), ['1', '2', '3', '4', '5', '6'])
 
+    def test_eval7(self):
+        """exercise tohil.eval and to=someting_wrong"""
+        with self.assertRaises(NameError):
+            tohil.eval("list 1 2 3", to=no_such_type)
+
 
 if __name__ == "__main__":
     unittest.main()
