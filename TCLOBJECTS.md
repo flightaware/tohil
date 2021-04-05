@@ -99,6 +99,22 @@ x = t.td_get(['a','b','c'], to=tohil.tclobj)
 
 Likewise you can compose a more complicated dictionaries by attaching a dictionary to a point within another dictionary, simply by doing a td_set with the value being a tclobj that itself contains a dictionary.
 
+#### TD iterators
+
+You can iterate over a TD with td_iter. For example, something like:
+
+```
+t = tohil.tclobj("a 1 b 2 c 3 d 4 e 5 f 6")
+for i in t.td_iter():
+    print(i)
+```
+
+If you pass a to= conversion to td_iter, the iterator returns tuples comprising the key and the value as well, with the value converted to the to= conversion.
+
+```
+for key, value in t.td_iter(to=int):
+    print(f"key {key} value {value}")
+```
 
 ### misc stuff
 

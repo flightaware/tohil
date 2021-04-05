@@ -644,7 +644,11 @@ TohilInteract_Cmd(ClientData clientData, /* Not used. */
 
 /* Python library begins here */
 
+//
+//
 // python tcl object "tclobj"
+//
+//
 
 //
 // return true if python object is a tclobj type
@@ -1588,6 +1592,143 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
     }
 }
 
+//
+//
+// end of python tcl object "tclobj"
+//
+//
+
+//
+//
+// start of tclobj td_iterator python datatype
+//
+//
+
+typedef struct {
+    PyObject_HEAD;
+    int started;
+    int done;
+    PyObject *to;
+    Tcl_Obj *dictObj;
+    Tcl_DictSearch search;
+} PyTohil_TD_IterObj;
+
+static PyObject *
+PyTohil_TD_iter(PyTohil_TD_IterObj *self)
+{
+    Py_INCREF(self);
+
+    self->started = 0;
+    self->done = 0;
+
+    return (PyObject *)self;
+}
+
+//
+// td's iternext - we have to do the DictObjFirst here since
+//   tcl's version, first gives you also the first result.
+//
+PyObject *
+PyTohil_TD_iternext(PyTohil_TD_IterObj *self)
+{
+    Tcl_Obj *keyObj = NULL;
+    Tcl_Obj *valueObj = NULL;
+    int done = 0;
+
+    if (self->done) {
+      done:
+        PyErr_SetNone(PyExc_StopIteration);
+        return NULL;
+    }
+
+    if (self->started == 0) {
+        self->started = 1;
+        // substitute &valueObj for NULL below if you also want the value
+        if (Tcl_DictObjFirst(tcl_interp, self->dictObj, &self->search, &keyObj, &valueObj, &done) == TCL_ERROR) {
+            PyErr_Format(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+            return NULL;
+        }
+    } else {
+        // not the first time though, get the next entry
+        Tcl_DictObjNext(&self->search, &keyObj, &valueObj, &done);
+    }
+
+    if (done) {
+        Tcl_DictObjDone(&self->search);
+        self->done = 1;
+        Tcl_DecrRefCount(self->dictObj);
+        self->dictObj = NULL;
+        Py_XDECREF(self->to);
+        self->to = NULL;
+        goto done;
+    }
+
+    if (self->to == NULL) {
+        int tclStringSize;
+        char *tclString = Tcl_GetStringFromObj(keyObj, &tclStringSize);
+        return Py_BuildValue("s#", tclString, tclStringSize);
+    }
+
+    // they specified a to, return a tuple
+    PyObject *pRetTuple = PyTuple_New(2);
+
+    int tclStringSize;
+    char *tclString = Tcl_GetStringFromObj(keyObj, &tclStringSize);
+    PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", tclString, tclStringSize));
+    PyTuple_SET_ITEM(pRetTuple, 1, tohil_python_return(tcl_interp, TCL_OK, self->to, valueObj));
+
+    return pRetTuple;
+}
+
+static PyTypeObject PyTohil_TD_IterType = {
+    .tp_name = "tohil._td_iter",
+    .tp_basicsize = sizeof(PyTohil_TD_IterObj),
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "tohil TD iterator object",
+    .tp_iter = (getiterfunc)PyTohil_TD_iter,
+    .tp_iternext = (iternextfunc)PyTohil_TD_iternext,
+};
+
+//
+// t.td_iter()
+//
+static PyObject *
+PyTohil_TD_td_iter(PyTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *pTo = NULL;
+    static char *kwlist[] = {"to", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|$O", kwlist, &pTo)) {
+        return NULL;
+    }
+
+    int size = 0;
+    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
+        PyErr_Format(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+        return NULL;
+    }
+
+    PyTohil_TD_IterObj *pIter = (PyTohil_TD_IterObj *)PyObject_New(PyTohil_TD_IterObj, &PyTohil_TD_IterType);
+
+    pIter->started = 0;
+    pIter->done = 0;
+    memset((void *)&pIter->search, 0, sizeof(Tcl_DictSearch));
+    pIter->to = pTo;
+
+    if (pTo != NULL) {
+        Py_INCREF(pTo);
+    }
+    pIter->dictObj = ((PyTclObj *)self)->tclobj;
+    Tcl_IncrRefCount(pIter->dictObj);
+
+    return (PyObject *)pIter;
+}
+
+//
+//
+// end of tclobj td_iterator python datatype
+//
+//
+
 static PyMappingMethods PyTclObj_as_mapping = {(lenfunc)PyTclObj_length, (binaryfunc)PyTclObj_subscript, NULL};
 
 static PySequenceMethods PyTclObj_as_sequence = {
@@ -1618,6 +1759,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
     {"td_exists", (PyCFunction)PyTclObj_td_exists, METH_VARARGS | METH_KEYWORDS, "see if key exists in tcl dict"},
     {"td_remove", (PyCFunction)PyTclObj_td_remove, METH_VARARGS | METH_KEYWORDS, "remove item or list hierarchy from tcl dict"},
+    {"td_iter", (PyCFunction)PyTohil_TD_td_iter, METH_VARARGS | METH_KEYWORDS, "iterate on a tclobj containing a tcl dict"},
     {"td_set", (PyCFunction)PyTclObj_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
     {"td_size", (PyCFunction)PyTclObj_td_size, METH_NOARGS, "get size of tcl dict"},
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
@@ -1648,7 +1790,10 @@ static PyTypeObject PyTclObjType = {
     .tp_repr = (reprfunc)PyTclObj_repr,
     .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
 };
-// end of tcl obj python data type
+
+//
+// end of tclobj python datatype
+//
 
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
 // from any python C function in this library that accepts a to=python_data_type argument,
@@ -2135,6 +2280,11 @@ PyInit__tohil(void)
 
     // turn up the tclobj python type
     if (PyType_Ready(&PyTclObjType) < 0) {
+        return NULL;
+    }
+
+    // turn up the tclobj td iterator type
+    if (PyType_Ready(&PyTohil_TD_IterType) < 0) {
         return NULL;
     }
 
