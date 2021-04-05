@@ -129,6 +129,7 @@ tcl dict walks are done with Tcl_DictObjFirst, Tcl_DictObjNext and Tcl_DictObjDo
 
 when we implement iterators on dicts, we'll use those in the iterator function that we return for the iterator.
 
+<<<<<<< Updated upstream
 ### ideas
 
 look at tcl errorCode in tohil_python_return to set the python error code
@@ -144,6 +145,10 @@ make a .incr
 maybe have a shadow variable as well as shadow arrays, a way for tclobj to shadow a variable or an array element, or maybe a subclass, the tclobj is fetched from the variable or element at the start of the operation and stored at the end
 
 this solves the sort of surprising behavior of tclobjs that when you get from a var and change it, it doesn't change the var
+
+### templates?
+
+possibly inspect tcl procs using "info args" and "info default" to figure out what arguments they expect and generate a python trampoline that lets you invoke with python style named arguments, etc, 
 
 
 ### stuff
