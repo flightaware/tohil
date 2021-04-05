@@ -952,8 +952,11 @@ PyTclObj_incr(PyTclObj *self, PyObject *args, PyObject *kwargs)
 //
 
 //
-// td_locate(key) - do a dict get on the tclobj object and
-//   return a pointer to a Tcl_Obj, or null
+// td_locate(key) - do a dict get on the tclobj object using
+//   either a list of keys or a singleton key, and return
+//   the target value object.
+//
+//   internal routine used by td_get and td_exists
 //
 static Tcl_Obj *
 PyTclObj_td_locate(PyTclObj *self, PyObject *keys)
@@ -1067,6 +1070,46 @@ PyTclObj_td_exists(PyTclObj *self, PyObject *args, PyObject *kwargs)
 }
 
 //
+// convert a python list into a tcl c-level objv and objc
+//
+// pyListToTclObjv(pList, &objc, &objv);
+//
+// you must call pyListToObjv_teardown when done or you'll
+// leak memory
+//
+static void
+pyListToTclObjv(PyListObject *pList, int *intPtr, Tcl_Obj ***objvPtr)
+{
+    int i;
+
+    assert (PyList_Check(pList));
+    Py_ssize_t objc = PyList_GET_SIZE(pList);
+    // build up a tcl objv of the list elements
+    Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
+    for (i = 0; i < objc; i++) {
+        objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(pList, i));
+        Tcl_IncrRefCount(objv[i]);
+    }
+    *objvPtr = objv;
+    *intPtr = objc;
+}
+
+//
+// teardown an objv created by pyListToObjv
+//
+static void
+pyListToObjv_teardown(int objc, Tcl_Obj **objv)
+{
+    int i;
+
+    // tear down the objv of the keys we created
+    for (i = 0; i < objc; i++) {
+        Tcl_DecrRefCount(objv[i]);
+    }
+    ckfree(objv);
+}
+
+//
 // td_size() - return the dict size of a python tclobj's tcl object
 //   exception thrown if tcl object isn't a proper tcl dict
 //
@@ -1098,15 +1141,11 @@ PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
     }
 
     if (PyList_Check(keys)) {
-        int i;
-        Py_ssize_t objc = PyList_GET_SIZE(keys);
+        int objc = 0;
+        Tcl_Obj **objv = NULL;
 
         // build up a tcl objv of the keys
-        Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
-        for (i = 0; i < objc; i++) {
-            objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(keys, i));
-            Tcl_IncrRefCount(objv[i]);
-        }
+        pyListToTclObjv((PyListObject *)keys, &objc, &objv);
 
         // we are about to try to modify the object, so if it's shared we need to copy
         if (Tcl_IsShared(self->tclobj)) {
@@ -1116,10 +1155,7 @@ PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
         int status = (Tcl_DictObjRemoveKeyList(tcl_interp, self->tclobj, objc, objv));
 
         // tear down the objv of the keys we created
-        for (i = 0; i < objc; i++) {
-            Tcl_DecrRefCount(objv[i]);
-        }
-        ckfree(objv);
+        pyListToObjv_teardown(objc, objv);
 
         if (status == TCL_ERROR) {
             PyErr_SetString(PyExc_KeyError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
@@ -1177,23 +1213,16 @@ PyTclObj_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
     }
 
     if (PyList_Check(keys)) {
-        int i;
-        Py_ssize_t objc = PyList_GET_SIZE(keys);
+        int objc;
+        Tcl_Obj **objv;
 
         // build up a tcl objv of the keys
-        Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
-        for (i = 0; i < objc; i++) {
-            objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(keys, i));
-            Tcl_IncrRefCount(objv[i]);
-        }
+        pyListToTclObjv((PyListObject *)keys, &objc, &objv);
 
         int status = (Tcl_DictObjPutKeyList(tcl_interp, self->tclobj, objc, objv, valueObj));
 
         // tear down the objv of the keys we created
-        for (i = 0; i < objc; i++) {
-            Tcl_DecrRefCount(objv[i]);
-        }
-        ckfree(objv);
+        pyListToObjv_teardown(objc, objv);
 
         if (status == TCL_ERROR) {
             Tcl_DecrRefCount(valueObj);
@@ -1373,15 +1402,12 @@ PyTclObj_lappend_list(PyTclObj *self, PyObject *pObject)
         // that list to the tclobj's object, which is a list or an error
         // is forthcoming
     } else if (PyList_Check(pObject)) {
-        int i;
-        Py_ssize_t objc = PyList_GET_SIZE(pObject);
+        int objc;
+        Tcl_Obj **objv = NULL;
 
-        Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
-        for (i = 0; i < objc; i++) {
-            objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(pObject, i));
-        }
-
+        pyListToTclObjv((PyListObject *)pObject, &objc, &objv);
         Tcl_Obj *appendListObj = Tcl_NewListObj(objc, objv);
+        pyListToObjv_teardown(objc, objv);
 
         if (Tcl_IsShared(self->tclobj)) {
             self->tclobj = Tcl_DuplicateObj(self->tclobj);
@@ -1392,7 +1418,6 @@ PyTclObj_lappend_list(PyTclObj *self, PyObject *pObject)
             Tcl_DecrRefCount(appendListObj);
             return NULL;
         }
-        ckfree(objv);
     } else {
         PyErr_Format(PyExc_TypeError, "lappend_list argument must be a tclobj or list, not %.200s", Py_TYPE(pObject)->tp_name);
         return NULL;
@@ -1664,7 +1689,7 @@ PyTohil_TD_iternext(PyTohil_TD_IterObj *self)
     int done = 0;
 
     if (self->done) {
-      done:
+    done:
         PyErr_SetNone(PyExc_StopIteration);
         return NULL;
     }
