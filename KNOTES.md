@@ -129,7 +129,6 @@ tcl dict walks are done with Tcl_DictObjFirst, Tcl_DictObjNext and Tcl_DictObjDo
 
 when we implement iterators on dicts, we'll use those in the iterator function that we return for the iterator.
 
-<<<<<<< Updated upstream
 ### ideas
 
 look at tcl errorCode in tohil_python_return to set the python error code
@@ -149,6 +148,15 @@ this solves the sort of surprising behavior of tclobjs that when you get from a 
 ### templates?
 
 possibly inspect tcl procs using "info args" and "info default" to figure out what arguments they expect and generate a python trampoline that lets you invoke with python style named arguments, etc, 
+
+### trampoline stuff
+
+import tohil
+from tohil import procster
+tohil.procster.package_require("Tclx")
+defs = procster.procs.probe_procs()
+exec(defs)
+
 
 
 ### stuff
