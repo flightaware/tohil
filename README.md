@@ -114,6 +114,24 @@ As you can see, it's an error to try to get a variable or array element that isn
 4
 ```
 
+#### tohil.incr
+
+tohil.incr takes a tcl variable name or array element and attempts to increment it.
+
+If the contents of the variable preclude it being used as an int, a python
+TypeError exception is thrown.
+
+An optional position argument specifies an increment amount.  The default increment is 1.
+Negative increments are permitted.  The increment amount can also be specified as
+a keyword argument, using "incr".
+
+```
+tohil.incr('var')
+tohil.incr('var',2)
+tohil.incr('var',incr=-1)
+```
+
+
 #### tohil.exists
 
 Since it is an error to try to getvar a variable that doesn't exist, you can trap the request from python and handle the exception, or use tohil.exists to see if the var or array element exist.

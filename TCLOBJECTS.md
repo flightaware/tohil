@@ -9,6 +9,8 @@ It's pretty insanely powerful.
 
 Each tclobj maintains a pointer to a Tcl object and can do things to and with that tcl object.
 
+### creating tclobj objects
+
 You can create an empty tclobj just like creating any other object from a class in python:
 
 t = tclobj()
@@ -17,9 +19,43 @@ What's kind of cool is you can pass a lot of different stuff to tclobj() and it 
 
 For example you can pass tclobj() None, bools, numbers, bytes, unicode, sequences, maps, and even other tclobjs.
 
+### .getvar() and .setvar() methods
+
 You can also attach a tclobj to a Tcl variable or array element, or set a variable or array element from the contents of the tclobj using its getvar() and setvar() methods.
 
+### get stuff from tclobjs as other python pbjects
+
 Tclobjs have methods to convert the tclobj to python strings, ints, floats, bools, lists, sets, tuples, dicts, byte arrays, and, again, tclobjs.
+
+t = tohil.tclobj()
+
+* t.as_bool() - return the contents of the tclobj object as a python bool
+* t.as_byte_array() - a python byte array
+* t.as_dict() - a python dict
+* t.as_float(), t.as_int() - as a python float and int (long), respectively
+* t.as_list() - as a python list
+* t.as_str() - as a python str
+* t.as_tclobj() - as a new python tclobj object
+* t.as_tuple() - as a python tuple object
+
+### set() and reset()
+
+t.set() tries to covert whatever python object is passed to it and store it in the tclobj as a tcl object, while t.reset() resets the tclobj object to have an empty tcl object.
+
+### incr()
+
+t.incr() tries to increment the tclobj object.  If the contents of the object preclude it from being used as an integer, a TypeError exception is throwing.
+
+t.incr takes an optional positional argument, which is the increment amount.  It can also be specified using the "incr" named argument
+
+```
+t = tohil.tclobj(0)
+t.incr()
+t.incr(1)
+t.incr(incr=-1)
+```
+
+### tclobjs containing tcl lists
 
 When a tclobj contains tcl lists, cool stuff comes into play.
 
@@ -45,6 +81,7 @@ Thanks to tohil's increasingly thorough tclobj object implementation and python'
 [<tohil.tclobj: '5'>]
 ```
 
+### comparing tclobjs to each other
 
 Tclobjs can be compared.  If equality check is requested, first their internal
 tclobj pointers are compared for absolute equality.  Following that, and for all
@@ -56,18 +93,43 @@ Comparisons are really permissive, too, in what the tclobj implementation accept
 
 It seems pretty good, but this is new stuff, so be careful and let us know how it's going.
 
-### tcl dict access to tclobj objects
+### find out the tclobj tcl object's type and reference count
+
+t.type() will tell you the tcl object type of the tcl object stored within
+the tclobj.  Note that you may get nothing back even though there is some
+valid thing there, say for instance a dict, but you haven't accessed it as
+a dict, so it's just a string or list or whatever until you do.
+
+t.refcount() will tell you the reference count of the tclobj's tcl object.  This is kind of cool.
+
+Note if you're poking around that sometimes you might think the reference
+count is one higher than it should be, but frequently the object you just
+set the value of also happens to be the tcl interpreter result (you used
+the interpreter to make it).  Once the interpreter does something else and
+produces a new result,
+
+## TDs tcl dict access to tclobj objects
 
 To avoid confusion with python dicts, we are calling tcl dicts td's.
 
-The td_set method will do dict set on a tclobj.  It takes a key and a value.  The value can be a tclobj object in which case tohil will do the right thing and grab a reference to the object rather than copying it.  The key can be a list of keys, in which case instead of working with dict as a single-level dictionary, it will treat it as a nested tree of dictionaries, with inner dictionaries stored as values inside outer dictionaries.
+### td_set()
+
+The td_set method will do "dict set" on a tclobj.  It takes a key and a value.
+The value can be one among a number of different python objects.
+One choice is a tclobj object, in which case tohil will do the right thing
+and grab a reference to the object rather than copying it.
+
+The key can be a
+list of keys, in which case instead of working with dict as a single-level
+dictionary, it will treat it as a nested tree of dictionaries, with inner
+dictionaries stored as values inside outer dictionaries.
 
 ```
 x.td_set('a',1)
 x.td_set(['a','b','c','d'],'bar')
 ```
 
-The td_get method will do a dict get on a tclobj.  It returns the object in the style requested, str by default, but to= can be specified, as in:
+The td_get method will do a "dict get" on a tclobj.  It returns the object in the style requested, str by default, but to= can be specified, as in:
 
 ```
 >>> x = tohil.eval("list a 1 b 2 c 3", to=tohil.tclobj)
@@ -77,13 +139,29 @@ The td_get method will do a dict get on a tclobj.  It returns the object in the 
 1
 ```
 
-Likewise, td_get will accept a list of keys, treating the tcl object as a nested tree of dictionaries, with inner dictionaries stored as values inside outer dictionaries.  It is an error to try to get a key that doesn't exist.
+### td_get()
 
-td_exists can be used to see if a key exists, and also accepts a list of keys to access a hierarchy.
+Likewise, `td_get` will accept a list of keys, treating the tcl object as a nested tree of dictionaries, with inner dictionaries stored as values inside outer dictionaries.  It is an error to try to get a key that doesn't exist.
 
-td_size() returns the size of the dict or throws an error if the contents of the object can't be treated as a tcl dict.
+t.td_get() supports our to=datatype technique to get the contents of the tclobj as one of numbers different datatypes (the same ones supported for tohil.getvar, etc.)
 
-x.td_remove() removes an element from the dict.  It's not an error to remove something that doesn't exist.
+One kind of annoyance about tcl dicts is having to use dict exist to traverse the hierarchy of dicts to see if something exists before traversing it a second time to actually get it, or to try the get and catch the error.
+
+td_get offers a second approach, where you do the td_get and specify the optional default= argument, where you specify a value that td_get will return if the requested key doesn't exist. 
+
+If a to=datatype is specified, the default value is coerced to that datatype if possible, or an exception is raised if not.
+
+### td_exists()
+
+`td_exists` can be used to see if a key exists, and also accepts a list of keys to access a hierarchy.
+
+### td_size()
+
+t.td_size() returns the size of the tcl dict, or throws an error if the contents of the object can't be treated as a tcl dict.
+
+### td_remove()
+
+x.td_remove() removes an element from the tcl dict.  It's not an error to remove something that doesn't exist.
 
 td_remove can also accept a list of elements and in that case it will delete a hierarchy of subordinate namespaces.  In the list case, if more than one element is specified in the list, it is an error if any of the keys don't exist.
 

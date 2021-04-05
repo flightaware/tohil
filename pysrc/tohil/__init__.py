@@ -183,5 +183,6 @@ from tohil._tohil import (
     unset,
     tclobj,
     convert,
+    incr,
 )
 

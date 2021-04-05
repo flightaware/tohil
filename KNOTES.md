@@ -141,6 +141,9 @@ make a .td_lappend and .td_incr that don't suck.
 
 make a .incr
 
+maybe have a shadow variable as well as shadow arrays, a way for tclobj to shadow a variable or an array element, or maybe a subclass, the tclobj is fetched from the variable or element at the start of the operation and stored at the end
+
+this solves the sort of surprising behavior of tclobjs that when you get from a var and change it, it doesn't change the var
 
 
 ### stuff

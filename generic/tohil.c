@@ -920,24 +920,31 @@ PyTclObj_as_byte_array(PyTclObj *self, PyObject *pyobj)
 }
 
 //
-// tclobj.incr()
+// tclobj.incr() - increment a python tclobj object
 //
 static PyObject *
-PyTclObj_incr(PyTclObj *self, PyObject *pyobj)
+PyTclObj_incr(PyTclObj *self, PyObject *args, PyObject *kwargs)
 {
-    long longValue;
+    static char *kwlist[] = {"incr", NULL};
+    long longValue = 0;
+    long increment = 1;
 
-    if (Tcl_GetLongFromObj(tcl_interp, self->tclobj, &longValue) == TCL_OK) {
-        longValue++;
-        if (Tcl_IsShared(self->tclobj)) {
-            self->tclobj = Tcl_DuplicateObj(self->tclobj);
-        }
-        Tcl_SetLongObj(self->tclobj, longValue);
-        return PyLong_FromLong(longValue);
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|l", kwlist, &increment)) {
+        return NULL;
     }
 
-    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
-    return NULL;
+    if (Tcl_GetLongFromObj(tcl_interp, self->tclobj, &longValue) == TCL_ERROR) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        return NULL;
+    }
+
+    longValue += increment;
+
+    if (Tcl_IsShared(self->tclobj)) {
+        self->tclobj = Tcl_DuplicateObj(self->tclobj);
+    }
+    Tcl_SetLongObj(self->tclobj, longValue);
+    return PyLong_FromLong(longValue);
 }
 
 //
@@ -1115,7 +1122,7 @@ PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
         ckfree(objv);
 
         if (status == TCL_ERROR) {
-            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            PyErr_SetString(PyExc_KeyError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
             return NULL;
         }
     } else {
@@ -1776,7 +1783,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"as_dict", (PyCFunction)PyTclObj_as_dict, METH_NOARGS, "return tclobj as dict"},
     {"as_tclobj", (PyCFunction)PyTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
     {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
-    {"incr", (PyCFunction)PyTclObj_incr, METH_NOARGS, "increment tclobj as int"},
+    {"incr", (PyCFunction)PyTclObj_incr, METH_VARARGS | METH_KEYWORDS, "increment tclobj as int"},
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
     {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
     {"td_exists", (PyCFunction)PyTclObj_td_exists, METH_VARARGS | METH_KEYWORDS, "see if key exists in tcl dict"},
@@ -2063,6 +2070,49 @@ tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
     Py_RETURN_NONE;
 }
 
+//
+// tohil.incr - incr a variable or array element in tcl from python
+//
+static PyObject *
+tohil_incr(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"var", "incr", NULL};
+    char *var = NULL;
+    long longValue = 0;
+    long increment = 1;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|l", kwlist, &var, &increment))
+        return NULL;
+
+    Tcl_Obj *obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, 0);
+    if (obj == NULL) {
+        longValue = increment;
+        obj = Tcl_NewLongObj(longValue);
+        if (Tcl_SetVar2Ex(tcl_interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
+            goto type_error;
+        }
+    } else {
+        if (Tcl_GetLongFromObj(tcl_interp, obj, &longValue) == TCL_ERROR) {
+          type_error:
+            PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            return NULL;
+        }
+
+        longValue += increment;
+
+        if (Tcl_IsShared(obj)) {
+            obj = Tcl_DuplicateObj(obj);
+            Tcl_SetLongObj(obj, longValue);
+            if (Tcl_SetVar2Ex(tcl_interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
+                goto type_error;
+            }
+        } else {
+            Tcl_SetLongObj(obj, longValue);
+        }
+    }
+    return PyLong_FromLong(longValue);
+}
+
 // tohil.unset - from python unset a variable or array element in the tcl
 //   interpreter.  it is not an error if the variable or element doesn't
 //   exist.  if passed the name of an array with no subscripted element,
@@ -2155,6 +2205,7 @@ static PyMethodDef TohilMethods[] = {
     {"setvar", (PyCFunction)tohil_setvar, METH_VARARGS | METH_KEYWORDS, "set vars and array elements in the tcl interpreter"},
     {"exists", (PyCFunction)tohil_exists, METH_VARARGS | METH_KEYWORDS, "check whether vars and array elements exist in the tcl interpreter"},
     {"unset", (PyCFunction)tohil_unset, METH_VARARGS | METH_KEYWORDS, "unset variables, array elements, or arrays from the tcl interpreter"},
+    {"incr", (PyCFunction)tohil_incr, METH_VARARGS | METH_KEYWORDS, "increment vars and array elements in the tcl interpreter"},
     {"subst", (PyCFunction)tohil_subst, METH_VARARGS | METH_KEYWORDS, "perform Tcl command, variable and backslash substitutions on a string"},
     {"expr", (PyCFunction)tohil_expr, METH_VARARGS | METH_KEYWORDS, "evaluate Tcl expression"},
     {"convert", (PyCFunction)tohil_convert, METH_VARARGS | METH_KEYWORDS,

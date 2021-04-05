@@ -137,5 +137,22 @@ class TestTclObj(unittest.TestCase):
         x.lappend_list(l)
         self.assertEqual(repr(x), "<tohil.tclobj: '1 2 3 4 5 6 7 8 9 10 11 12 13'>")
 
+    def test_tclobj20(self):
+        """tohil.incr tests"""
+        t = tohil.tclobj(0)
+        self.assertEqual(t.incr(), 1)
+        self.assertEqual(t.incr(), 2)
+        self.assertEqual(t.incr(), 3)
+        self.assertEqual(t.incr(), 4)
+        self.assertEqual(t.incr(), 5)
+        self.assertEqual(t.incr(2), 7)
+        self.assertEqual(t.incr(-1), 6)
+        self.assertEqual(t.incr(incr=-1), 5)
+        with self.assertRaises(TypeError):
+            t.set('foo')
+            t.incr()
+
 if __name__ == "__main__":
     unittest.main()
+
+
