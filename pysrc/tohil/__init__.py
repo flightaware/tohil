@@ -217,12 +217,18 @@ def info_args(proc):
     """wrapper for 'info args'"""
     return call("info", "args", proc, to=list)
 
-def info_procs():
+def info_procs(pattern=None):
     """wrapper for 'info procs'"""
-    return call("info", "procs", to=list)
+    if pattern is None:
+        return call("info", "procs", to=list)
+    else:
+        return call("info", "procs", pattern, to=list)
 
 def info_body(proc):
     return call("info", "body", proc, to=str)
+
+def namespace_children(namespace):
+    return call("namespace", "children", namespace, to=list)
 
 def info_default(proc, var):
     """wrapper for 'info default'"""
@@ -232,6 +238,7 @@ class TclProc:
     """probe results and trampoline for a single proc"""
     def __init__(self, proc):
         self.proc = proc
+        self.function = self._proc_to_function(proc)
         self.proc_args = info_args(proc)
         #self.body = info_body(proc)
         self.defaults = dict()
@@ -245,14 +252,21 @@ class TclProc:
         #print(f"def-trampoline-func: {self.gen_function()}")
         #exec(self.gen_function())
 
+    def _proc_to_function(self, proc):
+        """conver ta tcl proc name to a python function name"""
+        function = proc
+        if function[:2] == "::":
+            function = function[2:]
+        function = function.replace("-", "_").replace("::","__")
+        return function
+
     def __repr__(self):
         """repr function"""
         return(f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}', defaults '{repr(self.defaults)}'>")
 
     def gen_function(self):
         """generate a python function for the proc that calls our trampoline"""
-        python_function_name = self.proc.replace("-", "_")
-        string = f"def {python_function_name}(*args, **kwargs):\n"
+        string = f"def {self.function}(*args, **kwargs):\n"
         string += f"    return tohil.procs.procs['{self.proc}'].trampoline(args, kwargs)\n\n"
         return string
 
@@ -304,11 +318,23 @@ class TclProcSet:
         self.procs[proc] = TclProc(proc)
         return self.procs[proc].gen_function()
 
-    def probe_procs(self):
+    def probe_procs(self, pattern=None):
         string = ''
-        for proc in info_procs():
+        for proc in info_procs(pattern):
             string += self.probe_proc(proc)
         return string
+
+    def probe_namespace(self, namespace):
+        """probe a namespace and probe any procs found and
+        then recursively probe any child namespaces of the
+        specified namespace"""
+        print(f"probing namespace '{namespace}'")
+        string = self.probe_procs(namespace + "::*")
+        for child in namespace_children(namespace):
+            string += self.probe_namespace(child)
+
+        return string
+
 
 
 procs = TclProcSet()
