@@ -330,13 +330,17 @@ class TclProc:
         #for arg_name, arg in zip(self.proc_args, args):
         for arg_name in self.proc_args:
             if pos >= nargs:
+                if arg_name == "args":
+                    break
                 raise TypeError(f"not enough parameters to '{self.proc}' ({self.proc_args}), you provided {nargs + len(kwargs)}")
             #print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
             if arg_name != "args":
                 if arg_name not in final:
+                    # a position parameter has been fulfilled
                     final[arg_name] = args[pos]
                 else:
-                    # already have this from a named parameter, skip
+                    # already have this from a named parameter, skip but
+                    # keep the positional parameter for the next arg
                     continue
             else:
                 # this argument is the tcl-special "args",
