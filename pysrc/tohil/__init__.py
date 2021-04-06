@@ -301,24 +301,8 @@ class TclProc:
         """
         final = dict()
 
-        if len(args) > len(self.proc_args) and self.proc_args[-1] != "args":
+        if len(args) + len(kwargs) > len(self.proc_args) and self.proc_args[-1] != "args":
             raise TypeError(f"too many arguments specified to be passed to tcl proc '{self.proc}'")
-
-        # pump the positional arguments into the "final" dict
-        # these args are positional from the python side, python already split out
-        # named parameters into kwargs
-        pos = 0
-        for arg_name, arg in zip(self.proc_args, args):
-            #print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
-            if arg_name != "args":
-                final[arg_name] = arg
-            else:
-                # this argument is the tcl-special "args",
-                # grab the remainder of the arg list into args and stop iterating.
-                # we'll make use of this to handle args correctly in our call to tcl.
-                final[arg_name] = args[pos:]
-                break
-            pos += 1
 
         # pump any named parameters into the "final" dict
         for arg_name, arg in kwargs.items():
@@ -328,6 +312,32 @@ class TclProc:
                 raise TypeError(f"named parameter '{arg_name}' is not a valid arument for proc '{self.proc}'")
             #print(f"trampoline filling in named parameter {arg_name}, '{repr(arg)}'")
             final[arg_name] = arg
+
+        # pump the positional arguments into the "final" dict
+        # these args are positional from the python side; python already split out
+        # named parameters into kwargs before calling us.
+        #
+        # advance matching the tcl arg names to the args tuple, but if an
+        # arg name is already in the final array due to having come from
+        # a named parameter, advance to the next argument, without advancing
+        # the args list
+        pos = 0
+        #for arg_name, arg in zip(self.proc_args, args):
+        for arg_name in self.proc_args:
+            #print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
+            if arg_name != "args":
+                if arg_name not in final:
+                    final[arg_name] = args[pos]
+                else:
+                    # already have this from a named parameter, skip
+                    continue
+            else:
+                # this argument is the tcl-special "args",
+                # grab the remainder of the arg list into args and stop iterating.
+                # we'll make use of this to handle args correctly in our call to tcl.
+                final[arg_name] = args[pos:]
+                break
+            pos += 1
 
         # pump any default values if needed
         for arg_name, def_value in self.defaults.items():
