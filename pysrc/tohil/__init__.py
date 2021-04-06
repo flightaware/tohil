@@ -5,7 +5,6 @@ from io import StringIO
 import sys
 import traceback
 
-
 # too few public methods.  come on, man.
 #pylint: disable=R0903
 
@@ -136,6 +135,17 @@ class ShadowDict(MutableMapping):
     def __contains__(self, key):
         return exists(f"{self.tcl_array}({key})")
 
+#
+# misc stuff and helpers
+#
+
+def package_require(package, version=''):
+    return tohil.eval(f"package require {package} {version}")
+
+def use_vhost(vhost=''):
+    if vhost == '':
+        vhost = 'production'
+    return tohil.call("use_vhost", vhost)
 
 ### rivet stuff
 
@@ -165,7 +175,9 @@ def rivet():
     """redirect python's stdout to write to tcl's stdout"""
     rivet_control.activate()
 
+###
 ### import our C language stuff
+###
 
 # handle_exception must be defined before importing from
 # _tohil, which triggers loading of the C shared library,
@@ -185,4 +197,122 @@ from tohil._tohil import (
     convert,
     incr,
 )
+
+###
+### procster
+###
+
+tcl_init = '''
+proc safe_info_default {proc arg} {
+    if {[info default $proc $arg var] == 1} {
+        return [list 1 $var]
+    }
+    return [list 0 ""]
+}
+'''
+
+_tohil.eval(tcl_init)
+
+def info_args(proc):
+    """wrapper for 'info args'"""
+    return tohil.call("info", "args", proc, to=list)
+
+def info_procs():
+    """wrapper for 'info procs'"""
+    return tohil.call("info", "procs", to=list)
+
+def info_body(proc):
+    return tohil.call("info", "body", proc, to=str)
+
+def info_default(proc, var):
+    """wrapper for 'info default'"""
+    return tohil.call("safe_info_default", proc, var, to=tuple)
+
+class TclProc:
+    """probe results and trampoline for a single proc"""
+    def __init__(self, proc):
+        self.proc = proc
+        self.proc_args = info_args(proc)
+        #self.body = info_body(proc)
+        self.defaults = dict()
+
+        for arg in self.proc_args:
+            has_default, default_value = info_default(proc,arg)
+            print(f"proc {self.proc}, arg {arg}, has_default {has_default}, default_value {default_value}")
+            if int(has_default):
+                self.defaults[arg] = default_value
+
+        #print(f"def-trampoline-func: {self.gen_function()}")
+        #exec(self.gen_function())
+
+    def __repr__(self):
+        """repr function"""
+        return(f"proc '{self.proc}', args '{repr(self.proc_args)}', defaults '{repr(self.defaults)}'")
+
+    def gen_function(self):
+        """generate a python function for the proc that calls our trampoline"""
+        string = f"def {self.proc}(*args, **kwargs):\n"
+        string += f"    return tohil.procster.procs.procs['{self.proc}'].trampoline(args, kwargs)\n\n"
+        return string
+
+
+    def trampoline(self, args, kwargs):
+        """trampoline function takes our proc probe data, positional parameters
+        and named parameters, figures out if everything's there that the proc
+        needs and calls the proc, or generates an exception for missing parameters,
+        too many parameters, unrecognized parameters, etc"""
+        final = dict()
+
+        if len(args) > len(self.proc_args):
+            raise Exception("too many arguments")
+
+        # pump the positional arguments into the "final" dict
+        for arg_name, arg in zip(self.proc_args, args):
+            print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
+            final[arg_name] = arg
+
+        # pump any named parameters into the "final" dict
+        for arg_name, arg in kwargs.items():
+            if arg_name in final:
+                raise Exception(f"parameter '{arg_name}' specified positionally and by name and that's ambiguous, so no")
+            if arg_name not in self.proc_args:
+                raise Exception(f"named parameter '{arg_name}' is not a valid arument for proc '{self.proc}'")
+            print(f"trampoline filling in named parameter {arg_name}, '{repr(arg)}'")
+            final[arg_name] = arg
+
+        # pump any default values if needed
+        for arg_name, def_value in self.defaults.items():
+            if arg_name not in final:
+                print(f"trampoline filling in default value {arg_name}, '{def_value}'")
+                final[arg_name] = def_value
+
+        # make sure we've got everything
+        for arg_name in self.proc_args:
+            if not arg_name in final:
+                raise Exception(f"required arg '{arg_name}' missing")
+
+        print(f"trampoline has final of '{repr(final)}' and is calling the values")
+        return tohil.call(self.proc, *final.values())
+
+class TclProcSet:
+    """holds in its procs dict a TclProc object for each proc probed"""
+    def __init__(self):
+        self.procs = dict()
+
+    def probe_proc(self, proc):
+        self.procs[proc] = TclProc(proc)
+        return self.procs[proc].gen_function()
+
+    def probe_procs(self):
+        string = ''
+        for proc in info_procs():
+            string += self.probe_proc(proc)
+        return string
+
+
+procs = TclProcSet()
+
+print("maybe try tohil.procs.probe_procs(), then tohil.procs['sin']")
+
+### end of trampoline stuff
 
