@@ -43,6 +43,7 @@ class TestTrampoline(unittest.TestCase):
         self.assertEqual(abc_test(c="c_val8", a="a_val8"), "a is 'a_val8', b is 'b_default', c is 'c_val8'")
 
     def test_trampoline4(self):
+        """raising exceptions on misuse"""
         #with self.assertRaises(SyntaxError):
         #    abc_test(c="c_val4", a="a_val4", c="c_val4")
 
@@ -51,6 +52,11 @@ class TestTrampoline(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             abc_test(b="b_val7")
+
+    def test_trampoline5(self):
+        """calling tcl procs that use the 'args' special behavior"""
+
+# add support for to =; be able to coerce output
 
 if __name__ == "__main__":
     unittest.main()

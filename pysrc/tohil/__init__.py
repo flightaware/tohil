@@ -251,12 +251,13 @@ class TclProc:
     typically this class will be instantiated by running the probe_proc method,
     or the methods that sit above it
     """
-    def __init__(self, proc):
+    def __init__(self, proc, to_type=str):
         self.proc = proc
         self.function = self._proc_to_function(proc)
         self.proc_args = info_args(proc)
         #self.body = info_body(proc)
         self.defaults = dict()
+        self.to_type = to_type
 
         for arg in self.proc_args:
             has_default, default_value = info_default(proc,arg)
@@ -282,6 +283,9 @@ class TclProc:
         """repr function"""
         return(f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}', defaults '{repr(self.defaults)}'>")
 
+    def set_to(to):
+        self.to = to
+
     def gen_function(self):
         """generate a python function for the proc that calls our trampoline"""
         # if function is defined outside the tohil namespace, return tohil.procs... not procs...
@@ -301,7 +305,8 @@ class TclProc:
         """
         final = dict()
 
-        if len(args) + len(kwargs) > len(self.proc_args) and self.proc_args[-1] != "args":
+        nargs = len(args)
+        if nargs + len(kwargs) > len(self.proc_args) and self.proc_args[-1] != "args":
             raise TypeError(f"too many arguments specified to be passed to tcl proc '{self.proc}'")
 
         # pump any named parameters into the "final" dict
@@ -324,6 +329,8 @@ class TclProc:
         pos = 0
         #for arg_name, arg in zip(self.proc_args, args):
         for arg_name in self.proc_args:
+            if pos >= nargs:
+                raise TypeError(f"not enough parameters to '{self.proc}' ({self.proc_args}), you provided {nargs + len(kwargs)}")
             #print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
             if arg_name != "args":
                 if arg_name not in final:
@@ -365,7 +372,7 @@ class TclProc:
                     final_arg_list.extend(final[arg_name])
 
         #print(f"trampoline calling {self.proc} with final of '{repr(final_arg_list)}'")
-        return call(self.proc, *final_arg_list)
+        return call(self.proc, *final_arg_list, to=self.to_type)
 
 class TclProcSet:
     """holds in its procs dict a TclProc object for each proc imported"""
@@ -410,6 +417,12 @@ def import_procs(pattern=None):
 
 def import_namespace(namespace="::"):
     procs.import_namespace(namespace)
+
+def import_tcl():
+    import_namespace()
+
+def set_return_type(proc, to_type):
+    procs.procs[proc].to_type = to_type
 
 #print("maybe try tohil.procs.import_namespace(), then tohil.procs['sin']")
 
