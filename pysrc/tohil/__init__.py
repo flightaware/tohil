@@ -319,10 +319,16 @@ class TclProc:
 
 class TclProcSet:
     """holds in its procs dict a TclProc object for each proc probed"""
+
+    # tclX has some very legacy stuff that will probably cause trouble
+    avoid = ["::acos", "::asin", "::atan", "::ceil", "::cos", "::cosh", "::exp", "::fabs", "::floor", "::log", "::log10", "::sin", "::sinh", "::sqrt", "::tan", "::tanh", "::fmod", "::pow", "::atan2", "::abs", "::double", "::int", "::round"]
+
     def __init__(self):
         self.procs = dict()
 
     def probe_proc(self, proc):
+        if proc in TclProcSet.avoid:
+            return
         self.procs[proc] = TclProc(proc)
         return self.procs[proc].gen_function()
 
@@ -330,7 +336,9 @@ class TclProcSet:
         string = str()
         for proc in info_procs(pattern):
             try:
-                string += self.probe_proc(proc)
+                function = self.probe_proc(proc)
+                if function is not None:
+                    string += self.probe_proc(proc)
             except Exception:
                 print(f"failed to probe proc '{proc}', continuing...")
         return string

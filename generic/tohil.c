@@ -1858,6 +1858,12 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     const char *toString = NULL;
     PyTypeObject *pt = NULL;
 
+
+    if (PyErr_Occurred() != NULL) {
+        printf("tohil_python_return invoked with a python error already present\n");
+        //return NULL;
+    }
+
     if (tcl_result == TCL_ERROR) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(resultObj));
         return NULL;
@@ -1873,6 +1879,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         pt = (PyTypeObject *)toType;
         toString = pt->tp_name;
     }
+    //printf("tohil_python_return called: tcl result %d, to=%s, resulObj '%s'\n", tcl_result, toString, Tcl_GetString(resultObj));
 
     if (toType == NULL || strcmp(toString, "str") == 0) {
         int tclStringSize;
@@ -2191,6 +2198,7 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
     Py_ssize_t objc = PyTuple_GET_SIZE(args);
     int i;
     PyObject *to = NULL;
+
     //
     // allocate an array of Tcl object pointers the same size
     // as the number of arguments we received
@@ -2213,6 +2221,7 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
     // invoke tcl using the objv array we just constructed
     int tcl_result = Tcl_EvalObjv(tcl_interp, objc, objv, 0);
 
+    // cleanup and free the objv
     for (i = 0; i < objc; i++) {
         Tcl_DecrRefCount(objv[i]);
     }
