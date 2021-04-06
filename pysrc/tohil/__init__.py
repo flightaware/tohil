@@ -140,7 +140,7 @@ class ShadowDict(MutableMapping):
 #
 
 def package_require(package, version=''):
-    return tohil.eval(f"package require {package} {version}")
+    return _tohil.eval(f"package require {package} {version}")
 
 def use_vhost(vhost=''):
     if vhost == '':
@@ -215,18 +215,18 @@ _tohil.eval(tcl_init)
 
 def info_args(proc):
     """wrapper for 'info args'"""
-    return tohil.call("info", "args", proc, to=list)
+    return call("info", "args", proc, to=list)
 
 def info_procs():
     """wrapper for 'info procs'"""
-    return tohil.call("info", "procs", to=list)
+    return call("info", "procs", to=list)
 
 def info_body(proc):
-    return tohil.call("info", "body", proc, to=str)
+    return call("info", "body", proc, to=str)
 
 def info_default(proc, var):
     """wrapper for 'info default'"""
-    return tohil.call("safe_info_default", proc, var, to=tuple)
+    return call("safe_info_default", proc, var, to=tuple)
 
 class TclProc:
     """probe results and trampoline for a single proc"""
@@ -247,12 +247,13 @@ class TclProc:
 
     def __repr__(self):
         """repr function"""
-        return(f"proc '{self.proc}', args '{repr(self.proc_args)}', defaults '{repr(self.defaults)}'")
+        return(f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}', defaults '{repr(self.defaults)}'>")
 
     def gen_function(self):
         """generate a python function for the proc that calls our trampoline"""
-        string = f"def {self.proc}(*args, **kwargs):\n"
-        string += f"    return tohil.procster.procs.procs['{self.proc}'].trampoline(args, kwargs)\n\n"
+        python_function_name = self.proc.replace("-", "_")
+        string = f"def {python_function_name}(*args, **kwargs):\n"
+        string += f"    return tohil.procs.procs['{self.proc}'].trampoline(args, kwargs)\n\n"
         return string
 
 
@@ -292,7 +293,7 @@ class TclProc:
                 raise Exception(f"required arg '{arg_name}' missing")
 
         print(f"trampoline has final of '{repr(final)}' and is calling the values")
-        return tohil.call(self.proc, *final.values())
+        return call(self.proc, *final.values())
 
 class TclProcSet:
     """holds in its procs dict a TclProc object for each proc probed"""
@@ -312,7 +313,10 @@ class TclProcSet:
 
 procs = TclProcSet()
 
-print("maybe try tohil.procs.probe_procs(), then tohil.procs['sin']")
+def probe_procs():
+    return procs.probe_procs()
+
+#print("maybe try tohil.procs.probe_procs(), then tohil.procs['sin']")
 
 ### end of trampoline stuff
 
