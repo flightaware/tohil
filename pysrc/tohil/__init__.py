@@ -254,7 +254,7 @@ class TclProc:
                 self.defaults[arg] = default_value
 
         #print(f"def-trampoline-func: {self.gen_function()}")
-        #exec(self.gen_function())
+        exec(self.gen_function(),globals())
 
     def _proc_to_function(self, proc):
         """conver ta tcl proc name to a python function name"""
@@ -274,8 +274,9 @@ class TclProc:
 
     def gen_function(self):
         """generate a python function for the proc that calls our trampoline"""
+        # if function is defined outside the tohil namespace, return tohil.procs... not procs...
         string = f"def {self.function}(*args, **kwargs):\n"
-        string += f"    return tohil.procs.procs['{self.proc}'].trampoline(args, kwargs)\n\n"
+        string += f"    return procs.procs['{self.proc}'].trampoline(args, kwargs)\n\n"
         return string
 
 
@@ -291,22 +292,22 @@ class TclProc:
 
         # pump the positional arguments into the "final" dict
         for arg_name, arg in zip(self.proc_args, args):
-            print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
+            #print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
             final[arg_name] = arg
 
         # pump any named parameters into the "final" dict
         for arg_name, arg in kwargs.items():
             if arg_name in final:
-                raise TypeError(f"parameter '{arg_name}' specified positionally and by name and that's ambiguous, so no")
+                raise TypeError(f"parameter '{arg_name}' specified multiple times -- can only specify it once")
             if arg_name not in self.proc_args:
                 raise TypeError(f"named parameter '{arg_name}' is not a valid arument for proc '{self.proc}'")
-            print(f"trampoline filling in named parameter {arg_name}, '{repr(arg)}'")
+            #print(f"trampoline filling in named parameter {arg_name}, '{repr(arg)}'")
             final[arg_name] = arg
 
         # pump any default values if needed
         for arg_name, def_value in self.defaults.items():
             if arg_name not in final:
-                print(f"trampoline filling in default value {arg_name}, '{def_value}'")
+                #print(f"trampoline filling in default value {arg_name}, '{def_value}'")
                 final[arg_name] = def_value
 
         # make sure we've got everything
@@ -314,8 +315,11 @@ class TclProc:
             if not arg_name in final:
                 raise TypeError(f"required arg '{arg_name}' missing")
 
-        print(f"trampoline has final of '{repr(final)}' and is calling the values")
-        return call(self.proc, *final.values())
+        final_arg_list = list()
+        for arg_name in self.proc_args:
+            final_arg_list.append(final[arg_name])
+        #print(f"trampoline calling {self.proc} with final of '{repr(final_arg_list)}'")
+        return call(self.proc, *final_arg_list)
 
 class TclProcSet:
     """holds in its procs dict a TclProc object for each proc probed"""
