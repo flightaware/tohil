@@ -199,7 +199,7 @@ from tohil._tohil import (
 )
 
 ###
-### procster
+### tcl proc importer and trampoline
 ###
 
 tcl_init = '''
@@ -332,7 +332,7 @@ class TclProc:
         return call(self.proc, *final_arg_list)
 
 class TclProcSet:
-    """holds in its procs dict a TclProc object for each proc probed"""
+    """holds in its procs dict a TclProc object for each proc imported"""
 
     # tclX has some very legacy stuff that will probably cause trouble
     avoid = ["::acos", "::asin", "::atan", "::ceil", "::cos", "::cosh", "::exp", "::fabs", "::floor", "::log", "::log10", "::sin", "::sinh", "::sqrt", "::tan", "::tanh", "::fmod", "::pow", "::atan2", "::abs", "::double", "::int", "::round"]
@@ -340,26 +340,29 @@ class TclProcSet:
     def __init__(self):
         self.procs = dict()
 
-    def probe_proc(self, proc):
+    def import_proc(self, proc):
+        """import a proc and keep track of it in our procs dictionary"""
         if proc in TclProcSet.avoid:
             return
         self.procs[proc] = TclProc(proc)
 
-    def probe_procs(self, pattern=None):
+    def import_procs(self, pattern=None):
+        """import all the procs in one namespace"""
         for proc in info_procs(pattern):
             try:
-                self.probe_proc(proc)
+                self.import_proc(proc)
             except Exception:
-                print(f"failed to probe proc '{proc}', continuing...")
+                print(f"failed to import proc '{proc}', continuing...")
 
-    def probe_namespace(self, namespace):
-        """probe a namespace and probe any procs found and
-        then recursively probe any child namespaces of the
-        specified namespace"""
+    def import_namespace(self, namespace="::"):
+        """import a namespace and import any procs found and
+        then recursively import any child namespaces of the
+        specified namespace
+
+        defaults to importing everything"""
         self.probe_procs(namespace + "::*")
         for child in namespace_children(namespace):
             self.probe_namespace(child)
-
 
 
 procs = TclProcSet()
@@ -367,7 +370,7 @@ procs = TclProcSet()
 def probe_procs():
     return procs.probe_procs()
 
-#print("maybe try tohil.procs.probe_procs(), then tohil.procs['sin']")
+#print("maybe try tohil.procs.import_namespace(), then tohil.procs['sin']")
 
 ### end of trampoline stuff
 
