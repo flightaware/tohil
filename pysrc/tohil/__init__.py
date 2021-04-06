@@ -294,16 +294,31 @@ class TclProc:
         """trampoline function takes our proc probe data, positional parameters
         and named parameters, figures out if everything's there that the proc
         needs and calls the proc, or generates an exception for missing parameters,
-        too many parameters, unrecognized parameters, etc"""
+        too many parameters, unrecognized parameters, etc
+
+        if performance becomes an issue, this should be able to be converted to
+        C without great difficulty.  it's good in python while we figure it all out.
+        """
         final = dict()
 
-        if len(args) > len(self.proc_args):
-            raise TypeError("too many arguments")
+        if len(args) > len(self.proc_args) and self.proc_args[-1] != "args":
+            raise TypeError(f"too many arguments specified to be passed to tcl proc '{self.proc}'")
 
         # pump the positional arguments into the "final" dict
+        # these args are positional from the python side, python already split out
+        # named parameters into kwargs
+        pos = 0
         for arg_name, arg in zip(self.proc_args, args):
             #print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
-            final[arg_name] = arg
+            if arg_name != "args":
+                final[arg_name] = arg
+            else:
+                # this argument is the tcl-special "args",
+                # grab the remainder of the arg list into args and stop iterating.
+                # we'll make use of this to handle args correctly in our call to tcl.
+                final[arg_name] = args[pos:]
+                break
+            pos += 1
 
         # pump any named parameters into the "final" dict
         for arg_name, arg in kwargs.items():
@@ -322,12 +337,23 @@ class TclProc:
 
         # make sure we've got everything
         for arg_name in self.proc_args:
-            if not arg_name in final:
+            # it's ok if args is missing
+            if not arg_name in final and arg_name != "args":
                 raise TypeError(f"required arg '{arg_name}' missing")
 
+        # assemble the final argument list
         final_arg_list = list()
         for arg_name in self.proc_args:
-            final_arg_list.append(final[arg_name])
+            if arg_name != "args":
+                final_arg_list.append(final[arg_name])
+            else:
+                # it's "args". if we have args (because we may not, if there
+                # weren't enough arguments specified to have there be one), extend
+                # the final_arg_list with them, i.e. add them flat instead of nested,
+                # the way tcl will expect the args args
+                if "args" in final:
+                    final_arg_list.extend(final[arg_name])
+
         #print(f"trampoline calling {self.proc} with final of '{repr(final_arg_list)}'")
         return call(self.proc, *final_arg_list)
 
@@ -352,7 +378,9 @@ class TclProcSet:
             try:
                 self.import_proc(proc)
             except Exception:
-                print(f"failed to import proc '{proc}', continuing...")
+                # DES::Pad has a null byte for a default argument
+                if proc != "::DES::Pad":
+                    print(f"failed to import proc '{proc}', continuing...", file=sys.stderr)
 
     def import_namespace(self, namespace="::"):
         """import a namespace and import any procs found and
@@ -360,15 +388,18 @@ class TclProcSet:
         specified namespace
 
         defaults to importing everything"""
-        self.probe_procs(namespace + "::*")
+        self.import_procs(namespace + "::*")
         for child in namespace_children(namespace):
-            self.probe_namespace(child)
+            self.import_namespace(child)
 
 
 procs = TclProcSet()
 
-def probe_procs():
-    return procs.probe_procs()
+def import_procs(pattern=None):
+    procs.import_procs(pattern)
+
+def import_namespace(namespace="::"):
+    procs.import_namespace(namespace)
 
 #print("maybe try tohil.procs.import_namespace(), then tohil.procs['sin']")
 
