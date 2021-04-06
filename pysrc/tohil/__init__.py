@@ -334,28 +334,21 @@ class TclProcSet:
         if proc in TclProcSet.avoid:
             return
         self.procs[proc] = TclProc(proc)
-        return self.procs[proc].gen_function()
 
     def probe_procs(self, pattern=None):
-        string = str()
         for proc in info_procs(pattern):
             try:
-                function = self.probe_proc(proc)
-                if function is not None:
-                    string += self.probe_proc(proc)
+                self.probe_proc(proc)
             except Exception:
                 print(f"failed to probe proc '{proc}', continuing...")
-        return string
 
     def probe_namespace(self, namespace):
         """probe a namespace and probe any procs found and
         then recursively probe any child namespaces of the
         specified namespace"""
-        string = self.probe_procs(namespace + "::*")
+        self.probe_procs(namespace + "::*")
         for child in namespace_children(namespace):
-            string += self.probe_namespace(child)
-
-        return string
+            self.probe_namespace(child)
 
 
 
