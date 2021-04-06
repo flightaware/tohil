@@ -235,12 +235,22 @@ def info_default(proc, var):
     return call("safe_info_default", proc, var, to=tuple)
 
 class TclProc:
-    """on instance per tcl proc probed, contains the proc, the corresponding
-    python function name, information about all the proc's arguments, including
-    default values when defined.
+    """instantiate with a tcl proc name as the argument.  the proc can be
+    in any namespace but the name should be fully qualified.  although
+    maybe not, not sure.
 
-    produces the function definition for python, and the trampoline
-    itself is here."""
+    the init routine uses tcl introspection to get the proc's arguments
+    and default values
+
+    one it's done this, it generates the function using its gen_function()
+    method and execs it into python.  this function when called from
+    python invokes the trampoline function below to give python really
+    nice handling of tcl proc arguments, better than most python functions
+    implement.
+
+    typically this class will be instantiated by running the probe_proc method,
+    or the methods that sit above it
+    """
     def __init__(self, proc):
         self.proc = proc
         self.function = self._proc_to_function(proc)
