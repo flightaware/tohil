@@ -265,7 +265,7 @@ class TclProc:
         final = dict()
 
         if len(args) > len(self.proc_args):
-            raise Exception("too many arguments")
+            raise TypeError("too many arguments")
 
         # pump the positional arguments into the "final" dict
         for arg_name, arg in zip(self.proc_args, args):
@@ -275,9 +275,9 @@ class TclProc:
         # pump any named parameters into the "final" dict
         for arg_name, arg in kwargs.items():
             if arg_name in final:
-                raise Exception(f"parameter '{arg_name}' specified positionally and by name and that's ambiguous, so no")
+                raise TypeError(f"parameter '{arg_name}' specified positionally and by name and that's ambiguous, so no")
             if arg_name not in self.proc_args:
-                raise Exception(f"named parameter '{arg_name}' is not a valid arument for proc '{self.proc}'")
+                raise TypeError(f"named parameter '{arg_name}' is not a valid arument for proc '{self.proc}'")
             print(f"trampoline filling in named parameter {arg_name}, '{repr(arg)}'")
             final[arg_name] = arg
 
@@ -290,7 +290,7 @@ class TclProc:
         # make sure we've got everything
         for arg_name in self.proc_args:
             if not arg_name in final:
-                raise Exception(f"required arg '{arg_name}' missing")
+                raise TypeError(f"required arg '{arg_name}' missing")
 
         print(f"trampoline has final of '{repr(final)}' and is calling the values")
         return call(self.proc, *final.values())
