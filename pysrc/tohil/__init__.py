@@ -220,22 +220,27 @@ def info_args(proc):
 def info_procs(pattern=None):
     """wrapper for 'info procs'"""
     if pattern is None:
-        return call("info", "procs", to=list)
+        return sorted(call("info", "procs", to=list))
     else:
-        return call("info", "procs", pattern, to=list)
+        return sorted(call("info", "procs", pattern, to=list))
 
 def info_body(proc):
     return call("info", "body", proc, to=str)
 
 def namespace_children(namespace):
-    return call("namespace", "children", namespace, to=list)
+    return sorted(call("namespace", "children", namespace, to=list))
 
 def info_default(proc, var):
     """wrapper for 'info default'"""
     return call("safe_info_default", proc, var, to=tuple)
 
 class TclProc:
-    """probe results and trampoline for a single proc"""
+    """on instance per tcl proc probed, contains the proc, the corresponding
+    python function name, information about all the proc's arguments, including
+    default values when defined.
+
+    produces the function definition for python, and the trampoline
+    itself is here."""
     def __init__(self, proc):
         self.proc = proc
         self.function = self._proc_to_function(proc)
@@ -245,7 +250,6 @@ class TclProc:
 
         for arg in self.proc_args:
             has_default, default_value = info_default(proc,arg)
-            print(f"proc {self.proc}, arg {arg}, has_default {has_default}, default_value {default_value}")
             if int(has_default):
                 self.defaults[arg] = default_value
 
@@ -257,7 +261,11 @@ class TclProc:
         function = proc
         if function[:2] == "::":
             function = function[2:]
-        function = function.replace("-", "_").replace("::","__")
+        # python doesn't like dashes or colons in function names, so we map to underscores.
+        # "::" will map to "__" -- i think that's reasonable, at least for now.
+        # some other characters also appear in some tcl proc names out there, so we map
+        # them to other stuff.  tcl is too permissive, i feel like.
+        function = function.replace("-", "_").replace(":", "_").replace("?", "_question_mark").replace("+", "_plus_sign").replace("<", "_less_than").replace("@", "_at_sign").replace(">", "_greater_than")
         return function
 
     def __repr__(self):
@@ -319,16 +327,18 @@ class TclProcSet:
         return self.procs[proc].gen_function()
 
     def probe_procs(self, pattern=None):
-        string = ''
+        string = str()
         for proc in info_procs(pattern):
-            string += self.probe_proc(proc)
+            try:
+                string += self.probe_proc(proc)
+            except Exception:
+                print(f"failed to probe proc '{proc}', continuing...")
         return string
 
     def probe_namespace(self, namespace):
         """probe a namespace and probe any procs found and
         then recursively probe any child namespaces of the
         specified namespace"""
-        print(f"probing namespace '{namespace}'")
         string = self.probe_procs(namespace + "::*")
         for child in namespace_children(namespace):
             string += self.probe_namespace(child)
