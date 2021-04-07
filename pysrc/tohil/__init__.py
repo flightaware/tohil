@@ -267,6 +267,12 @@ def info_default(proc, var):
     """wrapper for 'info default'"""
     return call("safe_info_default", proc, var, to=tuple)
 
+def doublecolon_tail(string):
+    """return the last (rightmost) part of a namespace or namespace-qualified proc"""
+    last_colons = string.rfind("::")
+    if last_colons >= 0:
+        return string[last_colons + 2:]
+    return string
 
 class TclProc:
     """instantiate with a tcl proc name as the argument.  the proc can be
@@ -319,11 +325,7 @@ class TclProc:
 
     def _proc_to_function(self, proc):
         """conver ta tcl proc name to a python function name"""
-        last_colons = proc.rfind("::")
-        if last_colons >= 0:
-            function = proc[last_colons + 2:]
-        else:
-            function = proc
+        function = doublecolon_tail(proc)
         # python doesn't like dashes or colons in function names, so we map to underscores.
         # "::" will map to "__" -- i think that's reasonable, at least for now.
         # some other characters also appear in some tcl proc names out there, so we map
@@ -461,6 +463,9 @@ class TclProc:
         return call(self.proc, *final_arg_list, to=to_type)
 
 class TclNamespace:
+    proc_excluder = ("break", "continue", "for", "global", "if", "return", "try",
+            "while", "yield", "with", "is", "import", "class")
+
     def __init__(self, namespace):
         #print(f"{self} importing namespace '{namespace}'")
         # be able to find TclProcs by proc name and function name, for convenience,
@@ -492,6 +497,13 @@ class TclNamespace:
         """import all the commands in one namespace"""
         #print(f"    importing procs pattern '{pattern}', '{info_commands(pattern)}'")
         for proc in info_commands(pattern):
+            # NB this excluder stuff is a little clumsy, but if it was
+            # in the TclProc init routine then wouldn't that routine
+            # have to raise an exception if it didn't want the thing created?
+            if proc.startswith("::tcl::mathop::"):
+                continue
+            if doublecolon_tail(proc) in TclNamespace.proc_excluder:
+                continue
             try:
                 self.__tohil_import_proc__(proc)
             except Exception as exception:
@@ -513,12 +525,9 @@ class TclNamespace:
             #print(f"  importing child namespace {child}")
             new_namespace = TclNamespace(child)
 
-            last_colons = child.rfind("::")
-            if last_colons >= 0:
-                child = child[last_colons + 2:]
-
-            #print(f"  {self} storing child {child} namespace {new_namespace}")
-            self.__setattr__(child, new_namespace)
+            child_short = doublecolon_tail(child)
+            #print(f"  {self} storing child {child_short} namespace {new_namespace}")
+            self.__setattr__(child_short, new_namespace)
 
 def import_tcl():
     return TclNamespace("")
