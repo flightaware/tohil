@@ -392,12 +392,13 @@ class TclProc:
         return call(self.proc, *final_arg_list, to=to_type)
 
 class TclNamespace:
-    def __init__(self):
+    def __init__(self, namespace):
         # be able to find TclProcs by proc name and function name, for convenience,
         # not actually used for anything yet
         self.__tohil_procs__ = dict()
         self.__tohil_functions__ = dict()
         self.__tohil_namespaces__ = dict()
+        self.__tohil_import_namespace__(namespace)
 
     def __tohil_import_proc__(self, proc):
         # strip off namespace qualifiers
@@ -445,12 +446,11 @@ class TclNamespace:
 
         and import all the subordinate namespaces into them as well"""
 
-        namespace_obj = TclNamespace()
         self.__tohil_import_procs__(namespace + "::*")
 
         for child in namespace_children(namespace):
             print(f"  importing child namespace {child}")
-            new_namespace = self.__tohil_import_namespace__(child)
+            new_namespace = TclNamespace(child)
 
             last_colons = child.rfind("::")
             if last_colons >= 0:
@@ -459,20 +459,8 @@ class TclNamespace:
             print(f"  {self} storing child {child} namespace {new_namespace}")
             self.__setattr__(child, new_namespace)
 
-def import_namespace(namespace_pattern="::"):
-    print(f"importing namespace {namespace_pattern}")
-    namespace = TclNamespace()
-    namespace.__tohil_import_namespace__(namespace_pattern)
-    print(f"done importing namespace {namespace_pattern}")
-    return namespace
-
 def import_tcl():
-    return import_namespace()
-
-def set_return_type(proc, to_type):
-    procs.procs[proc].to_type = to_type
-
-#print("maybe try tohil.procs.import_namespace(), then tohil.procs['sin']")
+    return TclNamespace("")
 
 ### end of trampoline stuff
 

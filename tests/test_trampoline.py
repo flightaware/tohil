@@ -59,7 +59,6 @@ class TestTrampoline(unittest.TestCase):
             return [list $a $b $args]
         }""")
 
-}
 
 # add support for to =; be able to coerce output
 
