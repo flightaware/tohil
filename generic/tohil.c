@@ -1083,7 +1083,7 @@ pyListToTclObjv(PyListObject *pList, int *intPtr, Tcl_Obj ***objvPtr)
 {
     int i;
 
-    assert (PyList_Check(pList));
+    assert(PyList_Check(pList));
     Py_ssize_t objc = PyList_GET_SIZE(pList);
     // build up a tcl objv of the list elements
     Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
@@ -1850,8 +1850,6 @@ static PyTypeObject PyTclObjType = {
 // end of tclobj python datatype
 //
 
-
-
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
 // from any python C function in this library that accepts a to=python_data_type argument,
 // and this routine ought to handle it
@@ -1861,10 +1859,9 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     const char *toString = NULL;
     PyTypeObject *pt = NULL;
 
-
     if (PyErr_Occurred() != NULL) {
         printf("tohil_python_return invoked with a python error already present\n");
-        //return NULL;
+        // return NULL;
     }
 
     if (tcl_result == TCL_ERROR) {
@@ -1892,7 +1889,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         pt = (PyTypeObject *)toType;
         toString = pt->tp_name;
     }
-    //printf("tohil_python_return called: tcl result %d, to=%s, resulObj '%s'\n", tcl_result, toString, Tcl_GetString(resultObj));
+    // printf("tohil_python_return called: tcl result %d, to=%s, resulObj '%s'\n", tcl_result, toString, Tcl_GetString(resultObj));
 
     if (toType == NULL || strcmp(toString, "str") == 0) {
         int tclStringSize;
@@ -2138,7 +2135,7 @@ tohil_incr(PyObject *self, PyObject *args, PyObject *kwargs)
         }
     } else {
         if (Tcl_GetLongFromObj(tcl_interp, obj, &longValue) == TCL_ERROR) {
-          type_error:
+        type_error:
             PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
             return NULL;
         }
