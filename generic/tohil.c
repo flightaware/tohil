@@ -234,12 +234,17 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
     } else if (PyBytes_Check(pObj)) {
         tObj = Tcl_NewByteArrayObj((const unsigned char *)PyBytes_AS_STRING(pObj), PyBytes_GET_SIZE(pObj));
     } else if (PyUnicode_Check(pObj)) {
+        Tcl_Encoding utf8encoding = Tcl_GetEncoding(interp, "utf-8");
+        Tcl_DString ds;
         pBytesObj = PyUnicode_AsUTF8String(pObj);
         if (pBytesObj == NULL)
             return NULL;
-        tObj = Tcl_NewStringObj(PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj));
+        tObj = Tcl_NewStringObj(Tcl_ExternalToUtfDString(utf8encoding, PyBytes_AS_STRING(pBytesObj), &ds), -1);
+        Tcl_DStringFree(&ds);
         Py_DECREF(pBytesObj);
     } else if (PyNumber_Check(pObj)) {
+        Tcl_Encoding utf8encoding = Tcl_GetEncoding(interp, "utf-8");
+        Tcl_DString ds;
         /* We go via string to support arbitrary length numbers */
         if (PyLong_Check(pObj)) {
             pStrObj = PyNumber_ToBase(pObj, 10);
@@ -253,7 +258,8 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         Py_DECREF(pStrObj);
         if (pBytesObj == NULL)
             return NULL;
-        tObj = Tcl_NewStringObj(PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj));
+        tObj = Tcl_NewStringObj(Tcl_ExternalToUtfDString(utf8encoding, PyBytes_AS_STRING(pBytesObj), &ds), -1);
+        Tcl_DStringFree(&ds);
         Py_DECREF(pBytesObj);
     } else if (PySequence_Check(pObj)) {
         tObj = Tcl_NewListObj(0, NULL);
@@ -307,6 +313,8 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
             return NULL;
         }
     } else {
+        Tcl_Encoding utf8encoding = Tcl_GetEncoding(interp, "utf-8");
+        Tcl_DString ds;
         /* Get python string representation of other objects */
         pStrObj = PyObject_Str(pObj);
         if (pStrObj == NULL)
@@ -315,7 +323,8 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         Py_DECREF(pStrObj);
         if (pBytesObj == NULL)
             return NULL;
-        tObj = Tcl_NewStringObj(PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj));
+        tObj = Tcl_NewStringObj(Tcl_ExternalToUtfDString(utf8encoding, PyBytes_AS_STRING(pBytesObj), &ds), -1);
+        Tcl_DStringFree(&ds);
         Py_DECREF(pBytesObj);
     }
 
@@ -1879,7 +1888,9 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         char *tclString;
 
         tclString = Tcl_GetStringFromObj(resultObj, &tclStringSize);
-        return Py_BuildValue("s#", tclString, tclStringSize);
+        Tcl_Encoding utf8encoding = Tcl_GetEncoding(interp, "utf-8");
+        Tcl_DString ds;
+        return Py_BuildValue("s", Tcl_ExternalToUtfDString(utf8encoding, PyBytes_AS_STRING(pBytesObj), &ds));
     }
 
     if (strcmp(toString, "int") == 0) {
