@@ -383,15 +383,15 @@ class TclProc:
         """
         final = dict()
 
-        nargs = len(args)
-        if nargs + len(kwargs) > len(self.proc_args) and self.proc_args[-1] != "args":
-            raise TypeError(f"too many arguments specified to be passed to tcl proc '{self.proc}'")
-
         if "to" in kwargs:
             to_type = kwargs["to"]
             del kwargs["to"]
         else:
             to_type = self.to_type
+
+        nargs = len(args)
+        if nargs + len(kwargs) > len(self.proc_args) and self.proc_args[-1] != "args":
+            raise TypeError(f"too many arguments specified to be passed to tcl proc '{self.proc}'")
 
         # pump any named parameters into the "final" dict
         for arg_name, arg in kwargs.items():
