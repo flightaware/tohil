@@ -153,17 +153,29 @@ def use_vhost(vhost=''):
 #   wasn't caught, so we can send it to python
 #
 class TclError(Exception):
-    def __init__(self, td_obj):
-        print(f"TclError executing with self '{self}', return_tclobj '{return_tclobj}'")
-        self.errdict = dict(zip(x[::2],x[1::2]))
-        # errdict will contain like -errorcode, -code, -level, -errorstack,
-        # -errorinfo, -errorline
+    """TclError class - instances of this class are returned to python for uncaught
+    errors received from the tcl side.
+
+    the tcl error object will be populated with attributes like result, errorcode, code,
+    level, errorstack, errorinfo, and errorline."""
+
+    def __init__(self, result, td_obj):
+        print(f"TclError executing with self '{self}', result '{result}', td_obj '{td_obj}'")
+        self.result = result
+        err_pairs = td_obj.as_list()
+        for key, value in zip(err_pairs[::2], err_pairs[1::2]):
+            key = key[1:]
+            print(f"setting attribute '{key}' to '{value}'")
+            if key in ("code", "errorline", "level"):
+                value = int(value)
+            elif key == "errorcode":
+                value = convert(value, to=list)
+            self.__setattr__(key, value)
+
 
     def __repr__(self):
         """repr function"""
-        return(f"<class 'TclError' 'self.errdict["-errorcode"]'>")
-
-
+        return(f"<class TclError '{self.result}' {self.errorcode}'>")
 
 ### rivet stuff
 

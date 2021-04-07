@@ -1868,15 +1868,18 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     }
 
     if (tcl_result == TCL_ERROR) {
-        //PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(resultObj));
         Tcl_Obj *returnOptionsObj = Tcl_GetReturnOptions(interp, tcl_result);
         PyObject *pReturnOptionsObj = PyTclObj_FromTclObj(returnOptionsObj);
-        //PyObject *pTclErrObject = PyObject_Call(pTohilTclErrorClass, pArgs, NULL);
-        PyObject *pRetTuple = PyTuple_New(1);
-        PyTuple_SET_ITEM(pRetTuple, 0, pReturnOptionsObj);
+
+        PyObject *pRetTuple = PyTuple_New(2);
+        int tclStringSize;
+        char *tclString;
+        tclString = Tcl_GetStringFromObj(resultObj, &tclStringSize);
+        PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", tclString, tclStringSize));
+        PyTuple_SET_ITEM(pRetTuple, 1, pReturnOptionsObj);
+
         PyErr_SetObject(pTohilTclErrorClass, pRetTuple);
         return NULL;
-        //return PyErr_Format(pTohilTclErrorClass, "O", pReturnOptionsObj);
     }
 
     if (toType != NULL) {
