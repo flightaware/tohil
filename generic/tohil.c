@@ -151,17 +151,17 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     return pdict;
 }
 
-int tohil_externalToUtf(Tcl_Interp *interp, char *src, int srclen, char **res, int *reslen)
+int tohil_externalToUtf(char *src, int srclen, char **res, int *reslen)
 {
     static Tcl_Encoding utf8encoding = NULL;
     int buflen = srclen;
     char *buf = ckalloc(buflen + 4);
     int written;
     int result;
-    if(!utf8encoding) utf8encoding = Tcl_GetEncoding(interp, "utf-8");
+    if(!utf8encoding) utf8encoding = Tcl_GetEncoding(tcl_interp, "utf-8");
 
     while(1) {
-        result = Tcl_ExternalToUtf(interp, utf8encoding, src, srclen, 0, NULL, buf, buflen + 4, NULL, &written, NULL);
+        result = Tcl_ExternalToUtf(tcl_interp, utf8encoding, src, srclen, 0, NULL, buf, buflen + 4, NULL, &written, NULL);
         if(result == TCL_OK) {
             *res = buf;
             *reslen = written;
@@ -179,17 +179,17 @@ int tohil_externalToUtf(Tcl_Interp *interp, char *src, int srclen, char **res, i
 }
 
 
-int tohil_utfToExternal(Tcl_Interp *interp, char *src, int srclen, char **res, int *reslen)
+int tohil_utfToExternal(char *src, int srclen, char **res, int *reslen)
 {
     static Tcl_Encoding utf8encoding = NULL;
     int buflen = srclen;
     char *buf = ckalloc(buflen + 4);
     int written;
-    if(!utf8encoding) utf8encoding = Tcl_GetEncoding(interp, "utf-8");
+    if(!utf8encoding) utf8encoding = Tcl_GetEncoding(tcl_interp, "utf-8");
     int result;
 
     while(1) {
-        result = Tcl_UtfToExternal(interp, utf8encoding, src, srclen, 0, NULL, buf, buflen + 4, NULL, &written, NULL);
+        result = Tcl_UtfToExternal(tcl_interp, utf8encoding, src, srclen, 0, NULL, buf, buflen + 4, NULL, &written, NULL);
         if(result == TCL_OK) {
             *res = buf;
             *reslen = written;
@@ -295,7 +295,7 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         pBytesObj = PyUnicode_AsUTF8String(pObj);
         if (pBytesObj == NULL)
             return NULL;
-        if(tohil_externalToUtf(interp, PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
+        if(tohil_externalToUtf(PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
             Py_DECREF(pBytesObj);
             return NULL;
         }
@@ -316,7 +316,7 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         Py_DECREF(pStrObj);
         if (pBytesObj == NULL)
             return NULL;
-        if(tohil_externalToUtf(interp, PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
+        if(tohil_externalToUtf(PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
             Py_DECREF(pBytesObj);
             return NULL;
         }
@@ -383,7 +383,7 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         Py_DECREF(pStrObj);
         if (pBytesObj == NULL)
             return NULL;
-	if(tohil_externalToUtf(interp, PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
+	if(tohil_externalToUtf(PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
             Py_DECREF(pBytesObj);
             return NULL;
         }
@@ -1955,8 +1955,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
 	PyObject *pObj;
 
         tclString = Tcl_GetStringFromObj(resultObj, &tclStringSize);
-	if(tohil_utfToExternal(interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
-            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+	if(tohil_utfToExternal(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
             return NULL;
         }
         pObj = Py_BuildValue("s#", utf8string, utf8len);
