@@ -151,6 +151,9 @@ this solves the sort of surprising behavior of tclobjs that when you get from a 
 possibly inspect tcl procs using "info args" and "info default" to figure out what arguments they expect and generate a python trampoline that lets you invoke with python style named arguments, etc, 
 
 
+### tohil for people with big tcl code bases who want to use python and not rewrite everything
+
+
 ### stuff
 
 look at https://github.com/python/cpython/blob/master/Modules/_tkinter.c
