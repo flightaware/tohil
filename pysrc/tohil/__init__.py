@@ -160,12 +160,12 @@ class TclError(Exception):
     level, errorstack, errorinfo, and errorline."""
 
     def __init__(self, result, td_obj):
-        print(f"TclError executing with self '{self}', result '{result}', td_obj '{td_obj}'")
+        #print(f"TclError executing with self '{self}', result '{result}', td_obj '{td_obj}'")
         self.result = result
         err_pairs = td_obj.as_list()
         for key, value in zip(err_pairs[::2], err_pairs[1::2]):
             key = key[1:]
-            print(f"setting attribute '{key}' to '{value}'")
+            #print(f"setting attribute '{key}' to '{value}'")
             if key in ("code", "errorline", "level"):
                 value = int(value)
             elif key == "errorcode":
@@ -475,7 +475,7 @@ class TclNamespace:
 
     def __tohil_import_proc__(self, proc):
         # strip off namespace qualifiers
-        print(f"        importing proc '{proc}'")
+        #print(f"        importing proc '{proc}'")
         #last_colons = proc.rfind("::")
         #if last_colons >= 0:
         #    short_proc = proc[last_colons + 2:]
@@ -483,7 +483,7 @@ class TclNamespace:
         #    short_proc = proc
 
         tclproc = TclProc(proc)
-        print(f"setting name '{tclproc.function_name}'")
+        #print(f"setting name '{tclproc.function_name}'")
         self.__tohil_procs__[proc] = tclproc
         self.__tohil_functions__[tclproc.function_name] = tclproc
 
