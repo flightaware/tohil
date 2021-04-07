@@ -275,9 +275,11 @@ class TclProc:
 
     def _proc_to_function(self, proc):
         """conver ta tcl proc name to a python function name"""
-        function = proc
-        if function[:2] == "::":
-            function = function[2:]
+        last_colons = proc.rfind("::")
+        if last_colons >= 0:
+            function = proc[last_colons + 2:]
+        else:
+            function = proc
         # python doesn't like dashes or colons in function names, so we map to underscores.
         # "::" will map to "__" -- i think that's reasonable, at least for now.
         # some other characters also appear in some tcl proc names out there, so we map
@@ -393,19 +395,25 @@ class TclProc:
 
 class TclNamespace:
     def __init__(self, namespace):
+        print(f"{self} importing namespace '{namespace}'")
         # be able to find TclProcs by proc name and function name, for convenience,
         # not actually used for anything yet
         self.__tohil_procs__ = dict()
         self.__tohil_functions__ = dict()
+
+        # keep track of subordinate namespaces
         self.__tohil_namespaces__ = dict()
         self.__tohil_import_namespace__(namespace)
+        print(f"{self} done importing namespace '{namespace}'")
 
     def __tohil_import_proc__(self, proc):
         # strip off namespace qualifiers
         print(f"        importing proc '{proc}'")
-        last_colons = proc.rfind("::")
-        if last_colons >= 0:
-            proc = proc[last_colons + 2:]
+        #last_colons = proc.rfind("::")
+        #if last_colons >= 0:
+        #    short_proc = proc[last_colons + 2:]
+        #else:
+        #    short_proc = proc
 
         try:
             self.proc_args = info_args(proc)
@@ -437,7 +445,7 @@ class TclNamespace:
                 #except NameError:
                 # DES::Pad has a null byte for a default argument
                 if proc != "::DES::Pad":
-                    print(f"failed to import proc '{proc}', exception '{exception}', continuing...", file=sys.stderr)
+                    print(f"failed to import proc '{proc}', exception '{exception}', {getvar('::errorInfo')} continuing...", file=sys.stderr)
         print(f"    done importing procs pattern '{pattern}'")
 
     def __tohil_import_namespace__(self, namespace="::"):
