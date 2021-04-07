@@ -4,6 +4,7 @@ from collections.abc import MutableMapping
 from io import StringIO
 import sys
 import traceback
+import types
 
 # too few public methods.  come on, man.
 #pylint: disable=R0903
@@ -253,7 +254,7 @@ class TclProc:
     """
     def __init__(self, proc, to_type=str):
         self.proc = proc
-        self.function = self._proc_to_function(proc)
+        self.function_name = self._proc_to_function(proc)
         self.proc_args = info_args(proc)
         #self.body = info_body(proc)
         self.defaults = dict()
@@ -264,8 +265,13 @@ class TclProc:
             if int(has_default):
                 self.defaults[arg] = default_value
 
-        #print(f"def-trampoline-func: {self.gen_function()}")
-        exec(self.gen_function(),globals())
+        self.wrapper_source = self.gen_function()
+
+        # compile the function and grab a reference to it
+        locs = dict()
+        print(self.gen_function())
+        exec(self.gen_function(), globals(), locs)
+        self.function = locs[self.function_name]
 
     def _proc_to_function(self, proc):
         """conver ta tcl proc name to a python function name"""
@@ -281,7 +287,7 @@ class TclProc:
 
     def __repr__(self):
         """repr function"""
-        return(f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}', defaults '{repr(self.defaults)}'>")
+        return(f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}>")
 
     def set_to(to):
         self.to = to
@@ -289,8 +295,9 @@ class TclProc:
     def gen_function(self):
         """generate a python function for the proc that calls our trampoline"""
         # if function is defined outside the tohil namespace, return tohil.procs... not procs...
-        string = f"def {self.function}(*args, **kwargs):\n"
-        string += f"    return procs.procs['{self.proc}'].trampoline(args, kwargs)\n\n"
+        string = f"def {self.function_name}(self, *args, **kwargs):\n"
+        string += f"""    print(f"wrapper called for {self} {self.function_name}""" """(args='{args}', kwargs='{kwargs}')")\n"""
+        string += f"    return self.trampoline(args, kwargs)\n\n"
         return string
 
 
@@ -384,52 +391,83 @@ class TclProc:
         #print(f"trampoline calling {self.proc} with final of '{repr(final_arg_list)}'")
         return call(self.proc, *final_arg_list, to=to_type)
 
-class TclProcSet:
-    """holds in its procs dict a TclProc object for each proc imported"""
-
-    # tclX has some very legacy stuff that will probably cause trouble
-    avoid = ["::acos", "::asin", "::atan", "::ceil", "::cos", "::cosh", "::exp", "::fabs", "::floor", "::log", "::log10", "::sin", "::sinh", "::sqrt", "::tan", "::tanh", "::fmod", "::pow", "::atan2", "::abs", "::double", "::int", "::round"]
-
+class TclNamespace:
     def __init__(self):
-        self.procs = dict()
+        # be able to find TclProcs by proc name and function name, for convenience,
+        # not actually used for anything yet
+        self.__tohil_procs__ = dict()
+        self.__tohil_functions__ = dict()
+        self.__tohil_namespaces__ = dict()
 
-    def import_proc(self, proc):
-        """import a proc and keep track of it in our procs dictionary"""
-        if proc in TclProcSet.avoid:
+    def __tohil_import_proc__(self, proc):
+        # strip off namespace qualifiers
+        print(f"        importing proc '{proc}'")
+        last_colons = proc.rfind("::")
+        if last_colons >= 0:
+            proc = proc[last_colons + 2:]
+
+        try:
+            self.proc_args = info_args(proc)
+        except TypeError:
+            print(f"info args failed for proc '{proc}'")
             return
-        self.procs[proc] = TclProc(proc)
 
-    def import_procs(self, pattern=None):
+        tclproc = TclProc(proc)
+        print(f"setting name '{tclproc.function_name}'")
+        self.__tohil_procs__[proc] = tclproc
+        self.__tohil_functions__[tclproc.function_name] = tclproc
+
+        # create a new method in this tcl namespace comprising the
+        # tclproc function name and tclproc function we just compiled.
+        # when this namespace object.function_name() is invoked, it'll
+        # be called as a method of tclproc, i.e. self will be the first
+        # argument and will be the tclproc object ergo we can get to the
+        # trampoline and other stuff about the proc like its arguments,
+        # defaults, etc.
+        self.__setattr__(tclproc.function_name, types.MethodType(tclproc.function, tclproc))
+
+    def __tohil_import_procs__(self, pattern=None):
         """import all the procs in one namespace"""
+        print(f"    importing procs pattern '{pattern}', '{info_procs(pattern)}'")
         for proc in info_procs(pattern):
             try:
-                self.import_proc(proc)
-            except Exception:
+                self.__tohil_import_proc__(proc)
+            except Exception as exception:
+                #except NameError:
                 # DES::Pad has a null byte for a default argument
                 if proc != "::DES::Pad":
-                    print(f"failed to import proc '{proc}', continuing...", file=sys.stderr)
+                    print(f"failed to import proc '{proc}', exception '{exception}', continuing...", file=sys.stderr)
+        print(f"    done importing procs pattern '{pattern}'")
 
-    def import_namespace(self, namespace="::"):
-        """import a namespace and import any procs found and
-        then recursively import any child namespaces of the
-        specified namespace
+    def __tohil_import_namespace__(self, namespace="::"):
+        """import from a tcl namespace.  create a TclNamespace object
+        and import all the procs into it and return it
 
-        defaults to importing everything"""
-        self.import_procs(namespace + "::*")
+        and import all the subordinate namespaces into them as well"""
+
+        namespace_obj = TclNamespace()
+        self.__tohil_import_procs__(namespace + "::*")
+
         for child in namespace_children(namespace):
-            self.import_namespace(child)
+            print(f"  importing child namespace {child}")
+            new_namespace = self.__tohil_import_namespace__(child)
 
+            last_colons = child.rfind("::")
+            if last_colons >= 0:
+                child = child[last_colons + 2:]
 
-procs = TclProcSet()
+            print(f"  {self} storing child {child} namespace {new_namespace}")
+            self.__setattr__(child, new_namespace)
 
-def import_procs(pattern=None):
-    procs.import_procs(pattern)
-
-def import_namespace(namespace="::"):
-    procs.import_namespace(namespace)
+def import_namespace(namespace_pattern="::"):
+    print(f"importing namespace {namespace_pattern}")
+    namespace = TclNamespace()
+    namespace.__tohil_import_namespace__(namespace_pattern)
+    print(f"done importing namespace {namespace_pattern}")
+    return namespace
 
 def import_tcl():
-    import_namespace()
+    return import_namespace()
 
 def set_return_type(proc, to_type):
     procs.procs[proc].to_type = to_type

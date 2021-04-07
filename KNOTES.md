@@ -157,11 +157,17 @@ tohil.procster.package_require("Tclx")
 defs = procster.procs.probe_procs()
 exec(defs)
 
+make the wrappers import into a namespace?
+
+make them define methods in a class?
+
+
+
+
 
 
 ### stuff
 
 look at https://github.com/python/cpython/blob/master/Modules/_tkinter.c
-
 
 
