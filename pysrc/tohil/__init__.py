@@ -7,12 +7,14 @@ import traceback
 import types
 
 # too few public methods.  come on, man.
-#pylint: disable=R0903
+# pylint: disable=R0903
 
 ### tcl support stuff - TclWriter class can plug python's stdout into Tcl's
 
+
 class TclWriter:
     """TclWriter - class that can plug python's stdout into Tcl's"""
+
     def __init__(self):
         pass
 
@@ -30,9 +32,10 @@ class TclWriter:
 
 
 # we call exec.  it's necessary.
-#pylint: disable=W0122
+# pylint: disable=W0122
 
-def handle_exception(exception_type, val, traceback_object = None):
+
+def handle_exception(exception_type, val, traceback_object=None):
     """handle_exception - the tohil C code that handles uncaught
     python exceptions invokes this to turn an exception type, value
     and traceback object into a tcl error code and error info"""
@@ -65,16 +68,20 @@ def run(command):
 
     return my_stdout.getvalue().rstrip()
 
+
 def interact():
     """start interacting with the tcl interpreter"""
     eval("package require Tclx")
     call("commandloop", "-prompt1", 'return  " % "', "-prompt2", 'return "> "')
 
+
 ### tclobj iterator
 
-class TclObjIterator():
+
+class TclObjIterator:
     """tclobj iterator - one of these is returned by tclobj
     iter function to iterate over a tclobj"""
+
     def __init__(self, tclobj):
         self.tclobj = tclobj
         self.index = -1
@@ -90,11 +97,14 @@ class TclObjIterator():
 
         return self.tclobj.lindex(self.index)
 
+
 ### shadow dictionaries
 
-class ShadowDictIterator():
+
+class ShadowDictIterator:
     """shadow dict iterator - one of these is returned by shadow dict
     iter function to iterate over a shadow dict"""
+
     def __init__(self, tcl_array):
         self.keys = call("array", "names", tcl_array, to=list)
         self.keys.sort()
@@ -108,8 +118,10 @@ class ShadowDictIterator():
 
         return self.keys.pop(0)
 
+
 class ShadowDict(MutableMapping):
     """shadow dicts - python dict-like objects that shadow a tcl array"""
+
     def __init__(self, tcl_array, to=str):
         self.tcl_array = tcl_array
         self.to_type = to
@@ -136,17 +148,21 @@ class ShadowDict(MutableMapping):
     def __contains__(self, key):
         return exists(f"{self.tcl_array}({key})")
 
+
 #
 # misc stuff and helpers
 #
 
-def package_require(package, version=''):
+
+def package_require(package, version=""):
     return _tohil.eval(f"package require {package} {version}")
 
-def use_vhost(vhost=''):
-    if vhost == '':
-        vhost = 'production'
+
+def use_vhost(vhost=""):
+    if vhost == "":
+        vhost = "production"
     return tohil.call("use_vhost", vhost)
+
 
 #
 # TclError exception class, for when tcl gets a tcl error that
@@ -160,24 +176,25 @@ class TclError(Exception):
     level, errorstack, errorinfo, and errorline."""
 
     def __init__(self, result, td_obj):
-        #print(f"TclError executing with self '{self}', result '{result}', td_obj '{td_obj}'")
+        # print(f"TclError executing with self '{self}', result '{result}', td_obj '{td_obj}'")
         self.result = result
         err_pairs = td_obj.as_list()
         for key, value in zip(err_pairs[::2], err_pairs[1::2]):
             key = key[1:]
-            #print(f"setting attribute '{key}' to '{value}'")
+            # print(f"setting attribute '{key}' to '{value}'")
             if key in ("code", "errorline", "level"):
                 value = int(value)
             elif key == "errorcode":
                 value = convert(value, to=list)
             self.__setattr__(key, value)
 
-
     def __repr__(self):
         """repr function"""
-        return(f"<class TclError '{self.result}' {self.errorcode}'>")
+        return f"<class TclError '{self.result}' {self.errorcode}'>"
+
 
 ### rivet stuff
+
 
 class RivetControl:
     """probably lame stuff to redirect python stdout to tcl,
@@ -197,13 +214,14 @@ class RivetControl:
         self.activated = True
 
 
-#global rivet_control
+# global rivet_control
 rivet_control = RivetControl()
 
 
 def rivet():
     """redirect python's stdout to write to tcl's stdout"""
     rivet_control.activate()
+
 
 ###
 ### import our C language stuff
@@ -232,20 +250,22 @@ from tohil._tohil import (
 ### tcl proc importer and trampoline
 ###
 
-tcl_init = '''
+tcl_init = """
 proc safe_info_default {proc arg} {
     if {[info default $proc $arg var] == 1} {
         return [list 1 $var]
     }
     return [list 0 ""]
 }
-'''
+"""
 
 _tohil.eval(tcl_init)
+
 
 def info_args(proc):
     """wrapper for 'info args'"""
     return call("info", "args", proc, to=list)
+
 
 def info_procs(pattern=None, what="procs"):
     """wrapper for 'info procs' or whatever"""
@@ -254,25 +274,31 @@ def info_procs(pattern=None, what="procs"):
     else:
         return sorted(call("info", what, pattern, to=list))
 
+
 def info_commands(pattern=None):
     return info_procs(pattern, what="commands")
+
 
 def info_body(proc):
     return call("info", "body", proc, to=str)
 
+
 def namespace_children(namespace):
     return sorted(call("namespace", "children", namespace, to=list))
+
 
 def info_default(proc, var):
     """wrapper for 'info default'"""
     return call("safe_info_default", proc, var, to=tuple)
 
+
 def doublecolon_tail(string):
     """return the last (rightmost) part of a namespace or namespace-qualified proc"""
     last_colons = string.rfind("::")
     if last_colons >= 0:
-        return string[last_colons + 2:]
+        return string[last_colons + 2 :]
     return string
+
 
 class TclProc:
     """instantiate with a tcl proc name as the argument.  the proc can be
@@ -291,6 +317,7 @@ class TclProc:
     typically this class will be instantiated by running the probe_proc method,
     or the methods that sit above it
     """
+
     def __init__(self, proc, to_type=str):
         self.proc = proc
         self.function_name = self._proc_to_function(proc)
@@ -299,7 +326,7 @@ class TclProc:
             self.proc_args = info_args(proc)
             is_proc = True
         except TclError:
-            #print(f"info args failed for proc '{proc}'")
+            # print(f"info args failed for proc '{proc}'")
             is_proc = False
 
         self.to_type = to_type
@@ -307,11 +334,11 @@ class TclProc:
         if not is_proc:
             self.wrapper_source = self.gen_passthrough_function()
         else:
-            #self.body = info_body(proc)
+            # self.body = info_body(proc)
             self.defaults = dict()
 
             for arg in self.proc_args:
-                has_default, default_value = info_default(proc,arg)
+                has_default, default_value = info_default(proc, arg)
                 if int(has_default):
                     self.defaults[arg] = default_value
 
@@ -319,7 +346,7 @@ class TclProc:
 
         # compile the function and grab a reference to it
         locs = dict()
-        #print(self.wrapper_source)
+        # print(self.wrapper_source)
         exec(self.wrapper_source, globals(), locs)
         self.function = locs[self.function_name]
 
@@ -330,12 +357,20 @@ class TclProc:
         # "::" will map to "__" -- i think that's reasonable, at least for now.
         # some other characters also appear in some tcl proc names out there, so we map
         # them to other stuff.  tcl is too permissive, i feel like.
-        function = function.replace("-", "_").replace(":", "_").replace("?", "_question_mark").replace("+", "_plus_sign").replace("<", "_less_than").replace("@", "_at_sign").replace(">", "_greater_than")
+        function = (
+            function.replace("-", "_")
+            .replace(":", "_")
+            .replace("?", "_question_mark")
+            .replace("+", "_plus_sign")
+            .replace("<", "_less_than")
+            .replace("@", "_at_sign")
+            .replace(">", "_greater_than")
+        )
         return function
 
     def __repr__(self):
         """repr function"""
-        return(f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}>")
+        return f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}>"
 
     def set_to(to):
         self.to = to
@@ -360,17 +395,18 @@ class TclProc:
             to_type = self.to_type
 
         if len(kwargs) > 0:
-            raise TypeError(f"can't specify named parameters to a tcl function that isn't a proc: '{self.proc}'")
+            raise TypeError(
+                f"can't specify named parameters to a tcl function that isn't a proc: '{self.proc}'"
+            )
         return call(self.proc, *args, to=to_type)
 
     def gen_proc_function(self):
         """generate a python function for the proc that will call our trampoline and execute tcl"""
         # if function is defined outside the tohil namespace, return tohil.procs... not procs...
         string = f"def {self.function_name}(self, *args, **kwargs):\n"
-        #string += f"""    print(f"wrapper called for {self} {self.function_name}""" """(args='{args}', kwargs='{kwargs}')")\n"""
+        # string += f"""    print(f"wrapper called for {self} {self.function_name}""" """(args='{args}', kwargs='{kwargs}')")\n"""
         string += f"    return self.trampoline(args, kwargs)\n\n"
         return string
-
 
     def trampoline(self, args, kwargs):
         """trampoline function takes our proc probe data, positional parameters
@@ -391,15 +427,21 @@ class TclProc:
 
         nargs = len(args)
         if nargs + len(kwargs) > len(self.proc_args) and self.proc_args[-1] != "args":
-            raise TypeError(f"too many arguments specified to be passed to tcl proc '{self.proc}'")
+            raise TypeError(
+                f"too many arguments specified to be passed to tcl proc '{self.proc}'"
+            )
 
         # pump any named parameters into the "final" dict
         for arg_name, arg in kwargs.items():
             if arg_name in final:
-                raise TypeError(f"parameter '{arg_name}' specified multiple times -- can only specify it once")
+                raise TypeError(
+                    f"parameter '{arg_name}' specified multiple times -- can only specify it once"
+                )
             if arg_name not in self.proc_args:
-                raise TypeError(f"named parameter '{arg_name}' is not a valid arument for proc '{self.proc}'")
-            #print(f"trampoline filling in named parameter {arg_name}, '{repr(arg)}'")
+                raise TypeError(
+                    f"named parameter '{arg_name}' is not a valid arument for proc '{self.proc}'"
+                )
+            # print(f"trampoline filling in named parameter {arg_name}, '{repr(arg)}'")
             final[arg_name] = arg
 
         # pump the positional arguments into the "final" dict
@@ -411,13 +453,15 @@ class TclProc:
         # a named parameter, advance to the next argument, without advancing
         # the args list
         pos = 0
-        #for arg_name, arg in zip(self.proc_args, args):
+        # for arg_name, arg in zip(self.proc_args, args):
         for arg_name in self.proc_args:
             if pos >= nargs:
                 if arg_name == "args":
                     break
-                raise TypeError(f"not enough parameters to '{self.proc}' ({self.proc_args}), you provided {nargs + len(kwargs)}")
-            #print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
+                raise TypeError(
+                    f"not enough parameters to '{self.proc}' ({self.proc_args}), you provided {nargs + len(kwargs)}"
+                )
+            # print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
             if arg_name != "args":
                 if arg_name not in final:
                     # a position parameter has been fulfilled
@@ -437,7 +481,7 @@ class TclProc:
         # pump any default values if needed
         for arg_name, def_value in self.defaults.items():
             if arg_name not in final:
-                #print(f"trampoline filling in default value {arg_name}, '{def_value}'")
+                # print(f"trampoline filling in default value {arg_name}, '{def_value}'")
                 final[arg_name] = def_value
 
         # make sure we've got everything
@@ -459,15 +503,29 @@ class TclProc:
                 if "args" in final:
                     final_arg_list.extend(final[arg_name])
 
-        #print(f"trampoline calling {self.proc} with final of '{repr(final_arg_list)}'")
+        # print(f"trampoline calling {self.proc} with final of '{repr(final_arg_list)}'")
         return call(self.proc, *final_arg_list, to=to_type)
 
+
 class TclNamespace:
-    proc_excluder = ("break", "continue", "for", "global", "if", "return", "try",
-            "while", "yield", "with", "is", "import", "class")
+    proc_excluder = (
+        "break",
+        "continue",
+        "for",
+        "global",
+        "if",
+        "return",
+        "try",
+        "while",
+        "yield",
+        "with",
+        "is",
+        "import",
+        "class",
+    )
 
     def __init__(self, namespace):
-        #print(f"{self} importing namespace '{namespace}'")
+        # print(f"{self} importing namespace '{namespace}'")
         # be able to find TclProcs by proc name and function name, for convenience,
         # not actually used for anything yet
         self.__tohil_procs__ = dict()
@@ -476,11 +534,11 @@ class TclNamespace:
         # keep track of subordinate namespaces
         self.__tohil_namespaces__ = dict()
         self.__tohil_import_namespace__(namespace)
-        #print(f"{self} done importing namespace '{namespace}'")
+        # print(f"{self} done importing namespace '{namespace}'")
 
     def __tohil_import_proc__(self, proc):
         tclproc = TclProc(proc)
-        #print(f"setting name '{tclproc.function_name}'")
+        # print(f"setting name '{tclproc.function_name}'")
         self.__tohil_procs__[proc] = tclproc
         self.__tohil_functions__[tclproc.function_name] = tclproc
 
@@ -491,11 +549,13 @@ class TclNamespace:
         # argument and will be the tclproc object ergo we can get to the
         # trampoline and other stuff about the proc like its arguments,
         # defaults, etc.
-        self.__setattr__(tclproc.function_name, types.MethodType(tclproc.function, tclproc))
+        self.__setattr__(
+            tclproc.function_name, types.MethodType(tclproc.function, tclproc)
+        )
 
     def __tohil_import_procs__(self, pattern=None):
         """import all the commands in one namespace"""
-        #print(f"    importing procs pattern '{pattern}', '{info_commands(pattern)}'")
+        # print(f"    importing procs pattern '{pattern}', '{info_commands(pattern)}'")
         for proc in info_commands(pattern):
             # NB this excluder stuff is a little clumsy, but if it was
             # in the TclProc init routine then wouldn't that routine
@@ -507,11 +567,14 @@ class TclNamespace:
             try:
                 self.__tohil_import_proc__(proc)
             except Exception as exception:
-                #except NameError:
+                # except NameError:
                 # DES::Pad has a null byte for a default argument
                 if proc != "::DES::Pad":
-                    print(f"failed to import proc '{proc}', exception '{exception}', continuing...", file=sys.stderr)
-        #print(f"    done importing procs pattern '{pattern}'")
+                    print(
+                        f"failed to import proc '{proc}', exception '{exception}', continuing...",
+                        file=sys.stderr,
+                    )
+        # print(f"    done importing procs pattern '{pattern}'")
 
     def __tohil_import_namespace__(self, namespace="::"):
         """import from a tcl namespace.  create a TclNamespace object
@@ -522,15 +585,16 @@ class TclNamespace:
         self.__tohil_import_procs__(namespace + "::*")
 
         for child in namespace_children(namespace):
-            #print(f"  importing child namespace {child}")
+            # print(f"  importing child namespace {child}")
             new_namespace = TclNamespace(child)
 
             child_short = doublecolon_tail(child)
-            #print(f"  {self} storing child {child_short} namespace {new_namespace}")
+            # print(f"  {self} storing child {child_short} namespace {new_namespace}")
             self.__setattr__(child_short, new_namespace)
+
 
 def import_tcl():
     return TclNamespace("")
 
-### end of trampoline stuff
 
+### end of trampoline stuff
