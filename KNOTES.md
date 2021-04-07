@@ -161,7 +161,7 @@ make the wrappers import into a namespace?
 
 make them define methods in a class?
 
-
+if tohil.call or tohil.eval or tohil.exec get a tcl error, instead of throwing RuntimeError have them throw a new TclError object that will include the errorCode, errorInfo, error frame, etc, from tcl.
 
 
 

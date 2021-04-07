@@ -218,12 +218,15 @@ def info_args(proc):
     """wrapper for 'info args'"""
     return call("info", "args", proc, to=list)
 
-def info_procs(pattern=None):
-    """wrapper for 'info procs'"""
+def info_procs(pattern=None, what="procs"):
+    """wrapper for 'info procs' or whatever"""
     if pattern is None:
-        return sorted(call("info", "procs", to=list))
+        return sorted(call("info", what, to=list))
     else:
-        return sorted(call("info", "procs", pattern, to=list))
+        return sorted(call("info", what, pattern, to=list))
+
+def info_commands(pattern=None):
+    return info_procs(pattern, what="commands")
 
 def info_body(proc):
     return call("info", "body", proc, to=str)
@@ -243,7 +246,7 @@ class TclProc:
     the init routine uses tcl introspection to get the proc's arguments
     and default values
 
-    one it's done this, it generates the function using its gen_function()
+    one it's done this, it generates the function using its gen_proc_function()
     method and execs it into python.  this function when called from
     python invokes the trampoline function below to give python really
     nice handling of tcl proc arguments, better than most python functions
@@ -255,22 +258,33 @@ class TclProc:
     def __init__(self, proc, to_type=str):
         self.proc = proc
         self.function_name = self._proc_to_function(proc)
-        self.proc_args = info_args(proc)
-        #self.body = info_body(proc)
-        self.defaults = dict()
+
+        try:
+            self.proc_args = info_args(proc)
+            is_proc = True
+        except RuntimeError:
+            print(f"info args failed for proc '{proc}'")
+            is_proc = False
+
         self.to_type = to_type
 
-        for arg in self.proc_args:
-            has_default, default_value = info_default(proc,arg)
-            if int(has_default):
-                self.defaults[arg] = default_value
+        if not is_proc:
+            self.wrapper_source = self.gen_passthrough_function()
+        else:
+            #self.body = info_body(proc)
+            self.defaults = dict()
 
-        self.wrapper_source = self.gen_function()
+            for arg in self.proc_args:
+                has_default, default_value = info_default(proc,arg)
+                if int(has_default):
+                    self.defaults[arg] = default_value
+
+            self.wrapper_source = self.gen_proc_function()
 
         # compile the function and grab a reference to it
         locs = dict()
-        print(self.gen_function())
-        exec(self.gen_function(), globals(), locs)
+        #print(self.wrapper_source)
+        exec(self.wrapper_source, globals(), locs)
         self.function = locs[self.function_name]
 
     def _proc_to_function(self, proc):
@@ -294,8 +308,31 @@ class TclProc:
     def set_to(to):
         self.to = to
 
-    def gen_function(self):
-        """generate a python function for the proc that calls our trampoline"""
+    def gen_passthrough_function(self):
+        """generate a python function for a non-proc that calls our trampoline"""
+        # if function is defined outside the tohil namespace, return tohil.procs... not procs...
+        string = f"def {self.function_name}(self, *args, **kwargs):\n"
+        string += f"    return self.passthrough_trampoline(args, kwargs)\n\n"
+        return string
+
+    def passthrough_trampoline(self, args, kwargs):
+        """passthrough trampoline function is for calling C functions on the tcl
+        side where we don't know anything about what arguments it takes so we
+        treat everything as positional and pass through exactly what we get
+
+        but we still support the to= conversion... :-)"""
+        if "to" in kwargs:
+            to_type = kwargs["to"]
+            del kwargs["to"]
+        else:
+            to_type = self.to_type
+
+        if len(kwargs) > 0:
+            raise TypeError(f"can't specify named parameters to a tcl function that isn't a proc: '{self.proc}'")
+        return call(self.proc, *args, to=to_type)
+
+    def gen_proc_function(self):
+        """generate a python function for the proc that will call our trampoline and execute tcl"""
         # if function is defined outside the tohil namespace, return tohil.procs... not procs...
         string = f"def {self.function_name}(self, *args, **kwargs):\n"
         string += f"""    print(f"wrapper called for {self} {self.function_name}""" """(args='{args}', kwargs='{kwargs}')")\n"""
@@ -415,12 +452,6 @@ class TclNamespace:
         #else:
         #    short_proc = proc
 
-        try:
-            self.proc_args = info_args(proc)
-        except TypeError:
-            print(f"info args failed for proc '{proc}'")
-            return
-
         tclproc = TclProc(proc)
         print(f"setting name '{tclproc.function_name}'")
         self.__tohil_procs__[proc] = tclproc
@@ -436,9 +467,9 @@ class TclNamespace:
         self.__setattr__(tclproc.function_name, types.MethodType(tclproc.function, tclproc))
 
     def __tohil_import_procs__(self, pattern=None):
-        """import all the procs in one namespace"""
-        print(f"    importing procs pattern '{pattern}', '{info_procs(pattern)}'")
-        for proc in info_procs(pattern):
+        """import all the commands in one namespace"""
+        print(f"    importing procs pattern '{pattern}', '{info_commands(pattern)}'")
+        for proc in info_commands(pattern):
             try:
                 self.__tohil_import_proc__(proc)
             except Exception as exception:
