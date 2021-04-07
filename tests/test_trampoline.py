@@ -55,6 +55,11 @@ class TestTrampoline(unittest.TestCase):
 
     def test_trampoline5(self):
         """calling tcl procs that use the 'args' special behavior"""
+        tohil.eval("""proc arg_check_ab {a {b default_b} args} {
+            return [list $a $b $args]
+        }""")
+
+}
 
 # add support for to =; be able to coerce output
 

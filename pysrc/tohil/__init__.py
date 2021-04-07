@@ -309,6 +309,12 @@ class TclProc:
         if nargs + len(kwargs) > len(self.proc_args) and self.proc_args[-1] != "args":
             raise TypeError(f"too many arguments specified to be passed to tcl proc '{self.proc}'")
 
+        if "to" in kwargs:
+            to_type = kwargs["to"]
+            del kwargs["to"]
+        else:
+            to_type = self.to_type
+
         # pump any named parameters into the "final" dict
         for arg_name, arg in kwargs.items():
             if arg_name in final:
@@ -376,7 +382,7 @@ class TclProc:
                     final_arg_list.extend(final[arg_name])
 
         #print(f"trampoline calling {self.proc} with final of '{repr(final_arg_list)}'")
-        return call(self.proc, *final_arg_list, to=self.to_type)
+        return call(self.proc, *final_arg_list, to=to_type)
 
 class TclProcSet:
     """holds in its procs dict a TclProc object for each proc imported"""
