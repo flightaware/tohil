@@ -49,6 +49,7 @@ static Tcl_Interp *tcl_interp = NULL;
 // we return as our iterator object
 // NB this could be a problem if either of these functions get redefined
 static PyObject *pTohilHandleException = NULL;
+static PyObject *pTohilTclErrorClass = NULL;
 static PyObject *pyTclObjIterator = NULL;
 
 //
@@ -1849,6 +1850,8 @@ static PyTypeObject PyTclObjType = {
 // end of tclobj python datatype
 //
 
+
+
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
 // from any python C function in this library that accepts a to=python_data_type argument,
 // and this routine ought to handle it
@@ -1865,8 +1868,15 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     }
 
     if (tcl_result == TCL_ERROR) {
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(resultObj));
+        //PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(resultObj));
+        Tcl_Obj *returnOptionsObj = Tcl_GetReturnOptions(interp, tcl_result);
+        PyObject *pReturnOptionsObj = PyTclObj_FromTclObj(returnOptionsObj);
+        //PyObject *pTclErrObject = PyObject_Call(pTohilTclErrorClass, pArgs, NULL);
+        PyObject *pRetTuple = PyTuple_New(1);
+        PyTuple_SET_ITEM(pRetTuple, 0, pReturnOptionsObj);
+        PyErr_SetObject(pTohilTclErrorClass, pRetTuple);
         return NULL;
+        //return PyErr_Format(pTohilTclErrorClass, "O", pReturnOptionsObj);
     }
 
     if (toType != NULL) {
@@ -2330,11 +2340,19 @@ Tohil_Init(Tcl_Interp *interp)
     }
 
     pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
-    Py_DECREF(pTohilMod);
     if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
         Py_XDECREF(pTohilHandleException);
+        Py_DECREF(pTohilMod);
         return PyReturnTclError(interp, "unable to find tohil.handle_exception function in python interpreter");
     }
+
+    pTohilTclErrorClass = PyObject_GetAttrString(pTohilMod, "TclError");
+    if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
+        Py_XDECREF(pTohilTclErrorClass);
+        Py_DECREF(pTohilMod);
+        return PyReturnTclError(interp, "unable to find tohil.TclError class in python interpreter");
+    }
+    Py_DECREF(pTohilMod);
 
     return TCL_OK;
 }

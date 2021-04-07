@@ -148,6 +148,23 @@ def use_vhost(vhost=''):
         vhost = 'production'
     return tohil.call("use_vhost", vhost)
 
+#
+# TclError exception class, for when tcl gets a tcl error that
+#   wasn't caught, so we can send it to python
+#
+class TclError(Exception):
+    def __init__(self, td_obj):
+        print(f"TclError executing with self '{self}', return_tclobj '{return_tclobj}'")
+        self.errdict = dict(zip(x[::2],x[1::2]))
+        # errdict will contain like -errorcode, -code, -level, -errorstack,
+        # -errorinfo, -errorline
+
+    def __repr__(self):
+        """repr function"""
+        return(f"<class 'TclError' 'self.errdict["-errorcode"]'>")
+
+
+
 ### rivet stuff
 
 class RivetControl:
@@ -237,6 +254,7 @@ def namespace_children(namespace):
 def info_default(proc, var):
     """wrapper for 'info default'"""
     return call("safe_info_default", proc, var, to=tuple)
+
 
 class TclProc:
     """instantiate with a tcl proc name as the argument.  the proc can be
