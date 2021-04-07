@@ -1,22 +1,21 @@
-
-
 import unittest
 
 import tohil
+
 
 class TestTclObj(unittest.TestCase):
     def test_tclobj1(self):
         """exercise tohil.tclobj data type"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
 
-        self.assertEqual('3' in x, True)
-        self.assertEqual('6' in x, False)
+        self.assertEqual("3" in x, True)
+        self.assertEqual("6" in x, False)
 
     def test_tclobj2(self):
         """exercise tohil.tclobj lindex method"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
 
-        self.assertEqual(x.lindex(0), '1')
+        self.assertEqual(x.lindex(0), "1")
         self.assertEqual(x.llength(), 5)
 
         with self.assertRaises(IndexError):
@@ -29,25 +28,25 @@ class TestTclObj(unittest.TestCase):
         """exercise tohil.tclobj str()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
 
-        self.assertEqual(str(x), '1 2 3 4 5')
+        self.assertEqual(str(x), "1 2 3 4 5")
 
     def test_tclobj4(self):
         """exercise tohil.tclobj as_list()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
 
-        self.assertEqual(x.as_list(), ['1', '2', '3', '4', '5'])
+        self.assertEqual(x.as_list(), ["1", "2", "3", "4", "5"])
 
     def test_tclobj5(self):
         """exercise tohil.tclobj as_set()"""
         x = tohil.eval("list 1 2 3 4 5 5", to=tohil.tclobj)
 
-        self.assertEqual(sorted(x.as_set()), ['1', '2', '3', '4', '5'])
+        self.assertEqual(sorted(x.as_set()), ["1", "2", "3", "4", "5"])
 
     def test_tclobj6(self):
         """exercise tohil.tclobj as_tuple()"""
         x = tohil.eval("list 1 2 3 4 5 5", to=tohil.tclobj)
 
-        self.assertEqual(sorted(x.as_set()), ['1', '2', '3', '4', '5'])
+        self.assertEqual(sorted(x.as_set()), ["1", "2", "3", "4", "5"])
 
     def test_tclobj7(self):
         """exercise tohil.tclobj as_tuple()"""
@@ -68,59 +67,74 @@ class TestTclObj(unittest.TestCase):
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
         self.assertEqual(str(x), "1 2 3 4 5")
         x.reset()
-        self.assertEqual(str(x), '')
+        self.assertEqual(str(x), "")
 
     def test_tclobj10(self):
         """exercise tohil.tclobj subscripting, str(), and repr()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
-        self.assertEqual(str(x[2]), '3')
+        self.assertEqual(str(x[2]), "3")
         self.assertEqual(repr(x[2]), "<tohil.tclobj: '3'>")
 
     def test_tclobj11(self):
         """exercise tohil.tclobj lappend()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
-        x.lappend('6')
+        x.lappend("6")
         x.lappend(7)
-        self.assertEqual(str(x), '1 2 3 4 5 6 7')
+        self.assertEqual(str(x), "1 2 3 4 5 6 7")
 
     def test_tclobj12(self):
         """exercise tohil.tclobj as_byte_array()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
-        x.lappend('6')
+        x.lappend("6")
         x.lappend(7)
-        self.assertEqual(x.as_byte_array(), bytearray(b'1 2 3 4 5 6 7'))
+        self.assertEqual(x.as_byte_array(), bytearray(b"1 2 3 4 5 6 7"))
 
     def test_tclobj13(self):
         """tohil.tclobj slice stuff, 4 to the end"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
-        self.assertEqual(repr(x[4:]),"[<tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]");
+        self.assertEqual(
+            repr(x[4:]),
+            "[<tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]",
+        )
 
     def test_tclobj14(self):
         """tohil.tclobj slice stuff, the beginning until 4"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
-        self.assertEqual(repr(x[:4]),"[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>, <tohil.tclobj: '4'>]");
+        self.assertEqual(
+            repr(x[:4]),
+            "[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>, <tohil.tclobj: '4'>]",
+        )
 
     def test_tclobj15(self):
         """tohil.tclobj slice stuff, from the beginning to 4 from the end"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
-        self.assertEqual(repr(x[:-4]),"[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>]");
+        self.assertEqual(
+            repr(x[:-4]),
+            "[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>]",
+        )
 
     def test_tclobj16(self):
         """tohil.tclobj slice stuff, from 4 from the end to the end"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
-        self.assertEqual(repr(x[-4:]),"[<tohil.tclobj: '4'>, <tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]");
+        self.assertEqual(
+            repr(x[-4:]),
+            "[<tohil.tclobj: '4'>, <tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]",
+        )
 
     def test_tclobj17(self):
         """tohil.tclobj slice stuff, the whole thing with a :"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
-        self.assertEqual(repr(x[:]),"[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>, <tohil.tclobj: '4'>, <tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]");
+        self.assertEqual(
+            repr(x[:]),
+            "[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>, <tohil.tclobj: '4'>, <tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]",
+        )
 
     def test_tclobj18(self):
         """tohil.tclobj comparing tclobjs with stuff"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertTrue(x[2] == x[2])
         self.assertTrue(x[2] == 3)
-        self.assertTrue(x[2] == '3')
+        self.assertTrue(x[2] == "3")
         self.assertTrue(x[2] < 4.0)
         self.assertFalse(x[2] > 4.0)
 
@@ -149,10 +163,9 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(t.incr(-1), 6)
         self.assertEqual(t.incr(incr=-1), 5)
         with self.assertRaises(TypeError):
-            t.set('foo')
+            t.set("foo")
             t.incr()
+
 
 if __name__ == "__main__":
     unittest.main()
-
-
