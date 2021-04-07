@@ -164,6 +164,7 @@ make them define methods in a class?
 if tohil.call or tohil.eval or tohil.exec get a tcl error, instead of throwing RuntimeError have them throw a new TclError object that will include the errorCode, errorInfo, error frame, etc, from tcl.
 
 
+scrape the comment headers of the procs to create the docstrings for the tohil stuff
 
 
 ### stuff
