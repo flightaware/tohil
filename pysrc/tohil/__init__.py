@@ -292,8 +292,8 @@ class TclProc:
         try:
             self.proc_args = info_args(proc)
             is_proc = True
-        except RuntimeError:
-            print(f"info args failed for proc '{proc}'")
+        except TclError:
+            #print(f"info args failed for proc '{proc}'")
             is_proc = False
 
         self.to_type = to_type
@@ -365,7 +365,7 @@ class TclProc:
         """generate a python function for the proc that will call our trampoline and execute tcl"""
         # if function is defined outside the tohil namespace, return tohil.procs... not procs...
         string = f"def {self.function_name}(self, *args, **kwargs):\n"
-        string += f"""    print(f"wrapper called for {self} {self.function_name}""" """(args='{args}', kwargs='{kwargs}')")\n"""
+        #string += f"""    print(f"wrapper called for {self} {self.function_name}""" """(args='{args}', kwargs='{kwargs}')")\n"""
         string += f"    return self.trampoline(args, kwargs)\n\n"
         return string
 
@@ -462,7 +462,7 @@ class TclProc:
 
 class TclNamespace:
     def __init__(self, namespace):
-        print(f"{self} importing namespace '{namespace}'")
+        #print(f"{self} importing namespace '{namespace}'")
         # be able to find TclProcs by proc name and function name, for convenience,
         # not actually used for anything yet
         self.__tohil_procs__ = dict()
@@ -471,17 +471,9 @@ class TclNamespace:
         # keep track of subordinate namespaces
         self.__tohil_namespaces__ = dict()
         self.__tohil_import_namespace__(namespace)
-        print(f"{self} done importing namespace '{namespace}'")
+        #print(f"{self} done importing namespace '{namespace}'")
 
     def __tohil_import_proc__(self, proc):
-        # strip off namespace qualifiers
-        #print(f"        importing proc '{proc}'")
-        #last_colons = proc.rfind("::")
-        #if last_colons >= 0:
-        #    short_proc = proc[last_colons + 2:]
-        #else:
-        #    short_proc = proc
-
         tclproc = TclProc(proc)
         #print(f"setting name '{tclproc.function_name}'")
         self.__tohil_procs__[proc] = tclproc
@@ -498,7 +490,7 @@ class TclNamespace:
 
     def __tohil_import_procs__(self, pattern=None):
         """import all the commands in one namespace"""
-        print(f"    importing procs pattern '{pattern}', '{info_commands(pattern)}'")
+        #print(f"    importing procs pattern '{pattern}', '{info_commands(pattern)}'")
         for proc in info_commands(pattern):
             try:
                 self.__tohil_import_proc__(proc)
@@ -506,8 +498,8 @@ class TclNamespace:
                 #except NameError:
                 # DES::Pad has a null byte for a default argument
                 if proc != "::DES::Pad":
-                    print(f"failed to import proc '{proc}', exception '{exception}', {getvar('::errorInfo')} continuing...", file=sys.stderr)
-        print(f"    done importing procs pattern '{pattern}'")
+                    print(f"failed to import proc '{proc}', exception '{exception}', continuing...", file=sys.stderr)
+        #print(f"    done importing procs pattern '{pattern}'")
 
     def __tohil_import_namespace__(self, namespace="::"):
         """import from a tcl namespace.  create a TclNamespace object
@@ -518,14 +510,14 @@ class TclNamespace:
         self.__tohil_import_procs__(namespace + "::*")
 
         for child in namespace_children(namespace):
-            print(f"  importing child namespace {child}")
+            #print(f"  importing child namespace {child}")
             new_namespace = TclNamespace(child)
 
             last_colons = child.rfind("::")
             if last_colons >= 0:
                 child = child[last_colons + 2:]
 
-            print(f"  {self} storing child {child} namespace {new_namespace}")
+            #print(f"  {self} storing child {child} namespace {new_namespace}")
             self.__setattr__(child, new_namespace)
 
 def import_tcl():
