@@ -523,16 +523,16 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
     }
 
     PyObject *kwObj = NULL;
-    const char *objandfn = Tcl_GetString(objv[1]);
-// CONVERT HERE Tcl2UTF
+    Tcl_DString ds;
+    const char *objandfn = tohil_TclObjToUTF8(objv[1], &ds);
     int objStart = 2;
 
     if (*objandfn == '-' && strcmp(objandfn, "-kwlist") == 0) {
         if (objc < 4)
             goto wrongargs;
         kwObj = tclListObjToPyDictObject(interp, objv[2]);
-        objandfn = Tcl_GetString(objv[3]);
-// CONVERT HERE Tcl2UTF
+	Tcl_DStringFree(&ds);
+        objandfn = tohil_TclObjToUTF8(objv[3], &ds);
         objStart = 4;
         if (kwObj == NULL) {
             return TCL_ERROR;
@@ -541,8 +541,10 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
 
     /* Borrowed ref, do not decrement */
     PyObject *pMainModule = PyImport_AddModule("__main__");
-    if (pMainModule == NULL)
+    if (pMainModule == NULL) {
+        Tcl_DStringFree(&ds);
         return PyReturnException(interp, "unable to add module __main__ to python interpreter");
+    }
 
     /* So we don't have to special case the decref in the following loop */
     Py_INCREF(pMainModule);
@@ -556,14 +558,17 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
         pObjStr = PyUnicode_FromStringAndSize(objandfn, dot - objandfn);
         if (pObjStr == NULL) {
             Py_DECREF(pObjParent);
+            Tcl_DStringFree(&ds);
             return PyReturnException(interp, "failed unicode translation of call function in python interpreter");
         }
 
         pObj = PyObject_GetAttr(pObjParent, pObjStr);
         Py_DECREF(pObjStr);
         Py_DECREF(pObjParent);
-        if (pObj == NULL)
+        if (pObj == NULL) {
+            Tcl_DStringFree(&ds);
             return PyReturnException(interp, "failed to find dotted attribute in python interpreter");
+        }
 
         objandfn = dot + 1;
         dot = index(objandfn, '.');
@@ -571,6 +576,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
 
     PyObject *pFn = PyObject_GetAttrString(pObj, objandfn);
     Py_DECREF(pObj);
+    Tcl_DStringFree(&ds);
     if (pFn == NULL)
         return PyReturnException(interp, "failed to find object/function in python interpreter");
 
@@ -588,8 +594,8 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
     PyObject *pArgs = PyTuple_New(objc - objStart);
     PyObject *curarg = NULL;
     for (i = objStart; i < objc; i++) {
-        curarg = PyUnicode_FromString(Tcl_GetString(objv[i]));
-// CONVERT HERE Tcl to UTF
+        curarg = PyUnicode_FromString(tohil_TclObjToUTF8(objv[i], &ds));
+	Tcl_DStringFree(&ds);
         if (curarg == NULL) {
             Py_DECREF(pArgs);
             Py_DECREF(pFn);
