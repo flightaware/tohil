@@ -524,6 +524,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
 
     PyObject *kwObj = NULL;
     const char *objandfn = Tcl_GetString(objv[1]);
+// CONVERT HERE Tcl2UTF
     int objStart = 2;
 
     if (*objandfn == '-' && strcmp(objandfn, "-kwlist") == 0) {
@@ -531,6 +532,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
             goto wrongargs;
         kwObj = tclListObjToPyDictObject(interp, objv[2]);
         objandfn = Tcl_GetString(objv[3]);
+// CONVERT HERE Tcl2UTF
         objStart = 4;
         if (kwObj == NULL) {
             return TCL_ERROR;
@@ -587,6 +589,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
     PyObject *curarg = NULL;
     for (i = objStart; i < objc; i++) {
         curarg = PyUnicode_FromString(Tcl_GetString(objv[i]));
+// CONVERT HERE Tcl to UTF
         if (curarg == NULL) {
             Py_DECREF(pArgs);
             Py_DECREF(pFn);
@@ -669,6 +672,7 @@ TohilEval_Cmd(ClientData clientData, /* Not used. */
         return TCL_ERROR;
     }
     const char *cmd = Tcl_GetString(objv[1]);
+// CONVERT HERE
 
     // PyCompilerFlags flags = _PyCompilerFlags_INIT;
     // PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, &flags, -1);
@@ -707,6 +711,7 @@ TohilExec_Cmd(ClientData clientData, /* Not used. */
         return TCL_ERROR;
     }
     const char *cmd = Tcl_GetString(objv[1]);
+// CONVERT HERE
 
     PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_file_input, NULL, -1);
 
@@ -845,6 +850,7 @@ PyTclObj_repr(PyTclObj *self)
 {
     int tclStringSize;
     char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
+// CONVERT HERE
     PyObject *stringRep = PyUnicode_FromFormat("%s", tclString);
     PyObject *repr = PyUnicode_FromFormat("<%s: %R>", Py_TYPE(self)->tp_name, stringRep);
     Py_DECREF(stringRep);
@@ -1404,6 +1410,7 @@ PyTclObj_getvar(PyTclObj *self, PyObject *var)
     char *varString = (char *)PyUnicode_1BYTE_DATA(var);
     Tcl_Obj *newObj = Tcl_GetVar2Ex(tcl_interp, varString, NULL, (TCL_LEAVE_ERR_MSG));
     if (newObj == NULL) {
+//CONVERT HERE
         PyErr_SetString(PyExc_NameError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
     }
@@ -1422,6 +1429,7 @@ PyTclObj_setvar(PyTclObj *self, PyObject *var)
     char *varString = (char *)PyUnicode_1BYTE_DATA(var);
     // setvar handles incrementing the reference count
     if (Tcl_SetVar2Ex(tcl_interp, varString, NULL, self->tclobj, (TCL_LEAVE_ERR_MSG)) == NULL) {
+//CONVERT HERE
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
     }
@@ -2104,6 +2112,7 @@ tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &tclCode, &to))
         return NULL;
+//CONVERT to tcl code
 
     int result = Tcl_Eval(tcl_interp, tclCode);
     Tcl_Obj *resultObj = Tcl_GetObjResult(tcl_interp);
@@ -2123,6 +2132,8 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &expression, &to))
         return NULL;
+
+// CONVERt exoression to WTF
 
     Tcl_Obj *resultObj = NULL;
     if (Tcl_ExprObj(tcl_interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
