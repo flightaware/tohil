@@ -65,6 +65,20 @@ char *tohil_TclObjToUTF8(Tcl_Obj *obj, Tcl_DString *ds)
 }
 
 //
+// tohil_UTF8ToTcl - convert a Python utf-8 string to a Tcl "WTF-8" string.
+//
+char *tohil_UTF8ToTcl(char *utf8String, int utf8StringLen, Tcl_DString *ds)
+{
+    static Tcl_Encoding utf8encoding = NULL;
+    if(!utf8encoding) utf8encoding = Tcl_GetEncoding(tcl_interp, "utf-8");
+    // Accepts -1 for string length but try to avoid it.
+    if(utf8StringLen == -1) {
+        utf8StringLen = strlen(utf8String);
+    }
+    return Tcl_ExternalToUtfDString(utf8encoding, utf8String, utf8StringLen, ds);
+}
+
+//
 // turn a tcl list into a python list
 //
 PyObject *
@@ -677,12 +691,13 @@ TohilEval_Cmd(ClientData clientData, /* Not used. */
         Tcl_WrongNumArgs(interp, 1, objv, "evalString");
         return TCL_ERROR;
     }
-    const char *cmd = Tcl_GetString(objv[1]);
-// CONVERT HERE
+    Tcl_DString ds;
+    const char *cmd = tohil_TclObjToUTF8(objv[1], &ds);
 
     // PyCompilerFlags flags = _PyCompilerFlags_INIT;
     // PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, &flags, -1);
     PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, NULL, -1);
+    Tcl_DStringFree(&ds);
 
     if (code == NULL) {
         return PyReturnException(interp, "while compiling python eval code");
@@ -716,10 +731,11 @@ TohilExec_Cmd(ClientData clientData, /* Not used. */
         Tcl_WrongNumArgs(interp, 1, objv, "execString");
         return TCL_ERROR;
     }
-    const char *cmd = Tcl_GetString(objv[1]);
-// CONVERT HERE
+    Tcl_DString ds;
+    const char *cmd = tohil_TclObjToUTF8(objv[1], &ds);
 
     PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_file_input, NULL, -1);
+    Tcl_DStringFree(&ds);
 
     if (code == NULL) {
         return PyReturnException(interp, "while compiling python exec code");
@@ -854,10 +870,11 @@ PyTclObj_str(PyTclObj *self)
 static PyObject *
 PyTclObj_repr(PyTclObj *self)
 {
-    int tclStringSize;
-    char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
-// CONVERT HERE
-    PyObject *stringRep = PyUnicode_FromFormat("%s", tclString);
+    Tcl_DString ds;
+    char *utf8string = tohil_TclObjToUTF8(self->tclobj, &ds);
+
+    PyObject *stringRep = PyUnicode_FromFormat("%s", utf8string);
+    Tcl_DStringFree(&ds);
     PyObject *repr = PyUnicode_FromFormat("<%s: %R>", Py_TYPE(self)->tp_name, stringRep);
     Py_DECREF(stringRep);
     return repr;
@@ -1416,7 +1433,6 @@ PyTclObj_getvar(PyTclObj *self, PyObject *var)
     char *varString = (char *)PyUnicode_1BYTE_DATA(var);
     Tcl_Obj *newObj = Tcl_GetVar2Ex(tcl_interp, varString, NULL, (TCL_LEAVE_ERR_MSG));
     if (newObj == NULL) {
-//CONVERT HERE
         PyErr_SetString(PyExc_NameError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
     }
@@ -1435,7 +1451,6 @@ PyTclObj_setvar(PyTclObj *self, PyObject *var)
     char *varString = (char *)PyUnicode_1BYTE_DATA(var);
     // setvar handles incrementing the reference count
     if (Tcl_SetVar2Ex(tcl_interp, varString, NULL, self->tclobj, (TCL_LEAVE_ERR_MSG)) == NULL) {
-//CONVERT HERE
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
     }
@@ -2114,13 +2129,16 @@ tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"tcl_code", "to", NULL};
     PyObject *to = NULL;
-    char *tclCode = NULL;
+    char *utf8Code = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &tclCode, &to))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &utf8Code, &to))
         return NULL;
-//CONVERT to tcl code
 
+    // TODO modify the above PyArg_ParseTupleAndKeywords to return a length?
+    Tcl_DString ds;
+    char *tclCode = tohil_UTF8ToTcl(utf8Code, -1, &ds);
     int result = Tcl_Eval(tcl_interp, tclCode);
+    Tcl_DStringFree(&ds);
     Tcl_Obj *resultObj = Tcl_GetObjResult(tcl_interp);
 
     return tohil_python_return(tcl_interp, result, to, resultObj);
@@ -2133,13 +2151,14 @@ static PyObject *
 tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"expression", "to", NULL};
-    char *expression = NULL;
+    char *utf8expression = NULL;
     PyObject *to = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &expression, &to))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &utf8expression, &to))
         return NULL;
 
-// CONVERt exoression to WTF
+    Tcl_DString ds;
+    char *expression = tohil_UTF8ToTcl(utf8expression, -1, &ds);
 
     Tcl_Obj *resultObj = NULL;
     if (Tcl_ExprObj(tcl_interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
