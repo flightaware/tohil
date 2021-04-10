@@ -40,7 +40,7 @@ By default the results of the Tcl code evaluated (if there wasn't an exception) 
 
 The optional "to" named parameter allows you to specify one of a number of data types that will cause tohil to convert the return into a native Python data type.
 
-The types supported are str, int, bool, float, list, set, dict and tuple.
+The types supported are str, int, bool, float, list, set, dict, tuple, and tohil.tclobj.
 
 ```python
 >>> tohil.eval('set a [list a 1 b 2 c 3]')
@@ -150,7 +150,7 @@ False
 
 #### tohil.unset
 
-Tohil can be used to unset variables, array elements, and arrays in the Tcl interpreter.
+Tohil can be used to unset variables, array elements, and even entire arrays in the Tcl interpreter.
 
 Unsetting an array element uses the subscrit notation, for example `x(e)`.
 
@@ -191,21 +191,19 @@ You can also evaluate tcl expressions from python using tohil.expr.  As with man
 25571
 ```
 
-NB Remember that, like eval, expr evaluates its arguments and will execute square-bracketed code embedded in the passed expression.
+Remember that, like eval, tohil.expr evaluates its arguments and will do $-substition and execute square-bracketed code embedded in the passed expression.
 
 #### tohil.convert
 
-Tohil.convert will some python thing passed to it into some other python thing, a string by default, but any type supported in accordance with the to= argument.
+Tohil.convert will convert some python thing passed to it, into a tcl object, and then back to some other python type, a string by default, but any type supported in accordance with the to= argument.
 
 It's an easy way to get a tclobj object `(t = tohil.convert(5, to=tohil.tclobj)`, but in that case it's easier to do `t = tohil.tclobj(5)`.
 
 Pass a python object to tohil.convert and get back a string by default, or use the same to=
 
-You can also evaluate tcl expressions from python using tohil.expr.  As with many other tohil functions, to= can be used to request conversion to a specific python datatype.
-
 #### tohil.subst
 
-Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, command and variable substitutions, but doesn't evaluate the final result, like eval would.
+Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, command and variable substitutions, but doesn't evaluate the final result, like eval would.  So it's nice to generate some kind of string but with embedded $-substitution and square bracket evaluation.
 
 
 ```
