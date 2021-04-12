@@ -198,7 +198,7 @@ test tohil_call-1.11 {call of nonexistent functions} {
 
 # TODO: this error message could be improved ("has no method")
 test tohil_call-1.12 {call of nonexistent object methods} {
-	tohil::eval {a = "aaa"}
+	tohil::exec {a = "aaa"}
 	list [catch {tohil::call a.aosdin} err] $err
 } {1 {AttributeError: 'str' object has no attribute 'aosdin'
 ----- tcl -> tohilthon interface -----}}
