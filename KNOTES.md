@@ -157,12 +157,15 @@ tohil.procster.package_require("Tclx")
 defs = procster.procs.probe_procs()
 exec(defs)
 
-make the wrappers import into a namespace?
+make the wrappers import into a namespace? 
 
 make them define methods in a class?
 
+done, that's exactly what we do now.
+
 if tohil.call or tohil.eval or tohil.exec get a tcl error, instead of throwing RuntimeError have them throw a new TclError object that will include the errorCode, errorInfo, error frame, etc, from tcl.
 
+Done, python TclError class, instantiated from C with a tclobj as the argument to the innit routine.
 
 scrape the comment headers of the procs to create the docstrings for the tohil stuff
 
