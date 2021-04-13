@@ -305,17 +305,13 @@ class TclProc:
     in any namespace but the name should be fully qualified.  although
     maybe not, not sure.
 
-    the init routine uses tcl introspection to get the proc's arguments
-    and default values
+    the init routine determines if the argument is a proc or a tcl
+    function written in C.  if it's a proc, it uses tcl's introspection
+    to obtain the proc's arguments and default parameters, if any.
 
-    one it's done this, it generates the function using its gen_proc_function()
-    method and execs it into python.  this function when called from
-    python invokes the trampoline function below to give python really
-    nice handling of tcl proc arguments, better than most python functions
-    implement.
-
-    typically this class will be instantiated by running the probe_proc method,
-    or the methods that sit above it
+    we define the __call__ method to check whether the tcl target is a proc
+    or C function and then call either our trampoline function or
+    passthrough_trampoline function, below.
     """
 
     def __init__(self, proc, to_type=str):
@@ -324,16 +320,14 @@ class TclProc:
 
         try:
             self.proc_args = info_args(proc)
-            is_proc = True
+            self.is_proc = True
         except TclError:
             # print(f"info args failed for proc '{proc}'")
-            is_proc = False
+            self.is_proc = False
 
         self.to_type = to_type
 
-        if not is_proc:
-            self.wrapper_source = self.gen_passthrough_function()
-        else:
+        if self.is_proc:
             # self.body = info_body(proc)
             self.defaults = dict()
 
@@ -341,14 +335,6 @@ class TclProc:
                 has_default, default_value = info_default(proc, arg)
                 if int(has_default):
                     self.defaults[arg] = default_value
-
-            self.wrapper_source = self.gen_proc_function()
-
-        # compile the function and grab a reference to it
-        locs = dict()
-        # print(self.wrapper_source)
-        exec(self.wrapper_source, globals(), locs)
-        self.function = locs[self.function_name]
 
     def _proc_to_function(self, proc):
         """conver ta tcl proc name to a python function name"""
@@ -375,12 +361,15 @@ class TclProc:
     def set_to(to):
         self.to = to
 
-    def gen_passthrough_function(self):
-        """generate a python function for a non-proc that calls our trampoline"""
-        # if function is defined outside the tohil namespace, return tohil.procs... not procs...
-        string = f"def {self.function_name}(self, *args, **kwargs):\n"
-        string += f"    return self.passthrough_trampoline(args, kwargs)\n\n"
-        return string
+    def __call__(self, *args, **kwargs):
+        """this gets invoked when they call the object as if it is
+        a function.  we then return the results of our trampoline
+        or passthrough trampoline method, depending on if this instance
+        ingested a proc or C function"""
+        if self.is_proc:
+            return self.trampoline(args, kwargs)
+        else:
+            return self.passthrough_trampoline(args, kwargs)
 
     def passthrough_trampoline(self, args, kwargs):
         """passthrough trampoline function is for calling C functions on the tcl
@@ -400,13 +389,6 @@ class TclProc:
             )
         return call(self.proc, *args, to=to_type)
 
-    def gen_proc_function(self):
-        """generate a python function for the proc that will call our trampoline and execute tcl"""
-        # if function is defined outside the tohil namespace, return tohil.procs... not procs...
-        string = f"def {self.function_name}(self, *args, **kwargs):\n"
-        # string += f"""    print(f"wrapper called for {self} {self.function_name}""" """(args='{args}', kwargs='{kwargs}')")\n"""
-        string += f"    return self.trampoline(args, kwargs)\n\n"
-        return string
 
     def trampoline(self, args, kwargs):
         """trampoline function takes our proc probe data, positional parameters
@@ -419,9 +401,12 @@ class TclProc:
         """
         final = dict()
 
+        # print(f"trampoline invoked, self '{self}', args '{args}', kwargs '{kwargs}', defaults '{self.defaults}'")
+
         if "to" in kwargs:
             to_type = kwargs["to"]
             del kwargs["to"]
+            # print(f"set aside to  of {to_type}")
         else:
             to_type = self.to_type
 
@@ -432,6 +417,7 @@ class TclProc:
             )
 
         # pump any named parameters into the "final" dict
+        # print("checking named parameters")
         for arg_name, arg in kwargs.items():
             if arg_name in final:
                 raise TypeError(
@@ -452,20 +438,22 @@ class TclProc:
         # arg name is already in the final array due to having come from
         # a named parameter, advance to the next argument, without advancing
         # the args list
+        # print("checking positional parameters")
         pos = 0
         # for arg_name, arg in zip(self.proc_args, args):
         for arg_name in self.proc_args:
             if pos >= nargs:
-                if arg_name == "args":
-                    break
-                raise TypeError(
-                    f"not enough parameters to '{self.proc}' ({self.proc_args}), you provided {nargs + len(kwargs)}"
-                )
-            # print(f"trampoline filling in position arg {arg_name}, '{repr(arg)}'")
+                break
+                #if arg_name == "args":
+                #    break
+                #raise TypeError(
+                #    f"not enough parameters to '{self.proc}' ({self.proc_args}), you provided {nargs + len(kwargs)}"
+                #)
             if arg_name != "args":
                 if arg_name not in final:
                     # a position parameter has been fulfilled
                     final[arg_name] = args[pos]
+                    # print(f"trampoline filling in position arg {arg_name}, '{repr(args[pos])}'")
                 else:
                     # already have this from a named parameter, skip but
                     # keep the positional parameter for the next arg
@@ -478,7 +466,9 @@ class TclProc:
                 break
             pos += 1
 
+
         # pump any default values if needed
+        # print("checking defaults")
         for arg_name, def_value in self.defaults.items():
             if arg_name not in final:
                 # print(f"trampoline filling in default value {arg_name}, '{def_value}'")
@@ -543,14 +533,16 @@ class TclNamespace:
         self.__tohil_functions__[tclproc.function_name] = tclproc
 
         # create a new method in this tcl namespace comprising the
-        # tclproc function name and tclproc function we just compiled.
+        # tclproc function name and tclproc object we just created.
+        #
         # when this namespace object.function_name() is invoked, it'll
         # be called as a method of tclproc, i.e. self will be the first
         # argument and will be the tclproc object ergo we can get to the
         # trampoline and other stuff about the proc like its arguments,
         # defaults, etc.
         self.__setattr__(
-            tclproc.function_name, types.MethodType(tclproc.function, tclproc)
+            tclproc.function_name, tclproc
+            #tclproc.function_name, types.MethodType(tclproc, tclproc)
         )
 
     def __tohil_import_procs__(self, pattern=None):

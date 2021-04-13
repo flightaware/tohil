@@ -28,7 +28,7 @@ class TestCall(unittest.TestCase):
         self.assertEqual(tohil.call("return", "[info globals]"), "[info globals]")
         self.assertEqual(tohil.call("return", "$secretVariable"), "$secretVariable")
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(tohil.TclError):
             tohil.call("better_not_be_this_asdfjhk")
 
     def test_call3(self):
@@ -44,13 +44,13 @@ class TestCall(unittest.TestCase):
 
     def test_call4(self):
         """test what happens when we cause an error on the tcl side"""
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(tohil.TclError):
             tohil.call("cant", "run", "this")
 
     def test_call5(self):
         """test """
         self.assertEqual(no_arg_kw(foo="bar"), "{'foo': 'bar'}")
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(tohil.TclError):
             tohil.call("")
 
     def test_call6(self):
