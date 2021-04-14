@@ -12,15 +12,25 @@ tohil is based on, and is completely inspired by and exists because of, libtclpy
 
 Tohil is pronounced as, your choice, toe-heel, or toe-hill.
 
+Tohil is currently on version 3 ([release notes](TOHIL-3.md).
+
 ## Usage
 
 You can import tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define tohil's functions in both.
 
-Using tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code limited only by your machine's memory and your sanity (and the (settable) Python and Tcl recursion limits).
+Using tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code, limited only by your machine's memory and your sanity (and the (settable) Python and Tcl recursion limits).
 
 ### Accessing TCL From Python
 
 To use Python to do things in Tcl, you invoke functions defined by the tohil module that gets created when you import tohil into your Python interpreter.
+
+Tohil:
+
+* ...provides several routines to evaluate tcl code, passing it data using common and familiar python objects such as strs, bools, ints, floats, lists, dicts, tuples, etc, and producing those types from tcl results as well.
+* ...defines a new python data type, [tohil.tclobj](TCLOBJECTS.md), that allows the direct and efficient manipulation of Tcl lists, dicts, etc, passing them around, using them as arguments in calls to tcl functions, and receiving them from function results as well.
+* ...creates shadow dictionaries, a python dictionary-type object that accesses and manipulate Tcl arrays as python dictionaries
+* ...provides a [TclProc class](TCLPROCS.md) that creates callable python object-functions that will call their corresponding tcl procs and C commands and return the results to python, optionally with a specified python type that the returned data should be converted to.
+* ...provides a TclNamespace class that has the ability to import all the Tcl procs and C commands found there as methods of the namespace class, and recursively descend child namespaces, creating new TclNamespaces objects, binding them to their parent objects, and importing all the procs found within them as well.  See also the tohil 3 [release notes](TOHIL-3.md).
 
 ```python
 import tohil
@@ -40,7 +50,7 @@ By default the results of the Tcl code evaluated (if there wasn't an exception) 
 
 The optional "to" named parameter allows you to specify one of a number of data types that will cause tohil to convert the return into a native Python data type.
 
-The types supported are str, int, bool, float, list, set, dict and tuple.
+The types supported are str, int, bool, float, list, set, dict, tuple, and tohil.tclobj.
 
 ```python
 >>> tohil.eval('set a [list a 1 b 2 c 3]')
@@ -150,7 +160,7 @@ False
 
 #### tohil.unset
 
-Tohil can be used to unset variables, array elements, and arrays in the Tcl interpreter.
+Tohil can be used to unset variables, array elements, and even entire arrays in the Tcl interpreter.
 
 Unsetting an array element uses the subscrit notation, for example `x(e)`.
 
@@ -191,21 +201,19 @@ You can also evaluate tcl expressions from python using tohil.expr.  As with man
 25571
 ```
 
-NB Remember that, like eval, expr evaluates its arguments and will execute square-bracketed code embedded in the passed expression.
+Remember that, like eval, tohil.expr evaluates its arguments and will do $-substition and execute square-bracketed code embedded in the passed expression.
 
 #### tohil.convert
 
-Tohil.convert will some python thing passed to it into some other python thing, a string by default, but any type supported in accordance with the to= argument.
+Tohil.convert will convert some python thing passed to it, into a tcl object, and then back to some other python type, a string by default, but any type supported in accordance with the to= argument.
 
 It's an easy way to get a tclobj object `(t = tohil.convert(5, to=tohil.tclobj)`, but in that case it's easier to do `t = tohil.tclobj(5)`.
 
 Pass a python object to tohil.convert and get back a string by default, or use the same to=
 
-You can also evaluate tcl expressions from python using tohil.expr.  As with many other tohil functions, to= can be used to request conversion to a specific python datatype.
-
 #### tohil.subst
 
-Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, command and variable substitutions, but doesn't evaluate the final result, like eval would.
+Tcl's *subst* command is pretty cool.  By default it performs Tcl backslash, command and variable substitutions, but doesn't evaluate the final result, like eval would.  So it's nice to generate some kind of string but with embedded $-substitution and square bracket evaluation.
 
 
 ```
@@ -221,6 +229,12 @@ The "to=" way of requesting a type conversion is supported.  Although you might 
 #### tohil.interact
 
 Run the Tcl interactive command loop on stdin, hopefully a terminal, until you send an EOF, at which point you'll be returned to the python command line.  See also tohil::interact.
+
+#### python tclobj datatype
+
+Tohil 2 introduced a new python data type called tclobj, aka tohil.tclobj.
+
+It's a python-wrapped Tcl object and it's very useful for generating and manipulating, passing to and receiving from, tcl routines, tcl lists, .  See [TCLOBJECTS.md](TCLOBJECTS.md) for more.
 
 #### Shadow Dictionaries
 
@@ -551,11 +565,13 @@ or
 
 cp tohil1.0.0.dylib build/lib.macosx-10.6-x86_64-3.8/tohil.cpython-38-darwin.so
 
-### todo
+### To Do
 
-a way to pass kwargs thought tohil::eval
+* a way to pass kwargs thought tohil::eval - done
+* if python is the parent, register a tcl panic handler and invoke Py_FatalError if tcl panics.
+* the reverse of the above if tcl is the parent if python has a panic-type function with a registerable callback
 
-This is the old list.  SOme of this stuff has been done.  We probably don't have the same priorities.  Will update over time.
+Below is the old list.  Some of this stuff has been done.  We probably don't have the same priorities.  Will update over time.
 
 In order of priority:
 
@@ -584,13 +600,44 @@ In order of priority:
 
 ### geek notes
 
-The single tohil shared library created by building this software is loaded both by Python and Tcl, which is pretty cool and important to how it works.
+The same tohil shared library created by building this software can be
+loaded both by Python and Tcl, which is pretty cool.  It used to be
+necessary so that tohil could work at all.
+
+However since there are different
+build pipelines for tcl extensions (based on autoconf via the tcl extension
+architecture) and python (based on python setuptools), we
+changed tohil's implementation to be able to work ok even with two different
+shared libraries by moving the critical piece of shared data, the tcl
+interpreter pointer, formerly held statically by the shared library itself,
+into the python interpreter via python's capsule stuff, allowing both shared
+libraries to be able to find the interpreter.
 
 ### what magic is this
 
 ```
 tohil.call("set", "mydict", tohil.call("dict", "create", *itertools.chain(*d.items())))
 ```
+
+Aww that's old stuff, with TclProcs we can do
+
+```
+l = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
+t = tohil.import_tcl()
+t.set("mydict", t.dict("create", *itertools.chain(*l.items())))
+t.dict("get", t.set("mydict"), "c", to=int)
+```
+
+that's a little gross, still.
+
+With tclobjs we can do
+
+```
+o = tohil.tclobj({'a': 1, 'b': 2, 'c': 3, 'd': 4})
+t.set("mydict", o)
+o.td_get('c', to=int)
+```
+
 
 ### formatting
 

@@ -129,7 +129,6 @@ tcl dict walks are done with Tcl_DictObjFirst, Tcl_DictObjNext and Tcl_DictObjDo
 
 when we implement iterators on dicts, we'll use those in the iterator function that we return for the iterator.
 
-<<<<<<< Updated upstream
 ### ideas
 
 look at tcl errorCode in tohil_python_return to set the python error code
@@ -150,6 +149,26 @@ this solves the sort of surprising behavior of tclobjs that when you get from a 
 
 possibly inspect tcl procs using "info args" and "info default" to figure out what arguments they expect and generate a python trampoline that lets you invoke with python style named arguments, etc, 
 
+### trampoline stuff
+
+import tohil
+from tohil import procster
+tohil.procster.package_require("Tclx")
+defs = procster.procs.probe_procs()
+exec(defs)
+
+make the wrappers import into a namespace? 
+
+make them define methods in a class?
+
+done, that's exactly what we do now.
+
+if tohil.call or tohil.eval or tohil.exec get a tcl error, instead of throwing RuntimeError have them throw a new TclError object that will include the errorCode, errorInfo, error frame, etc, from tcl.
+
+Done, python TclError class, instantiated from C with a tclobj as the argument to the innit routine.
+
+scrape the comment headers of the procs to create the docstrings for the tohil stuff
+
 
 ### tohil for people with big tcl code bases who want to use python and not rewrite everything
 
@@ -157,6 +176,5 @@ possibly inspect tcl procs using "info args" and "info default" to figure out wh
 ### stuff
 
 look at https://github.com/python/cpython/blob/master/Modules/_tkinter.c
-
 
 

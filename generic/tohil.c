@@ -49,6 +49,7 @@ static Tcl_Interp *tcl_interp = NULL;
 // we return as our iterator object
 // NB this could be a problem if either of these functions get redefined
 static PyObject *pTohilHandleException = NULL;
+static PyObject *pTohilTclErrorClass = NULL;
 static PyObject *pyTclObjIterator = NULL;
 
 //
@@ -1082,7 +1083,7 @@ pyListToTclObjv(PyListObject *pList, int *intPtr, Tcl_Obj ***objvPtr)
 {
     int i;
 
-    assert (PyList_Check(pList));
+    assert(PyList_Check(pList));
     Py_ssize_t objc = PyList_GET_SIZE(pList);
     // build up a tcl objv of the list elements
     Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
@@ -1858,8 +1859,23 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     const char *toString = NULL;
     PyTypeObject *pt = NULL;
 
+    if (PyErr_Occurred() != NULL) {
+        printf("tohil_python_return invoked with a python error already present\n");
+        // return NULL;
+    }
+
     if (tcl_result == TCL_ERROR) {
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(resultObj));
+        Tcl_Obj *returnOptionsObj = Tcl_GetReturnOptions(interp, tcl_result);
+        PyObject *pReturnOptionsObj = PyTclObj_FromTclObj(returnOptionsObj);
+
+        PyObject *pRetTuple = PyTuple_New(2);
+        int tclStringSize;
+        char *tclString;
+        tclString = Tcl_GetStringFromObj(resultObj, &tclStringSize);
+        PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", tclString, tclStringSize));
+        PyTuple_SET_ITEM(pRetTuple, 1, pReturnOptionsObj);
+
+        PyErr_SetObject(pTohilTclErrorClass, pRetTuple);
         return NULL;
     }
 
@@ -1873,6 +1889,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         pt = (PyTypeObject *)toType;
         toString = pt->tp_name;
     }
+    // printf("tohil_python_return called: tcl result %d, to=%s, resulObj '%s'\n", tcl_result, toString, Tcl_GetString(resultObj));
 
     if (toType == NULL || strcmp(toString, "str") == 0) {
         int tclStringSize;
@@ -2118,7 +2135,7 @@ tohil_incr(PyObject *self, PyObject *args, PyObject *kwargs)
         }
     } else {
         if (Tcl_GetLongFromObj(tcl_interp, obj, &longValue) == TCL_ERROR) {
-          type_error:
+        type_error:
             PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
             return NULL;
         }
@@ -2191,6 +2208,7 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
     Py_ssize_t objc = PyTuple_GET_SIZE(args);
     int i;
     PyObject *to = NULL;
+
     //
     // allocate an array of Tcl object pointers the same size
     // as the number of arguments we received
@@ -2213,6 +2231,7 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
     // invoke tcl using the objv array we just constructed
     int tcl_result = Tcl_EvalObjv(tcl_interp, objc, objv, 0);
 
+    // cleanup and free the objv
     for (i = 0; i < objc; i++) {
         Tcl_DecrRefCount(objv[i]);
     }
@@ -2321,11 +2340,19 @@ Tohil_Init(Tcl_Interp *interp)
     }
 
     pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
-    Py_DECREF(pTohilMod);
     if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
         Py_XDECREF(pTohilHandleException);
+        Py_DECREF(pTohilMod);
         return PyReturnTclError(interp, "unable to find tohil.handle_exception function in python interpreter");
     }
+
+    pTohilTclErrorClass = PyObject_GetAttrString(pTohilMod, "TclError");
+    if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
+        Py_XDECREF(pTohilTclErrorClass);
+        Py_DECREF(pTohilMod);
+        return PyReturnTclError(interp, "unable to find tohil.TclError class in python interpreter");
+    }
+    Py_DECREF(pTohilMod);
 
     return TCL_OK;
 }

@@ -1,8 +1,7 @@
-
-
 import unittest
 
 import tohil
+
 
 class TestEval(unittest.TestCase):
     def test_eval1(self):
@@ -17,20 +16,33 @@ class TestEval(unittest.TestCase):
 
     def test_eval3(self):
         """exercise tohil.eval to=bool and to=list"""
-        self.assertEqual(tohil.eval("expr {[clock seconds] > 1000000000}", to=bool), True)
-        self.assertEqual(tohil.eval("list 1 2 3 4 5", to=list), ['1', '2', '3', '4', '5'])
+        self.assertEqual(
+            tohil.eval("expr {[clock seconds] > 1000000000}", to=bool), True
+        )
+        self.assertEqual(
+            tohil.eval("list 1 2 3 4 5", to=list), ["1", "2", "3", "4", "5"]
+        )
 
     def test_eval4(self):
         """exercise tohil.eval and to=dict"""
-        self.assertEqual(tohil.eval("list a 1 b 2 c 3 d 4", to=dict), {'a': '1', 'b': '2', 'c': '3', 'd': '4'})
+        self.assertEqual(
+            tohil.eval("list a 1 b 2 c 3 d 4", to=dict),
+            {"a": "1", "b": "2", "c": "3", "d": "4"},
+        )
 
     def test_eval5(self):
         """exercise tohil.eval and to=tuple"""
-        self.assertEqual(tohil.eval("list a 1 b 2 c 3 d 4", to=tuple), ('a', '1', 'b', '2', 'c', '3', 'd', '4'))
+        self.assertEqual(
+            tohil.eval("list a 1 b 2 c 3 d 4", to=tuple),
+            ("a", "1", "b", "2", "c", "3", "d", "4"),
+        )
 
     def test_eval6(self):
         """exercise tohil.eval and to=set"""
-        self.assertEqual(sorted(tohil.eval("list 1 2 3 4 5 6 6", to=set)), ['1', '2', '3', '4', '5', '6'])
+        self.assertEqual(
+            sorted(tohil.eval("list 1 2 3 4 5 6 6", to=set)),
+            ["1", "2", "3", "4", "5", "6"],
+        )
 
     def test_eval7(self):
         """exercise tohil.eval and to=someting_wrong"""
