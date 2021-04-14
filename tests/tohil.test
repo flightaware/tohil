@@ -188,7 +188,6 @@ test tohil_call-1.12 {call of nonexistent object methods} \
 	-returnCodes error \
 	-result {invalid syntax (tohil, line 1)}
 
-
 # =========
 # TYPES
 # =========
@@ -225,7 +224,7 @@ test types-1.3 {return None} \
 # See gotcha 1 for explanation of roundabout way of getting a unicode object.
 test types-1.5 {return unicode object} {
 	tohil::exec {def a(): return b'\xe0\xb2\xa0'.decode('utf-8')}
-	expr {[tohil::call a] == "ಠ"}
+	expr {[tohil::call a] == [encoding convertfrom utf-8 "ಠ"]}
 } {1}
 
 test types-1.6 {return literal bytes} {
@@ -254,6 +253,15 @@ test types-1.8 {return float} {
 test types-1.9 {return large integer} {
 	tohil::exec {def a(): return 3 << 5000}
 	expr {[tohil::call a] == 3 << 5000}
+} {1}
+
+test types-1.10 {return high unicode object} {
+	if {[info tclversion] >= 8.6 && [lindex [split [info patchlevel] .] 2] >= 10} {
+		tohil::exec {def a(): return b'\xf0\x9d\x94\x84'.decode('utf-8')}
+		expr {[tohil::call a] == [encoding convertfrom utf-8 "𝔄"]}
+	} else {
+		expr true
+	}
 } {1}
 
 # =========
