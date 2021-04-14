@@ -27,7 +27,7 @@ Tohil:
 * ...provides several routines to evaluate tcl code, passing it data using common and familiar python objects such as strs, bools, ints, floats, lists, dicts, tuples, etc, and producing those types from tcl results as well.
 * ...defines a new python data type, [tohil.tclobj](TCLOBJECTS.md), that allows the direct and efficient manipulation of Tcl lists, dicts, etc, passing them around, using them as arguments in calls to tcl functions, and receiving them from function results as well.
 * ...creates shadow dictionaries, a python dictionary-type object that accesses and manipulate Tcl arrays as python dictionaries
-* ...provides a TclProc class that creates callable python object-functions that will call their corresponding tcl procs and C commands and return the results to python, optionally with a specified python type that the returned data should be converted to.
+* ...provides a [TclProc class](TCLPROCS.md) that creates callable python object-functions that will call their corresponding tcl procs and C commands and return the results to python, optionally with a specified python type that the returned data should be converted to.
 * ...provides a TclNamespace class that has the ability to import all the Tcl procs and C commands found there as methods of the namespace class, and recursively descend child namespaces, creating new TclNamespaces objects, binding them to their parent objects, and importing all the procs found within them as well.
 
 ```python
