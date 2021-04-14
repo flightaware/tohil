@@ -255,6 +255,11 @@ test types-1.9 {return large integer} {
 	expr {[tohil::call a] == 3 << 5000}
 } {1}
 
+test types-1.10 {return high unicode object} {
+	tohil::exec {def a(): return b'\xf0\x9d\x94\x84'.decode('utf-8')}
+	expr {[tohil::call a] == [encoding convertfrom utf-8 "𝔄"]}
+} {1}
+
 # =========
 # MODULES
 # =========
