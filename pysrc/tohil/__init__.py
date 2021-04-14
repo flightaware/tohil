@@ -314,7 +314,7 @@ class TclProc:
     passthrough_trampoline function, below.
     """
 
-    def __init__(self, proc, to_type=str):
+    def __init__(self, proc, to=str):
         self.proc = proc
         self.function_name = self._proc_to_function(proc)
 
@@ -325,7 +325,7 @@ class TclProc:
             # print(f"info args failed for proc '{proc}'")
             self.is_proc = False
 
-        self.to_type = to_type
+        self.to_type = to
 
         if self.is_proc:
             # self.body = info_body(proc)
