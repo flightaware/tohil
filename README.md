@@ -16,7 +16,7 @@ Tohil is pronounced as, your choice, toe-heel, or toe-hill.
 
 You can import tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define tohil's functions in both.
 
-Using tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code limited only by your machine's memory and your sanity (and the (settable) Python and Tcl recursion limits).
+Using tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code, limited only by your machine's memory and your sanity (and the (settable) Python and Tcl recursion limits).
 
 ### Accessing TCL From Python
 
@@ -549,14 +549,13 @@ or
 
 cp tohil1.0.0.dylib build/lib.macosx-10.6-x86_64-3.8/tohil.cpython-38-darwin.so
 
-### todo
+### To Do
 
-a way to pass kwargs thought tohil::eval - done
+* a way to pass kwargs thought tohil::eval - done
+* if python is the parent, register a tcl panic handler and invoke Py_FatalError if tcl panics.
+* the reverse of the above if tcl is the parent if python has a panic-type function with a registerable callback
 
-if python is the parent, register a tcl panic handler and invoke Py_FatalError if tcl panics.
-
-
-This is the old list.  SOme of this stuff has been done.  We probably don't have the same priorities.  Will update over time.
+Below is the old list.  Some of this stuff has been done.  We probably don't have the same priorities.  Will update over time.
 
 In order of priority:
 
@@ -585,13 +584,44 @@ In order of priority:
 
 ### geek notes
 
-The single tohil shared library created by building this software is loaded both by Python and Tcl, which is pretty cool and important to how it works.
+The same tohil shared library created by building this software can be
+loaded both by Python and Tcl, which is pretty cool.  It used to be
+necessary so that tohil could work at all.
+
+However since there are different
+build pipelines for tcl extensions (based on autoconf via the tcl extension
+architecture) and python (based on python setuptools), we
+changed tohil's implementation to be able to work ok even with two different
+shared libraries by moving the critical piece of shared data, the tcl
+interpreter pointer, formerly held statically by the shared library itself,
+into the python interpreter via python's capsule stuff, allowing both shared
+libraries to be able to find the interpreter.
 
 ### what magic is this
 
 ```
 tohil.call("set", "mydict", tohil.call("dict", "create", *itertools.chain(*d.items())))
 ```
+
+Aww that's old stuff, with TclProcs we can do
+
+```
+l = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
+t = tohil.import_tcl()
+t.set("mydict", t.dict("create", *itertools.chain(*l.items())))
+t.dict("get", t.set("mydict"), "c", to=int)
+```
+
+that's a little gross, still.
+
+With tclobjs we can do
+
+```
+o = tohil.tclobj({'a': 1, 'b': 2, 'c': 3, 'd': 4})
+t.set("mydict", o)
+o.td_get('c', to=int)
+```
+
 
 ### formatting
 
