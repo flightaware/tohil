@@ -1,8 +1,7 @@
-
-
 import unittest
 
 import tohil
+
 
 class TestVars(unittest.TestCase):
     def test_getvar1(self):
@@ -37,7 +36,6 @@ class TestVars(unittest.TestCase):
         tohil.unset("x(d)")
         with self.assertRaises(NameError):
             tohil.getvar("x(d)")
-
 
 
 if __name__ == "__main__":
