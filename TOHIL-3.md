@@ -1,6 +1,6 @@
 
 
-Tohil 3 Release Notes
+## Tohil 3 Release Notes
 
 Welcome to Tohil 3.
 
@@ -44,7 +44,6 @@ from python.
 1618419888
 ```
 
-
 ### TclError Exception Class
 
 Tohil 3 also adds a sweet TclError exception class, and any tcl errors that
@@ -53,16 +52,20 @@ error will be thrown in python as TclError exceptions.  The TclError object
 can be examined to find out all the stuff Tcl knows about the error...
 the result, the error code, code level, error stack, traceback, and error line.
 
-New helpers Functions
+### New helpers Functions
+
+tohil.package_require is real useful.  The others ones tohil needs for itself
+and they're not as useful, but maybe for some people for some purposes.
 
 * tohil.package_require(package_name, version=version)
-* tohil.info_procs()
-* tohil.info_commands()
-* tohil.info_body()
-* tohil.info_default()
-* tohil.info_args()
-* tohil.namespace_children()
+* tohil.info_procs() - return a list of procs.  pattern arg optional.
+* tohil.info_commands() - return a list of commands, includes procs and C commands.
+* tohil.info_body() - return the body of a proc.
+* tohil.info_default() - return the default value for an argument of a proc
+* tohil.info_args(proc) - return a list of the names of the arguments for a proc
+* tohil.namespace_children(namespace) - return a list of all the child namespaces of a namespace
 
+### Tests
 
 Dozens of new tests.
 
