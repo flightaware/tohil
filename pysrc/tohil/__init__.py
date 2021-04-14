@@ -389,7 +389,6 @@ class TclProc:
             )
         return call(self.proc, *args, to=to_type)
 
-
     def trampoline(self, args, kwargs):
         """trampoline function takes our proc probe data, positional parameters
         and named parameters, figures out if everything's there that the proc
@@ -444,11 +443,6 @@ class TclProc:
         for arg_name in self.proc_args:
             if pos >= nargs:
                 break
-                #if arg_name == "args":
-                #    break
-                #raise TypeError(
-                #    f"not enough parameters to '{self.proc}' ({self.proc_args}), you provided {nargs + len(kwargs)}"
-                #)
             if arg_name != "args":
                 if arg_name not in final:
                     # a position parameter has been fulfilled
@@ -465,7 +459,6 @@ class TclProc:
                 final[arg_name] = args[pos:]
                 break
             pos += 1
-
 
         # pump any default values if needed
         # print("checking defaults")
@@ -541,8 +534,9 @@ class TclNamespace:
         # trampoline and other stuff about the proc like its arguments,
         # defaults, etc.
         self.__setattr__(
-            tclproc.function_name, tclproc
-            #tclproc.function_name, types.MethodType(tclproc, tclproc)
+            tclproc.function_name,
+            tclproc
+            # tclproc.function_name, types.MethodType(tclproc, tclproc)
         )
 
     def __tohil_import_procs__(self, pattern=None):
