@@ -25,6 +25,15 @@ by creating a TclProc object and then calling it.
 ['4', '5', '6']
 ```
 
+It's pretty fun to play with them this way from the command line.
+
+While TclProcs are directly callable, as seen above, they are fully
+fledged python object and have a number of interesting and potentially
+useful attributes and method, including the python function name,
+tcl proc name, whether the tcl function being shadowed is a proc or
+not (if not, it's a command written in C), a python dictionary
+specifying any default arguments and their values, and the proc's arguments.
+
 ### TclNamespaces
 
 But wait, there's more.  tohil.import_namespace(my_namespace) will create
@@ -34,6 +43,9 @@ their procs and C commands as well.  Namespaces and function calls can
 be chained, so you get the hierarchy of tcl namespaces and procs and
 C commands created after loading all of your packages, chainable
 from python.
+
+It's a convenient way to leverage TclProcs across all of your tcl procs
+and commands.
 
 ```
 >>> import tohil
@@ -67,6 +79,7 @@ and they're not as useful, but maybe for some people for some purposes.
 
 ### Tests
 
-Dozens of new tests.
+* Dozens of new tests.
+* "make test" runs both the python ones and the tcl ones
 
 
