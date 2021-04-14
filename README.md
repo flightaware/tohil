@@ -551,7 +551,10 @@ cp tohil1.0.0.dylib build/lib.macosx-10.6-x86_64-3.8/tohil.cpython-38-darwin.so
 
 ### todo
 
-a way to pass kwargs thought tohil::eval
+a way to pass kwargs thought tohil::eval - done
+
+if python is the parent, register a tcl panic handler and invoke Py_FatalError if tcl panics.
+
 
 This is the old list.  SOme of this stuff has been done.  We probably don't have the same priorities.  Will update over time.
 
