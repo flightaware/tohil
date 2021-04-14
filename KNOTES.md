@@ -170,6 +170,9 @@ Done, python TclError class, instantiated from C with a tclobj as the argument t
 scrape the comment headers of the procs to create the docstrings for the tohil stuff
 
 
+### tohil for people with big tcl code bases who want to use python and not rewrite everything
+
+
 ### stuff
 
 look at https://github.com/python/cpython/blob/master/Modules/_tkinter.c
