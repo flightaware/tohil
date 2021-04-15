@@ -34,6 +34,7 @@ typedef struct {
 } PyTclObj;
 
 int PyTclObj_Check(PyObject *pyObj);
+int TohilTclDict_Check(PyObject *pyObj);
 static PyTypeObject PyTclObjType;
 
 int TohilTclDict_Check(PyObject *pyObj);
@@ -335,6 +336,7 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
      * - None -> {}
      * - True -> 1, False -> 0
      * - tclobj -> tclobj
+     * - tcldict -> tcldict
      * - bytes -> tcl byte string
      * - unicode -> tcl unicode string
      * - number protocol -> tcl number
@@ -350,7 +352,7 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         tObj = Tcl_NewObj();
     } else if (pObj == Py_True || pObj == Py_False) {
         tObj = Tcl_NewBooleanObj(pObj == Py_True);
-    } else if (PyTclObj_Check(pObj)) {
+    } else if (PyTclObj_Check(pObj) || TohilTclDict_Check(pObj)) {
         PyTclObj *pyTclObj = (PyTclObj *)pObj;
         tObj = pyTclObj->tclobj;
     } else if (PyBytes_Check(pObj)) {
@@ -469,6 +471,7 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
     // error return or some kind, or, if necessary, do checks
     // everywhere in the code that currently assumes pyObjToTcl can't fail
     assert(ret != NULL);
+    if (ret == NULL) abort();
     return ret;
 }
 
@@ -2307,7 +2310,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         return tclListObjToPyTupleObject(interp, resultObj);
     }
 
-    PyErr_SetString(PyExc_RuntimeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, or tohil.tclobj");
+    PyErr_SetString(PyExc_RuntimeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, tohil.tclobj or tohil.tcldict");
     return NULL;
 }
 
