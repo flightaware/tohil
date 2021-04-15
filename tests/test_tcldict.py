@@ -54,6 +54,9 @@ class TestTcleDict(unittest.TestCase):
             s += i
         self.assertEqual(s, 'abcdm')
 
+        self.assertEqual(d[['m', 'j']], 'j1')
+
+
 
 if __name__ == "__main__":
     unittest.main()
