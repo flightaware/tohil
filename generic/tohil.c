@@ -2068,9 +2068,24 @@ TohilTclDict_FromTclObj(Tcl_Obj *obj)
     return (PyObject *)self;
 }
 
+static PyObject *
+TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
+{
+    Tcl_Obj *valueObj = PyTclObj_td_locate(self, keys);
+    if (valueObj == NULL) {
+        // not there, no default.  it's an error.
+        // this is clean and the way python does it.
+        PyErr_SetObject(PyExc_KeyError, keys);
+        return NULL;
+    }
+
+    return tohil_python_return(tcl_interp, TCL_OK, NULL, valueObj);
+}
+
+static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)PyTclObj_td_size, (binaryfunc)TohilTclDict_subscript, NULL};
 
 static PyMethodDef TohilTclDict_methods[] = {
-    {"__getitem__", (PyCFunction)PyTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
+    {"__getitem__", (PyCFunction)TohilTclDict_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
     {"reset", (PyCFunction)PyTclObj_reset, METH_NOARGS, "reset the tcldict object"},
     {"as_str", (PyCFunction)PyTclObj_as_string, METH_NOARGS, "return tcldict as str"},
     {"as_list", (PyCFunction)PyTclObj_as_list, METH_NOARGS, "return tcldict as list"},
@@ -2096,6 +2111,7 @@ static PyMethodDef TohilTclDict_methods[] = {
 
 static PyTypeObject TohilTclDictType = {
     PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_base = &PyTclObjType,
     .tp_name = "tohil.tcldict",
     .tp_doc = "Tcl dict Object",
     .tp_basicsize = sizeof(PyTclObj),
@@ -2106,9 +2122,8 @@ static PyTypeObject TohilTclDictType = {
     .tp_dealloc = (destructor)PyTclObj_dealloc,
     .tp_methods = TohilTclDict_methods,
     .tp_str = (reprfunc)PyTclObj_str,
-    .tp_iter = (getiterfunc)PyTclObjIter,
-    .tp_as_sequence = &PyTclObj_as_sequence,
-    .tp_as_mapping = &PyTclObj_as_mapping,
+    .tp_iter = (getiterfunc)PyTohil_TD_td_iter,
+    .tp_as_mapping = &TohilTclDict_as_mapping,
     .tp_repr = (reprfunc)PyTclObj_repr,
     .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
 };
