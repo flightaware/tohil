@@ -1295,7 +1295,7 @@ PyTclObj_td_size(PyTclObj *self, PyObject *pyobj)
     return NULL;
 }
 
-PyObject *
+static int
 PyTclObj_td_remove_keys(PyTclObj *self, PyObject *keys)
 {
     if (PyList_Check(keys)) {
@@ -1317,14 +1317,14 @@ PyTclObj_td_remove_keys(PyTclObj *self, PyObject *keys)
 
         if (status == TCL_ERROR) {
             PyErr_SetString(PyExc_KeyError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
-            return NULL;
+            return -1;
         }
     } else {
         Tcl_Obj *keyObj = _pyObjToTcl(tcl_interp, keys);
 
         if (keyObj == NULL) {
             PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be used as a dictionary key");
-            return NULL;
+            return -1;
         }
 
         // we are about to try to modify the object, so if it's shared we need to copy
@@ -1335,12 +1335,12 @@ PyTclObj_td_remove_keys(PyTclObj *self, PyObject *keys)
         if (Tcl_DictObjRemove(NULL, self->tclobj, keyObj) == TCL_ERROR) {
             Tcl_DecrRefCount(keyObj);
             PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
-            return NULL;
+            return -1;
         }
         Tcl_DecrRefCount(keyObj);
     }
 
-    Py_RETURN_NONE;
+    return 0;
 }
 
 //
@@ -1358,16 +1358,18 @@ PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwlist, &keys)) {
         return NULL;
     }
-    return PyTclObj_td_remove_keys(self, keys);
+
+    if (PyTclObj_td_remove_keys(self, keys) < 0) {
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
 }
 
-static PyObject *
+static int
 TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
 {
     Tcl_Obj *valueObj = pyObjToTcl(tcl_interp, pValue);
-    if (valueObj == NULL) {
-        return NULL;
-    }
 
     // we are about to try to modify the object, so if it's shared we need to copy
     if (Tcl_IsShared(self->tclobj)) {
@@ -1389,29 +1391,30 @@ TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
         if (status == TCL_ERROR) {
             Tcl_DecrRefCount(valueObj);
             PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
-            return NULL;
+            return -1;
         }
     } else {
         Tcl_Obj *keyObj = _pyObjToTcl(tcl_interp, keys);
 
         if (keyObj == NULL) {
             PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be used as a dictionary key");
-            return NULL;
+            return -1;
         }
 
         if (Tcl_DictObjPut(tcl_interp, self->tclobj, keyObj, valueObj) == TCL_ERROR) {
             Tcl_DecrRefCount(keyObj);
             Tcl_DecrRefCount(valueObj);
             PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
-            return NULL;
+            return -1;
         }
         // something about this is a crash
         // Tcl_DecrRefCount(keyObj);
         // Tcl_DecrRefCount(valueObj);
     }
 
-    Py_RETURN_NONE;
+    return 0;
 }
+
 //
 // tclobj.td_set(key, value) - do a dict set on the tcl object
 //   if key is a python list, td_set operates on a nested tree
@@ -1428,7 +1431,12 @@ PyTclObj_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|$", kwlist, &keys, &pValue)) {
         return NULL;
     }
-    return TohilTclDict_setitem(self, keys, pValue);
+
+    if (TohilTclDict_setitem(self, keys, pValue) < 0) {
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
 }
 
 //
@@ -2099,7 +2107,7 @@ TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
     return tohil_python_return(tcl_interp, TCL_OK, NULL, valueObj);
 }
 
-static PyObject *
+static int
 TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
 {
     // NB this is the same thing as what we're returning,
@@ -2108,7 +2116,7 @@ TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
     return PyTclObj_td_remove_keys(self, keys);
 }
 
-static PyObject *
+static int
 TohilTclDict_ass_sub(PyTclObj *self, PyObject *key, PyObject *val)
 {
     if (val == NULL) {
@@ -2118,6 +2126,16 @@ TohilTclDict_ass_sub(PyTclObj *self, PyObject *key, PyObject *val)
     }
 }
 
+static Py_ssize_t
+TohilTclDict_length(PyTclObj *self)
+{
+    int length;
+    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &length) == TCL_OK) {
+        return length;
+    }
+    PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+    return -1;
+}
 
 static PyObject *
 TohilTclDictIter(PyTclObj *self)
@@ -2125,12 +2143,9 @@ TohilTclDictIter(PyTclObj *self)
     return Tohil_td_iter_start(self, NULL);
 }
 
-static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)PyTclObj_td_size, (binaryfunc)TohilTclDict_subscript, (objobjargproc)TohilTclDict_ass_sub};
+static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)TohilTclDict_length, (binaryfunc)TohilTclDict_subscript, (objobjargproc)TohilTclDict_ass_sub};
 
 static PyMethodDef TohilTclDict_methods[] = {
-    {"__getitem__", (PyCFunction)TohilTclDict_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
-    {"__setitem__", (PyCFunction)TohilTclDict_setitem, METH_O | METH_COEXIST, "x.__setitem__(y,v) <==> x[y] = v"},
-    {"__delitem__", (PyCFunction)TohilTclDict_delitem, METH_O | METH_COEXIST, "x.__delitem__(y) <==> del x[y]"},
     {"reset", (PyCFunction)PyTclObj_reset, METH_NOARGS, "reset the tcldict object"},
     {"as_str", (PyCFunction)PyTclObj_as_string, METH_NOARGS, "return tcldict as str"},
     {"as_list", (PyCFunction)PyTclObj_as_list, METH_NOARGS, "return tcldict as list"},
