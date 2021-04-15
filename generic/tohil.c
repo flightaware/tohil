@@ -2082,6 +2082,28 @@ TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
     return tohil_python_return(tcl_interp, TCL_OK, NULL, valueObj);
 }
 
+static PyObject *
+TohilTclDictIter(PyTclObj *self)
+{
+    // NB unpleasantly similar to parts of PyTohil_TD_td_iter
+    int size = 0;
+    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
+        PyErr_Format(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+        return NULL;
+    }
+
+    PyTohil_TD_IterObj *pIter = (PyTohil_TD_IterObj *)PyObject_New(PyTohil_TD_IterObj, &PyTohil_TD_IterType);
+
+    pIter->started = 0;
+    pIter->done = 0;
+    pIter->to = NULL;
+    memset((void *)&pIter->search, 0, sizeof(Tcl_DictSearch));
+    pIter->dictObj = ((PyTclObj *)self)->tclobj;
+    Tcl_IncrRefCount(pIter->dictObj);
+
+    return (PyObject *)pIter;
+}
+
 static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)PyTclObj_td_size, (binaryfunc)TohilTclDict_subscript, NULL};
 
 static PyMethodDef TohilTclDict_methods[] = {
@@ -2122,7 +2144,7 @@ static PyTypeObject TohilTclDictType = {
     .tp_dealloc = (destructor)PyTclObj_dealloc,
     .tp_methods = TohilTclDict_methods,
     .tp_str = (reprfunc)PyTclObj_str,
-    .tp_iter = (getiterfunc)PyTohil_TD_td_iter,
+    .tp_iter = (getiterfunc)TohilTclDictIter,
     .tp_as_mapping = &TohilTclDict_as_mapping,
     .tp_repr = (reprfunc)PyTclObj_repr,
     .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
