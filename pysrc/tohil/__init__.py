@@ -242,6 +242,7 @@ from tohil._tohil import (
     subst,
     unset,
     tclobj,
+    tcldict,
     convert,
     incr,
 )

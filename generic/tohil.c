@@ -36,6 +36,9 @@ typedef struct {
 int PyTclObj_Check(PyObject *pyObj);
 static PyTypeObject PyTclObjType;
 
+int TohilTclDict_Check(PyObject *pyObj);
+static PyTypeObject TohilTclDictType;
+
 PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyObject *toType, Tcl_Obj *resultObj);
 
 // TCL library begins here
@@ -823,8 +826,9 @@ PyTclObj_FromTclObj(Tcl_Obj *obj)
 //
 // create a new python tclobj object
 //
-// currently just creates an empty object but could use args
-// and keywords to do other interesting stuff?
+// creates an empty object if no argument is given, but if an
+// argument is provided, performs pyObjToTcl conversion on it
+// and makes the new tclobj object point to that
 //
 static PyObject *
 PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
@@ -2033,6 +2037,89 @@ static PyTypeObject PyTclObjType = {
 // end of tclobj python datatype
 //
 
+//
+// start of tcldict python datatype
+//
+
+// the object's python data structure is the same as tclobj
+// so we can reuse that to the max.  we're going to have different
+// iterators and stuff for dicts
+
+//
+// return true if python object is a tclobj type
+//
+int
+TohilTclDict_Check(PyObject *pyObj)
+{
+    return PyObject_TypeCheck(pyObj, &TohilTclDictType);
+}
+
+//
+// create a new python tcldict object from any Tcl_Obj
+//
+static PyObject *
+TohilTclDict_FromTclObj(Tcl_Obj *obj)
+{
+    PyTclObj *self = (PyTclObj *)TohilTclDictType.tp_alloc(&TohilTclDictType, 0);
+    if (self != NULL) {
+        self->tclobj = obj;
+        Tcl_IncrRefCount(obj);
+    }
+    return (PyObject *)self;
+}
+
+
+static PyMethodDef TohilTclDict_methods[] = {
+    {"__getitem__", (PyCFunction)PyTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
+    {"reset", (PyCFunction)PyTclObj_reset, METH_NOARGS, "reset the tcldict object"},
+    {"as_str", (PyCFunction)PyTclObj_as_string, METH_NOARGS, "return tcldict as str"},
+    {"as_list", (PyCFunction)PyTclObj_as_list, METH_NOARGS, "return tcldict as list"},
+    {"as_set", (PyCFunction)PyTclObj_as_set, METH_NOARGS, "return tcldict as set"},
+    {"as_tuple", (PyCFunction)PyTclObj_as_tuple, METH_NOARGS, "return tcldict as tuple"},
+    {"as_dict", (PyCFunction)PyTclObj_as_dict, METH_NOARGS, "return tcldict as dict"},
+    {"as_tclobj", (PyCFunction)PyTclObj_as_tclobj, METH_NOARGS, "return tcldict as tclobj"},
+    {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
+    {"td_exists", (PyCFunction)PyTclObj_td_exists, METH_VARARGS | METH_KEYWORDS, "see if key exists in tcl dict"},
+    {"td_remove", (PyCFunction)PyTclObj_td_remove, METH_VARARGS | METH_KEYWORDS, "remove item or list hierarchy from tcl dict"},
+    {"td_iter", (PyCFunction)PyTohil_TD_td_iter, METH_VARARGS | METH_KEYWORDS, "iterate on a tclobj containing a tcl dict"},
+    {"td_set", (PyCFunction)PyTclObj_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
+    {"td_size", (PyCFunction)PyTclObj_td_size, METH_NOARGS, "get size of tcl dict"},
+    {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tcldict to tcl var or array element"},
+    {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tcldict's tcl object"},
+    {"set", (PyCFunction)PyTclObj_set, METH_O, "set tcldict from some python object"},
+    {"refcount", (PyCFunction)PyTclObj_refcount, METH_NOARGS, "get tclobj's reference count"},
+    {"type", (PyCFunction)PyTclObj_type, METH_NOARGS, "return the tclobj's type from tcl, or None if it doesn't have one"},
+    {NULL} // sentinel
+};
+
+// NB need to change tp_itr, to_as_squence, to_as_mapping to do dict stuff
+
+static PyTypeObject TohilTclDictType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "tohil.tcldict",
+    .tp_doc = "Tcl dict Object",
+    .tp_basicsize = sizeof(PyTclObj),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_new = PyTclObj_new,
+    .tp_init = (initproc)PyTclObj_init,
+    .tp_dealloc = (destructor)PyTclObj_dealloc,
+    .tp_methods = TohilTclDict_methods,
+    .tp_str = (reprfunc)PyTclObj_str,
+    .tp_iter = (getiterfunc)PyTclObjIter,
+    .tp_as_sequence = &PyTclObj_as_sequence,
+    .tp_as_mapping = &PyTclObj_as_mapping,
+    .tp_repr = (reprfunc)PyTclObj_repr,
+    .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
+};
+
+//
+//
+// end of tcldict python datatype
+//
+//
+
+
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
 // from any python C function in this library that accepts a to=python_data_type argument,
 // and this routine ought to handle it
@@ -2124,6 +2211,10 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
 
     if (strcmp(toString, "tohil.tclobj") == 0) {
         return PyTclObj_FromTclObj(resultObj);
+    }
+
+    if (strcmp(toString, "tohil.tcldict") == 0) {
+        return TohilTclDict_FromTclObj(resultObj);
     }
 
     if (strcmp(toString, "list") == 0) {
@@ -2611,6 +2702,11 @@ PyInit__tohil(void)
         return NULL;
     }
 
+    // turn up the tcldict python type
+    if (PyType_Ready(&TohilTclDictType) < 0) {
+        return NULL;
+    }
+
     // create the python module
     PyObject *m = PyModule_Create(&TohilModule);
     if (m == NULL) {
@@ -2640,6 +2736,14 @@ PyInit__tohil(void)
     Py_INCREF(&PyTclObjType);
     if (PyModule_AddObject(m, "tclobj", (PyObject *)&PyTclObjType) < 0) {
         Py_DECREF(&PyTclObjType);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    // add our tcldict type to python
+    Py_INCREF(&TohilTclDictType);
+    if (PyModule_AddObject(m, "tcldict", (PyObject *)&TohilTclDictType) < 0) {
+        Py_DECREF(&TohilTclDictType);
         Py_DECREF(m);
         return NULL;
     }
