@@ -39,6 +39,7 @@ static PyTypeObject PyTclObjType;
 
 int TohilTclDict_Check(PyObject *pyObj);
 static PyTypeObject TohilTclDictType;
+static PyObject * TohilTclDict_FromTclObj(Tcl_Obj *obj);
 
 PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyObject *toType, Tcl_Obj *resultObj);
 
@@ -1083,6 +1084,15 @@ PyTclObj_as_tclobj(PyTclObj *self, PyObject *pyobj)
 }
 
 //
+// tclobj.as_tcldict()
+//
+static PyObject *
+PyTclObj_as_tcldict(PyTclObj *self, PyObject *pyobj)
+{
+    return TohilTclDict_FromTclObj(self->tclobj);
+}
+
+//
 // tclobj.as_byte_array()
 //
 static PyObject *
@@ -2023,6 +2033,7 @@ static PyMethodDef PyTclObj_methods[] = {
     {"as_tuple", (PyCFunction)PyTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
     {"as_dict", (PyCFunction)PyTclObj_as_dict, METH_NOARGS, "return tclobj as dict"},
     {"as_tclobj", (PyCFunction)PyTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
+    {"as_tcldict", (PyCFunction)PyTclObj_as_tcldict, METH_NOARGS, "return tclobj as tcldict"},
     {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"incr", (PyCFunction)PyTclObj_incr, METH_VARARGS | METH_KEYWORDS, "increment tclobj as int"},
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
@@ -2149,24 +2160,11 @@ TohilTclDictIter(PyTclObj *self)
 static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)TohilTclDict_length, (binaryfunc)TohilTclDict_subscript, (objobjargproc)TohilTclDict_ass_sub};
 
 static PyMethodDef TohilTclDict_methods[] = {
-    {"reset", (PyCFunction)PyTclObj_reset, METH_NOARGS, "reset the tcldict object"},
-    {"as_str", (PyCFunction)PyTclObj_as_string, METH_NOARGS, "return tcldict as str"},
-    {"as_list", (PyCFunction)PyTclObj_as_list, METH_NOARGS, "return tcldict as list"},
-    {"as_set", (PyCFunction)PyTclObj_as_set, METH_NOARGS, "return tcldict as set"},
-    {"as_tuple", (PyCFunction)PyTclObj_as_tuple, METH_NOARGS, "return tcldict as tuple"},
-    {"as_dict", (PyCFunction)PyTclObj_as_dict, METH_NOARGS, "return tcldict as dict"},
-    {"as_tclobj", (PyCFunction)PyTclObj_as_tclobj, METH_NOARGS, "return tcldict as tclobj"},
-    {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
-    {"td_exists", (PyCFunction)PyTclObj_td_exists, METH_VARARGS | METH_KEYWORDS, "see if key exists in tcl dict"},
-    {"td_remove", (PyCFunction)PyTclObj_td_remove, METH_VARARGS | METH_KEYWORDS, "remove item or list hierarchy from tcl dict"},
+    {"get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
+    {"exists", (PyCFunction)PyTclObj_td_exists, METH_VARARGS | METH_KEYWORDS, "see if key exists in tcl dict"},
+    {"remove", (PyCFunction)PyTclObj_td_remove, METH_VARARGS | METH_KEYWORDS, "remove item or list hierarchy from tcl dict"},
     {"td_iter", (PyCFunction)PyTohil_TD_td_iter, METH_VARARGS | METH_KEYWORDS, "iterate on a tclobj containing a tcl dict"},
     {"td_set", (PyCFunction)PyTclObj_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
-    {"td_size", (PyCFunction)PyTclObj_td_size, METH_NOARGS, "get size of tcl dict"},
-    {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tcldict to tcl var or array element"},
-    {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tcldict's tcl object"},
-    {"set", (PyCFunction)PyTclObj_set, METH_O, "set tcldict from some python object"},
-    {"refcount", (PyCFunction)PyTclObj_refcount, METH_NOARGS, "get tclobj's reference count"},
-    {"type", (PyCFunction)PyTclObj_type, METH_NOARGS, "return the tclobj's type from tcl, or None if it doesn't have one"},
     {NULL} // sentinel
 };
 
@@ -2174,7 +2172,7 @@ static PyMethodDef TohilTclDict_methods[] = {
 
 static PyTypeObject TohilTclDictType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    // .tp_base = &PyTclObjType,
+    .tp_base = &PyTclObjType,
     .tp_name = "tohil.tcldict",
     .tp_doc = "Tcl TD tcldict Object",
     .tp_basicsize = sizeof(PyTclObj),
