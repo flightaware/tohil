@@ -1,0 +1,18 @@
+# brew seems to require handholding, so ports are recommended
+
+# if you haven't updated ports in a while because you've been using brew
+
+  #  sudo port selfupdate
+  #  sudo port upgrade outdated
+
+  sudo port install python38
+  sudo port select --set python3 python38
+  sudo port install py38-setuptools
+# or manually install a more recent autoconf 2.6x
+  sudo port install autoconf264
+
+# autoconf 2.71 is latest and is unhappy with TEA
+  sudo port uninstall autoconf
+# or else use autoconf264 explicitly before running configure
+  sudo ln -s autoconf264 /opt/local/bin/autoconf
+
