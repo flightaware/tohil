@@ -1930,6 +1930,33 @@ static PyTypeObject PyTohil_TD_IterType = {
     .tp_iternext = (iternextfunc)PyTohil_TD_iternext,
 };
 
+static PyObject *
+Tohil_td_iter_start(PyTclObj *self, PyObject *pTo)
+{
+    // we don't need size but we use this to make tclobj is or can be a dict
+    int size = 0;
+    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
+        PyErr_Format(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+        return NULL;
+    }
+
+    PyTohil_TD_IterObj *pIter = (PyTohil_TD_IterObj *)PyObject_New(PyTohil_TD_IterObj, &PyTohil_TD_IterType);
+
+    pIter->started = 0;
+    pIter->done = 0;
+    pIter->to = pTo;
+
+    memset((void *)&pIter->search, 0, sizeof(Tcl_DictSearch));
+
+    if (pTo != NULL) {
+        Py_INCREF(pTo);
+    }
+    pIter->dictObj = ((PyTclObj *)self)->tclobj;
+    Tcl_IncrRefCount(pIter->dictObj);
+
+    return (PyObject *)pIter;
+}
+
 //
 // t.td_iter()
 //
@@ -1942,26 +1969,7 @@ PyTohil_TD_td_iter(PyTclObj *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    int size = 0;
-    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
-        PyErr_Format(PyExc_TypeError, "tclobj contents cannot be converted into a td");
-        return NULL;
-    }
-
-    PyTohil_TD_IterObj *pIter = (PyTohil_TD_IterObj *)PyObject_New(PyTohil_TD_IterObj, &PyTohil_TD_IterType);
-
-    pIter->started = 0;
-    pIter->done = 0;
-    memset((void *)&pIter->search, 0, sizeof(Tcl_DictSearch));
-    pIter->to = pTo;
-
-    if (pTo != NULL) {
-        Py_INCREF(pTo);
-    }
-    pIter->dictObj = ((PyTclObj *)self)->tclobj;
-    Tcl_IncrRefCount(pIter->dictObj);
-
-    return (PyObject *)pIter;
+    return Tohil_td_iter_start(self, pTo);
 }
 
 //
@@ -2085,23 +2093,7 @@ TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
 static PyObject *
 TohilTclDictIter(PyTclObj *self)
 {
-    // NB unpleasantly similar to parts of PyTohil_TD_td_iter
-    int size = 0;
-    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
-        PyErr_Format(PyExc_TypeError, "tclobj contents cannot be converted into a td");
-        return NULL;
-    }
-
-    PyTohil_TD_IterObj *pIter = (PyTohil_TD_IterObj *)PyObject_New(PyTohil_TD_IterObj, &PyTohil_TD_IterType);
-
-    pIter->started = 0;
-    pIter->done = 0;
-    pIter->to = NULL;
-    memset((void *)&pIter->search, 0, sizeof(Tcl_DictSearch));
-    pIter->dictObj = ((PyTclObj *)self)->tclobj;
-    Tcl_IncrRefCount(pIter->dictObj);
-
-    return (PyObject *)pIter;
+    return Tohil_td_iter_start(self, NULL);
 }
 
 static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)PyTclObj_td_size, (binaryfunc)TohilTclDict_subscript, NULL};
