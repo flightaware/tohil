@@ -2031,6 +2031,32 @@ PyTohil_TD_td_iter(PyTclObj *self, PyObject *args, PyObject *kwargs)
 //
 //
 
+static PyObject *
+PyTclObj_getto(PyTclObj *self, void *closure)
+{
+    if (self->to == NULL) {
+        Py_RETURN_NONE;
+    }
+    Py_INCREF(self->to);
+    return (PyObject *)self->to;
+}
+
+static int
+PyTclObj_setto(PyTclObj *self, PyTypeObject *toType, void *closure)
+{
+    if (!PyType_Check(toType)) {
+        return -1;
+    }
+    PyTypeObject *tmp = self->to;
+    self->to = toType;
+    Py_INCREF(toType);
+    Py_XDECREF(tmp);
+    return 0;
+}
+
+static PyGetSetDef PyTclObj_getsetters[] = {{"to", (getter)PyTclObj_getto, (setter)PyTclObj_setto, "python type to default returns to", NULL},
+                                            {NULL}};
+
 static PyMappingMethods PyTclObj_as_mapping = {(lenfunc)PyTclObj_length, (binaryfunc)PyTclObj_subscript, NULL};
 
 static PySequenceMethods PyTclObj_as_sequence = {
@@ -2093,6 +2119,7 @@ static PyTypeObject PyTclObjType = {
     .tp_as_mapping = &PyTclObj_as_mapping,
     .tp_repr = (reprfunc)PyTclObj_repr,
     .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
+    .tp_getset = PyTclObj_getsetters,
 };
 
 //
