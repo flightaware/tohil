@@ -30,7 +30,7 @@
 // methods and functions that implement the type.
 typedef struct {
     PyObject_HEAD;
-    PyTypeObject *toType;
+    PyTypeObject *to;
     Tcl_Obj *tclobj;
 } PyTclObj;
 
@@ -42,7 +42,7 @@ int TohilTclDict_Check(PyObject *pyObj);
 static PyTypeObject TohilTclDictType;
 static PyObject *TohilTclDict_FromTclObj(Tcl_Obj *obj);
 
-PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyObject *toType, Tcl_Obj *resultObj);
+PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
 // TCL library begins here
 
@@ -824,7 +824,7 @@ PyTclObj_FromTclObj(Tcl_Obj *obj)
     PyTclObj *self = (PyTclObj *)PyTclObjType.tp_alloc(&PyTclObjType, 0);
     if (self != NULL) {
         self->tclobj = obj;
-        self->toType = NULL;
+        self->to = NULL;
         Tcl_IncrRefCount(obj);
     }
     return (PyObject *)self;
@@ -862,7 +862,7 @@ PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             self->tclobj = pyObjToTcl(tcl_interp, pSource);
         }
         Tcl_IncrRefCount(self->tclobj);
-        self->toType = (PyTypeObject *)toType;
+        self->to = (PyTypeObject *)toType;
         Py_XINCREF(toType);
     }
     return (PyObject *)self;
@@ -872,7 +872,7 @@ static void
 PyTclObj_dealloc(PyTclObj *self)
 {
     Tcl_DecrRefCount(self->tclobj);
-    Py_XDECREF(self->toType);
+    Py_XDECREF(self->to);
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -983,8 +983,8 @@ PyTclObj_reset(PyTclObj *self, PyObject *pyobj)
 {
     Tcl_DecrRefCount(self->tclobj);
     self->tclobj = Tcl_NewObj();
-    Py_XDECREF(self->toType);
-    self->toType = NULL;
+    Py_XDECREF(self->to);
+    self->to = NULL;
     Tcl_IncrRefCount(self->tclobj);
     Py_RETURN_NONE;
 }
@@ -1211,7 +1211,7 @@ PyTclObj_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"key", "to", "default", NULL};
     PyObject *keys = NULL;
-    PyObject *to = NULL;
+    PyTypeObject *to = NULL;
     PyObject *pDefault = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$OO", kwlist, &keys, &to, &pDefault)) {
@@ -1236,6 +1236,9 @@ PyTclObj_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
             return NULL;
         }
     }
+
+    if (to == NULL && self->to != NULL)
+        to = self->to;
 
     return tohil_python_return(tcl_interp, TCL_OK, to, valueObj);
 }
@@ -1537,7 +1540,7 @@ static PyObject *
 PyTclObj_lindex(PyTclObj *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"index", "to", NULL};
-    PyObject *to = NULL;
+    PyTypeObject *to = NULL;
     int index = 0;
     int length = 0;
 
@@ -1559,6 +1562,9 @@ PyTclObj_lindex(PyTclObj *self, PyObject *args, PyObject *kwargs)
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
     }
+
+    if (to == NULL && self->to != NULL)
+        to = self->to;
 
     return tohil_python_return(tcl_interp, TCL_OK, to, resultObj);
 }
@@ -1879,7 +1885,7 @@ typedef struct {
     PyObject_HEAD;
     int started;
     int done;
-    PyObject *to;
+    PyTypeObject *to;
     Tcl_Obj *dictObj;
     Tcl_DictSearch search;
 } PyTohil_TD_IterObj;
@@ -1978,7 +1984,7 @@ static PyTypeObject PyTohil_TD_IterType = {
 };
 
 static PyObject *
-Tohil_td_iter_start(PyTclObj *self, PyObject *pTo)
+Tohil_td_iter_start(PyTclObj *self, PyTypeObject *pTo)
 {
     // we don't need size but we use this to make tclobj is or can be a dict
     int size = 0;
@@ -2010,7 +2016,7 @@ Tohil_td_iter_start(PyTclObj *self, PyObject *pTo)
 static PyObject *
 PyTohil_TD_td_iter(PyTclObj *self, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pTo = NULL;
+    PyTypeObject *pTo = NULL;
     static char *kwlist[] = {"to", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|$O", kwlist, &pTo)) {
         return NULL;
@@ -2135,7 +2141,7 @@ TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
         return NULL;
     }
 
-    return tohil_python_return(tcl_interp, TCL_OK, NULL, valueObj);
+    return tohil_python_return(tcl_interp, TCL_OK, self->to, valueObj);
 }
 
 static int
@@ -2225,7 +2231,7 @@ static PyTypeObject TohilTclDictType = {
 // from any python C function in this library that accepts a to=python_data_type argument,
 // and this routine ought to handle it
 PyObject *
-tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Obj *resultObj)
+tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj)
 {
     const char *toString = NULL;
     PyTypeObject *pt = NULL;
@@ -2345,7 +2351,7 @@ static PyObject *
 tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"tcl_code", "to", NULL};
-    PyObject *to = NULL;
+    PyTypeObject *to = NULL;
     char *utf8Code = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &utf8Code, &to))
@@ -2369,7 +2375,7 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"expression", "to", NULL};
     char *utf8expression = NULL;
-    PyObject *to = NULL;
+    PyTypeObject *to = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &utf8expression, &to))
         return NULL;
@@ -2396,7 +2402,7 @@ tohil_convert(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"pyobject", "to", NULL};
     PyObject *pyInputObject = NULL;
-    PyObject *to = NULL;
+    PyTypeObject *to = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$O", kwlist, &pyInputObject, &to))
         return NULL;
@@ -2417,7 +2423,7 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"var", "to", "default", NULL};
     char *var = NULL;
-    PyObject *to = NULL;
+    PyTypeObject *to = NULL;
     PyObject *defaultPyObj = NULL;
     Tcl_Obj *obj = NULL;
 
@@ -2572,7 +2578,7 @@ tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"string", "to", NULL};
     char *string = NULL;
-    PyObject *to = NULL;
+    PyTypeObject *to = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &string, &to)) {
         return NULL;
@@ -2597,7 +2603,7 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     Py_ssize_t objc = PyTuple_GET_SIZE(args);
     int i;
-    PyObject *to = NULL;
+    PyTypeObject *to = NULL;
 
     //
     // allocate an array of Tcl object pointers the same size
@@ -2608,7 +2614,7 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 
     // we need to process kwargs to get the to
     if (kwargs != NULL) {
-        to = PyDict_GetItemString(kwargs, "to");
+        to = (PyTypeObject *)PyDict_GetItemString(kwargs, "to");
     }
 
     // for each argument convert the python object to a tcl object
