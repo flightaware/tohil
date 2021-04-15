@@ -44,8 +44,8 @@ class TestTcleDict(unittest.TestCase):
 
         self.assertEqual(str(d), 'a 1 b 2 c 3 d 4 m {i i1 j j1 k k1}')
 
-        self.assertEqual(d.td_get(['m', 'k']), 'k1')
-        self.assertEqual(d.td_get('m'), 'i i1 j j1 k k1')
+        self.assertEqual(d.get(['m', 'k']), 'k1')
+        self.assertEqual(d.get('m'), 'i i1 j j1 k k1')
         self.assertEqual(len(d), 5)
         self.assertEqual(len(e), 3)
 
