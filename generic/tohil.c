@@ -1714,7 +1714,7 @@ PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
     for (i = 0; i < len; i++) {
         // create a new tclobj object and store
         // it into the python list we are making
-        PyObject *v = PyTclObj_FromTclObj(src[i]);
+        PyObject *v = tohil_python_return(tcl_interp, TCL_OK, self->to, src[i]);
         PyList_SET_ITEM(np, i, v);
     }
     return (PyObject *)np;
@@ -1743,7 +1743,7 @@ PyTclObj_item(PyTclObj *self, Py_ssize_t i)
         return NULL;
     }
 
-    PyObject *ret = PyTclObj_FromTclObj(listObjv[i]);
+    PyObject *ret = tohil_python_return(tcl_interp, TCL_OK, self->to, listObjv[i]);
     Py_INCREF(ret);
     return ret;
 }
@@ -1827,7 +1827,7 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
             PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
             return NULL;
         }
-        return PyTclObj_FromTclObj(resultObj);
+        return tohil_python_return(tcl_interp, TCL_OK, self->to, resultObj);
     } else if (PySlice_Check(item)) {
         Py_ssize_t start, stop, step, slicelength, i;
         size_t cur;
@@ -1841,7 +1841,7 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
         slicelength = PySlice_AdjustIndices(size, &start, &stop, step);
 
         if (slicelength <= 0) {
-            return PyTclObj_FromTclObj(Tcl_NewObj());
+            return tohil_python_return(tcl_interp, TCL_OK, self->to, Tcl_NewObj());
         } else if (step == 1) {
             return PyTclObj_slice(self, start, stop);
         } else {
@@ -1858,7 +1858,7 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
             }
 
             for (cur = start, i = 0; i < slicelength; cur += (size_t)step, i++) {
-                it = PyTclObj_FromTclObj(listObjv[cur]);
+                it = tohil_python_return(tcl_interp, TCL_OK, self->to, listObjv[cur]);
                 PyList_SET_ITEM(result, i, it);
             }
             return result;
