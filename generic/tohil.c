@@ -1295,22 +1295,9 @@ PyTclObj_td_size(PyTclObj *self, PyObject *pyobj)
     return NULL;
 }
 
-//
-// td_remove(key) - if key is a python list, do a dict remove keylist on the tcl object,
-//   where the arg is a python list of a hierarchy of names to remove.
-//
-//   if key is not a python list, does a dict remove on the tcl object for that key
-//
-static PyObject *
-PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
+PyObject *
+PyTclObj_td_remove_keys(PyTclObj *self, PyObject *keys)
 {
-    static char *kwlist[] = {"key", NULL};
-    PyObject *keys = NULL;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwlist, &keys)) {
-        return NULL;
-    }
-
     if (PyList_Check(keys)) {
         int objc = 0;
         Tcl_Obj **objv = NULL;
@@ -1357,22 +1344,26 @@ PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
 }
 
 //
-// tclobj.td_set(key, value) - do a dict set on the tcl object
-//   if key is a python list, td_set operates on a nested tree
-//   of dictionaries
+// td_remove(key) - if key is a python list, do a dict remove keylist on the tcl object,
+//   where the arg is a python list of a hierarchy of names to remove.
+//
+//   if key is not a python list, does a dict remove on the tcl object for that key
 //
 static PyObject *
-PyTclObj_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
+PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
 {
-    static char *kwlist[] = {"key", "value", NULL};
+    static char *kwlist[] = {"key", NULL};
     PyObject *keys = NULL;
-    PyObject *pValue = NULL;
 
-    // remember, "O" sets our pointer to the object without incrementing its reference count
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|$", kwlist, &keys, &pValue)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwlist, &keys)) {
         return NULL;
     }
+    return PyTclObj_td_remove_keys(self, keys);
+}
 
+static PyObject *
+TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
+{
     Tcl_Obj *valueObj = pyObjToTcl(tcl_interp, pValue);
     if (valueObj == NULL) {
         return NULL;
@@ -1420,6 +1411,24 @@ PyTclObj_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
     }
 
     Py_RETURN_NONE;
+}
+//
+// tclobj.td_set(key, value) - do a dict set on the tcl object
+//   if key is a python list, td_set operates on a nested tree
+//   of dictionaries
+//
+static PyObject *
+PyTclObj_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"key", "value", NULL};
+    PyObject *keys = NULL;
+    PyObject *pValue = NULL;
+
+    // remember, "O" sets our pointer to the object without incrementing its reference count
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|$", kwlist, &keys, &pValue)) {
+        return NULL;
+    }
+    return TohilTclDict_setitem(self, keys, pValue);
 }
 
 //
@@ -2091,15 +2100,37 @@ TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
 }
 
 static PyObject *
+TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
+{
+    // NB this is the same thing as what we're returning,
+    // but i don't like the name of the thing we're calling
+    // and i like that delitem is more self-documenting
+    return PyTclObj_td_remove_keys(self, keys);
+}
+
+static PyObject *
+TohilTclDict_ass_sub(PyTclObj *self, PyObject *key, PyObject *val)
+{
+    if (val == NULL) {
+        return TohilTclDict_delitem(self, key);
+    } else {
+        return TohilTclDict_setitem(self, key, val);
+    }
+}
+
+
+static PyObject *
 TohilTclDictIter(PyTclObj *self)
 {
     return Tohil_td_iter_start(self, NULL);
 }
 
-static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)PyTclObj_td_size, (binaryfunc)TohilTclDict_subscript, NULL};
+static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)PyTclObj_td_size, (binaryfunc)TohilTclDict_subscript, (objobjargproc)TohilTclDict_ass_sub};
 
 static PyMethodDef TohilTclDict_methods[] = {
     {"__getitem__", (PyCFunction)TohilTclDict_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
+    {"__setitem__", (PyCFunction)TohilTclDict_setitem, METH_O | METH_COEXIST, "x.__setitem__(y,v) <==> x[y] = v"},
+    {"__delitem__", (PyCFunction)TohilTclDict_delitem, METH_O | METH_COEXIST, "x.__delitem__(y) <==> del x[y]"},
     {"reset", (PyCFunction)PyTclObj_reset, METH_NOARGS, "reset the tcldict object"},
     {"as_str", (PyCFunction)PyTclObj_as_string, METH_NOARGS, "return tcldict as str"},
     {"as_list", (PyCFunction)PyTclObj_as_list, METH_NOARGS, "return tcldict as list"},
@@ -2125,9 +2156,9 @@ static PyMethodDef TohilTclDict_methods[] = {
 
 static PyTypeObject TohilTclDictType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_base = &PyTclObjType,
+    // .tp_base = &PyTclObjType,
     .tp_name = "tohil.tcldict",
-    .tp_doc = "Tcl dict Object",
+    .tp_doc = "Tcl TD tcldict Object",
     .tp_basicsize = sizeof(PyTclObj),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
@@ -2147,7 +2178,6 @@ static PyTypeObject TohilTclDictType = {
 // end of tcldict python datatype
 //
 //
-
 
 // say return tohil_python_return(interp, tcl_result, to string, resultObject)
 // from any python C function in this library that accepts a to=python_data_type argument,
