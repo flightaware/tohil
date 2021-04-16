@@ -1313,21 +1313,6 @@ pyListToObjv_teardown(int objc, Tcl_Obj **objv)
     ckfree(objv);
 }
 
-//
-// td_size() - return the dict size of a python tclobj's tcl object
-//   exception thrown if tcl object isn't a proper tcl dict
-//
-static PyObject *
-PyTclObj_td_size(PyTclObj *self, PyObject *pyobj)
-{
-    int length;
-    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &length) == TCL_OK) {
-        return PyLong_FromLong(length);
-    }
-    PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
-    return NULL;
-}
-
 static int
 TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
 {
@@ -2019,7 +2004,6 @@ static PyMethodDef PyTclObj_methods[] = {
     {"td_exists", (PyCFunction)PyTclObj_td_exists, METH_VARARGS | METH_KEYWORDS, "see if key exists in tcl dict"},
     {"td_iter", (PyCFunction)PyTohil_TD_td_iter, METH_VARARGS | METH_KEYWORDS, "iterate on a tclobj containing a tcl dict"},
     {"td_set", (PyCFunction)PyTclObj_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
-    {"td_size", (PyCFunction)PyTclObj_td_size, METH_NOARGS, "get size of tcl dict"},
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
     {"set", (PyCFunction)PyTclObj_set, METH_O, "set tclobj from some python object"},
@@ -2174,6 +2158,21 @@ TohilTclDictIter(PyTclObj *self)
     return Tohil_td_iter_start(self, NULL);
 }
 
+//
+// TohilTclDict_size() - return the dict size of a python tclobj's tcl object
+//   exception thrown if tcl object isn't a proper tcl dict
+//
+static PyObject *
+TohilTclDict_size(PyTclObj *self, PyObject *pyobj)
+{
+    int length;
+    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &length) == TCL_OK) {
+        return PyLong_FromLong(length);
+    }
+    PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+    return NULL;
+}
+
 static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)TohilTclDict_length, (binaryfunc)TohilTclDict_subscript,
                                                    (objobjargproc)TohilTclDict_ass_sub};
 
@@ -2182,7 +2181,7 @@ static PyMethodDef TohilTclDict_methods[] = {
     // NB i don't know if this __len__ thing works -- python might
     // be doing something gross to get the len of the dict, like
     // enumerating the elements
-    {"__len__", (PyCFunction)PyTclObj_td_size, METH_VARARGS | METH_KEYWORDS, "get length of tcl dict"},
+    {"__len__", (PyCFunction)TohilTclDict_size, METH_VARARGS | METH_KEYWORDS, "get length of tcl dict"},
     {"td_set", (PyCFunction)PyTclObj_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
     {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
