@@ -153,9 +153,22 @@ class ShadowDict(MutableMapping):
 # misc stuff and helpers
 #
 
+def source(file_name, encoding=""):
+    """source in a tcl file with optional specification of
+    the encoding of the data stored in the file.  if encoding
+    is not specified, the system encoding is assumed."""
+    if encoding is "":
+        return _tohil.call("source", file_name)
+    else:
+        return _tohil.call("source", "-encoding", encoding, file_name)
+
 
 def package_require(package, version=""):
-    return _tohil.eval(f"package require {package} {version}")
+    """try to load the specified package."""
+    if version is "":
+        return _tohil.call("package", "require", package)
+    else:
+        return _tohil.call("package", "require", package, version)
 
 
 def use_vhost(vhost=""):
