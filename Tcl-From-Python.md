@@ -1,59 +1,63 @@
 
 
-The use case is you have a lot of valuable Tcl code that works that you're
-not crazy enough to try to get rid of, but you want to be able to use python
-for web stuff and/or backend stuff, get access to python and all the libraries
-available for it, the benefits of the much larger user community, greater 
-acceptance among the developers (possibly your employees) and the larger
-talent pool, etc.
 
-It's not going to work to rewrite.  You can't.  THere are too many
-customers that are already using what you've got, and there are bug
-fixes and improvements that they're waiting on.  You're going to retask some
-considerably proportion of your staff to rewrite years to bazillions
-of years of work, and almost for sure you're going to go out of business.
-You're going to go out of business because your rewrite is going to fail.
-Your rewrite will regress, recreate tons of bugs that were already fixed
-in the old stuff, cause trouble tickets, maintenance, tl;dr you're not
-going to like it.
+## I want to get up and running as quickly as possible, accessing my tcl stuff from python.
 
-So you have a ton of Tcl code and you want to get to python.  What's it
-going to take to do that?
+Great!
 
-You're gonna need Python and Tcl to be fluent with each other.
+Tohil gives you a few options for how to run tcl code and access tcl data from python.
 
-What does "fluent" mean?  From my dictionary... fluent - adjective - ...able
-to express oneself easily and articulately... able to speak or write a
-particular foreign language easily and accurately... spoken accurately
-and with facility... smoothly graceful and easy... abole to flow freely, fluid.
+You can pick and choose what you need, and how far you want to go.
 
-Wow, yeah, that's what you want, even the bit about a being able to
-speak or write a particular foreign language easily and accurately.
+After building and installing tohil, from python you should be able
+to `import tohil` from the python command line.
 
-How do we interface between Tcl and python in a way that is fluent?
+### tohil.eval
 
-Probably the first answer, to people familiar with the C interfaces
-of python or tcl or people who think in particular about interpreted
-languages, is to provide a way to invoke "eval", some function that
-takes whatever it is given and evaluates it, in this case, evaluate
-tcl code from python.
+The simplest way to do something with tcl from python, is to
+use `tohil.eval`.
 
-And indeed that is useful, and helpful, perhaps essential.  And we
-provide that... but it doesn't get you there.  The big problem is how
-data will be expressed as part of the evaluated code, and it is difficult
-to ensure that the data is fully properly quoted, that some data containing
-interpreter metacharacters will inadvertently trigger a malfunction in the
-code or make it vulnerable to an injection attack.
+```
+import tohil
+tohil.eval("package require Tclx")
+```
 
-So "eval" is very useful, but it's not enough.
+You can call tohil.eval as much as you want, and feed it any tcl
+code, and tcl will evaluate it, and return the result.
+If a tcl error occurs and it isn't caught by "try" or "catch",
+tohil will raise a python TclError exception that contains all
+the stuff tcl knows about the error.
 
-OK, we can take it further, upon examination, by providing a way to call
-one language from another, somehow specifying each argument explicitly,
-where even if the arguments contain metacharacters we can ensure they
-are not evaluated by the other interpreter because when invoked with explicit
-arguments, the arguments are not evaluated.  This can be done both for
-calling tcl from python and for calling python from tcl, as it would need
-to be.
+Pretty cool.  Very handy.  You'll probably use it some, and for some
+people it may be all that they need.
+
+But if we get to the point where we're trying to embed data into the
+stuff we're passing to "eval", like say with f-strings or something...
+
+```
+tohil.eval(f"""set users({user}) [list name "{name}" address "{address}" phone "{phone}"]""")
+```
+
+^ don't do this!
+
+...we are asking for trouble.  Dollar signs, double quotes, curly brackets,
+square brackets in the data, the tcl interpreter will try to interpret it.
+
+You can do some heavy lifting to try to make sure that the data if properly
+quoted, but that's pretty hard and kind of error prone and if you miss
+running your data through your conditioner anywhere, you've got the risk
+of the problem again.
+
+### tohil.call
+
+tohil.call is a way to call tcl with each argument specified explicitly.
+
+This way, even if the arguments contain metacharacters we can ensure they
+are not evaluated by tcl because when invoked this way, tcl will not
+evaluate tohil.call's arguments.
+
+There are tcl-side equivalents to these things for calling python from
+tcl, by the way.
 
 And we provide that...  And it's really handy.  But since you have to
 explicitly invoke this "call" function every time you want to call out to
