@@ -857,7 +857,11 @@ PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     PyTclObj *self = (PyTclObj *)type->tp_alloc(type, 0);
     if (self != NULL) {
         if (pSource == NULL) {
-            self->tclobj = Tcl_NewObj();
+            if (strcmp(type->tp_name, "tohil.tcldict") == 0) {
+                self->tclobj = Tcl_NewDictObj();
+            } else {
+                self->tclobj = Tcl_NewObj();
+            }
         } else {
             self->tclobj = pyObjToTcl(tcl_interp, pSource);
         }
@@ -1730,7 +1734,10 @@ PyTclObj_setto(PyTclObj *self, PyTypeObject *toType, void *closure)
     return 0;
 }
 
-static PyGetSetDef PyTclObj_getsetters[] = {{"to", (getter)PyTclObj_getto, (setter)PyTclObj_setto, "python type to default returns to", NULL},
+static PyGetSetDef PyTclObj_getsetters[] = {
+    {"to", (getter)PyTclObj_getto, (setter)PyTclObj_setto, "python type to default returns to", NULL},
+    {"refcount", (getter)PyTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
+    {"tcltype", (getter)PyTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
                                             {NULL}};
 
 static PyMappingMethods PyTclObj_as_mapping = {(lenfunc)PyTclObj_length, (binaryfunc)PyTclObj_subscript, NULL};
@@ -1768,8 +1775,6 @@ static PyMethodDef PyTclObj_methods[] = {
     {"lindex", (PyCFunction)PyTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from tclobj as tcl list"},
     {"lappend", (PyCFunction)PyTclObj_lappend, METH_O, "lappend (list-append) something to tclobj"},
     {"lappend_list", (PyCFunction)PyTclObj_lappend_list, METH_O, "lappend another tclobj or a python list of stuff to tclobj"},
-    {"refcount", (PyCFunction)PyTclObj_refcount, METH_NOARGS, "get tclobj's reference count"},
-    {"type", (PyCFunction)PyTclObj_type, METH_NOARGS, "return the tclobj's tcl type, or None if it doesn't have one"},
     {NULL} // sentinel
 };
 
@@ -2152,8 +2157,6 @@ static PyMethodDef TohilTclDict_methods[] = {
     {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
     {"set", (PyCFunction)PyTclObj_set, METH_O, "set tclobj from some python object"},
-    {"refcount", (PyCFunction)PyTclObj_refcount, METH_NOARGS, "get tclobj's reference count"},
-    {"type", (PyCFunction)PyTclObj_type, METH_NOARGS, "return the tclobj's tcl type, or None if it doesn't have one"},
     {NULL} // sentinel
 };
 
