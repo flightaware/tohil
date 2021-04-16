@@ -1124,6 +1124,20 @@ PyTclObj_as_byte_array(PyTclObj *self, PyObject *pyobj)
     return PyByteArray_FromStringAndSize((const char *)byteArray, size);
 }
 
+void PyTclObj_dup_if_shared(PyTclObj *self)
+{
+    if (!Tcl_IsShared(self->tclobj)) {
+        return;
+    }
+
+    // decrement the old object.  It's safe because refcount
+    // must be 2 or more.  then duplicate and increment
+    // the new, duplicated object's 0 refcount to 1
+    Tcl_DecrRefCount(self->tclobj);
+    self->tclobj = Tcl_DuplicateObj(self->tclobj);
+    Tcl_IncrRefCount(self->tclobj);
+}
+
 //
 // tclobj.incr() - increment a python tclobj object
 //
@@ -1145,9 +1159,7 @@ PyTclObj_incr(PyTclObj *self, PyObject *args, PyObject *kwargs)
 
     longValue += increment;
 
-    if (Tcl_IsShared(self->tclobj)) {
-        self->tclobj = Tcl_DuplicateObj(self->tclobj);
-    }
+    PyTclObj_dup_if_shared(self);
     Tcl_SetLongObj(self->tclobj, longValue);
     return PyLong_FromLong(longValue);
 }
@@ -1301,7 +1313,10 @@ PyTclObj_lappend(PyTclObj *self, PyObject *pObject)
     }
 
     // we are about to modify the object so if it's shared we need to copy
+    // NB i think we don't increment here because ListObjAppendElement
+    // will do it for us.
     if (Tcl_IsShared(self->tclobj)) {
+        Tcl_DecrRefCount(self->tclobj);
         self->tclobj = Tcl_DuplicateObj(self->tclobj);
     }
 
@@ -1332,7 +1347,10 @@ PyTclObj_lappend_list(PyTclObj *self, PyObject *pObject)
     if (PyTclObj_Check(pObject)) {
         Tcl_Obj *appendListObj = ((PyTclObj *)pObject)->tclobj;
 
+        // NB i think we don't increment here because ListObjAppendList
+        // will do it for us.
         if (Tcl_IsShared(self->tclobj)) {
+            Tcl_DecrRefCount(self->tclobj);
             self->tclobj = Tcl_DuplicateObj(self->tclobj);
         }
 
@@ -1354,6 +1372,7 @@ PyTclObj_lappend_list(PyTclObj *self, PyObject *pObject)
         pyListToObjv_teardown(objc, objv);
 
         if (Tcl_IsShared(self->tclobj)) {
+            Tcl_DecrRefCount(self->tclobj);
             self->tclobj = Tcl_DuplicateObj(self->tclobj);
         }
 
@@ -1496,6 +1515,7 @@ PyTclObj_ass_item(PyTclObj *self, Py_ssize_t i, PyObject *v)
 
     // we are about to modify the object so if it's shared we need to copy
     if (Tcl_IsShared(self->tclobj)) {
+        Tcl_DecrRefCount(self->tclobj);
         self->tclobj = Tcl_DuplicateObj(self->tclobj);
     }
 
@@ -1954,9 +1974,7 @@ TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
         pyListToTclObjv((PyListObject *)keys, &objc, &objv);
 
         // we are about to try to modify the object, so if it's shared we need to copy
-        if (Tcl_IsShared(self->tclobj)) {
-            self->tclobj = Tcl_DuplicateObj(self->tclobj);
-        }
+        PyTclObj_dup_if_shared(self);
 
         int status = (Tcl_DictObjRemoveKeyList(tcl_interp, self->tclobj, objc, objv));
 
@@ -1976,9 +1994,7 @@ TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
         }
 
         // we are about to try to modify the object, so if it's shared we need to copy
-        if (Tcl_IsShared(self->tclobj)) {
-            self->tclobj = Tcl_DuplicateObj(self->tclobj);
-        }
+        PyTclObj_dup_if_shared(self);
 
         if (Tcl_DictObjRemove(NULL, self->tclobj, keyObj) == TCL_ERROR) {
             Tcl_DecrRefCount(keyObj);
@@ -1997,9 +2013,7 @@ TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
     Tcl_Obj *valueObj = pyObjToTcl(tcl_interp, pValue);
 
     // we are about to try to modify the object, so if it's shared we need to copy
-    if (Tcl_IsShared(self->tclobj)) {
-        self->tclobj = Tcl_DuplicateObj(self->tclobj);
-    }
+    PyTclObj_dup_if_shared(self);
 
     if (PyList_Check(keys)) {
         int objc;
@@ -2501,6 +2515,7 @@ tohil_incr(PyObject *self, PyObject *args, PyObject *kwargs)
         longValue += increment;
 
         if (Tcl_IsShared(obj)) {
+            Tcl_DecrRefCount(obj);
             obj = Tcl_DuplicateObj(obj);
             Tcl_SetLongObj(obj, longValue);
             if (Tcl_SetVar2Ex(tcl_interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
