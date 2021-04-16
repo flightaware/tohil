@@ -75,19 +75,18 @@ class TestTD(unittest.TestCase):
         self.assertEqual(x[["a", "b", "c", "d"]], "foo")
 
     def test_td8(self):
-        """tohil.tcldict td_exists"""
+        """tohil.tcldict nested-in checks"""
         x = tcldict()
         x[["a", "b", "c"]] = "foo"
         x["b"] = "bar"
         self.assertEqual(x[["a", "b", "c"]], "foo")
         self.assertEqual(["a", "b", "c"] in x, True)
         self.assertEqual(["a", "d", "d"] in x, False)
-        x.set("monkey")
-        with self.assertRaises(KeyError):
-            x.td_exists(["a", "b", "c"])
+        with self.assertRaises(TypeError):
+            ["a", "b", "c", "d"] in x
 
     def test_td9(self):
-        """tohil.tcldict access amnd manipulation of nested dictionaries"""
+        """tohil.tcldict access and manipulation of nested dictionaries"""
         t = tcldict()
         t[["a", "b", "c", "d"]] = 1
         t["b"] = "bar"
@@ -97,7 +96,12 @@ class TestTD(unittest.TestCase):
         with self.assertRaises(KeyError):
             x["d"]
         self.assertEqual(x[["c", "d"]], "1")
-        self.assertEqual(["c", "d"] in x, "d", True)
+        self.assertEqual(["c", "d"] in x, True)
+        self.assertEqual(["c"] in x, True)
+        self.assertEqual("c" in x, True)
+        self.assertEqual("zzz" in x, False)
+        self.assertEqual(["zzz"] in x, False)
+        self.assertEqual(["zzz","zzz2"] in x, False)
 
 
 if __name__ == "__main__":
