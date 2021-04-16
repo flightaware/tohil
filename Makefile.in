@@ -460,4 +460,4 @@ install-python-module:
 	python3 setup.py install
 
 clean-python-module:
-	rm -rf setup.py build dist
+	rm -rf setup.py build/ dist/ pysrc/tohil.egg-info/ tests/__pycache__/

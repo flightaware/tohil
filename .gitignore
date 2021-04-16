@@ -18,5 +18,9 @@ config.log
 config.status
 
 build
+dist
 
 venv
+
+pysrc/tohil.egg-info/
+tests/__pycache__/

@@ -73,6 +73,8 @@ class TestTclObj(unittest.TestCase):
         """exercise tohil.tclobj subscripting, str(), and repr()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
         self.assertEqual(str(x[2]), "3")
+        self.assertEqual(repr(x[2]), "'3'")
+        x.to = tohil.tclobj
         self.assertEqual(repr(x[2]), "<tohil.tclobj: '3'>")
 
     def test_tclobj11(self):
@@ -93,6 +95,11 @@ class TestTclObj(unittest.TestCase):
         """tohil.tclobj slice stuff, 4 to the end"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertEqual(
+            x[4:],
+            ['5', '6', '7'],
+        )
+        x.to = tohil.tclobj
+        self.assertEqual(
             repr(x[4:]),
             "[<tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]",
         )
@@ -100,6 +107,11 @@ class TestTclObj(unittest.TestCase):
     def test_tclobj14(self):
         """tohil.tclobj slice stuff, the beginning until 4"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
+        self.assertEqual(
+            x[:4],
+            ['1', '2', '3', '4'],
+        )
+        x.to = tohil.tclobj
         self.assertEqual(
             repr(x[:4]),
             "[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>, <tohil.tclobj: '4'>]",
@@ -109,6 +121,16 @@ class TestTclObj(unittest.TestCase):
         """tohil.tclobj slice stuff, from the beginning to 4 from the end"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertEqual(
+            x[:-4],
+            ['1', '2', '3'],
+        )
+        x.to = int
+        self.assertEqual(
+            x[:-4],
+            [1, 2, 3],
+        )
+        x.to = tohil.tclobj
+        self.assertEqual(
             repr(x[:-4]),
             "[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>]",
         )
@@ -116,6 +138,11 @@ class TestTclObj(unittest.TestCase):
     def test_tclobj16(self):
         """tohil.tclobj slice stuff, from 4 from the end to the end"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
+        self.assertEqual(
+            x[-4:],
+            ['4', '5', '6', '7'],
+        )
+        x.to = tohil.tclobj
         self.assertEqual(
             repr(x[-4:]),
             "[<tohil.tclobj: '4'>, <tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]",
@@ -125,6 +152,16 @@ class TestTclObj(unittest.TestCase):
         """tohil.tclobj slice stuff, the whole thing with a :"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertEqual(
+            x[:],
+            ['1', '2', '3', '4', '5', '6', '7'],
+        )
+        x.to = float
+        self.assertEqual(
+            x[:],
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+        )
+        x.to = tohil.tclobj
+        self.assertEqual(
             repr(x[:]),
             "[<tohil.tclobj: '1'>, <tohil.tclobj: '2'>, <tohil.tclobj: '3'>, <tohil.tclobj: '4'>, <tohil.tclobj: '5'>, <tohil.tclobj: '6'>, <tohil.tclobj: '7'>]",
         )
@@ -133,8 +170,11 @@ class TestTclObj(unittest.TestCase):
         """tohil.tclobj comparing tclobjs with stuff"""
         x = tohil.eval("list 1 2 3 4 5 6 7", to=tohil.tclobj)
         self.assertTrue(x[2] == x[2])
+        x.to = int
         self.assertTrue(x[2] == 3)
+        x.to = str
         self.assertTrue(x[2] == "3")
+        x.to = float
         self.assertTrue(x[2] < 4.0)
         self.assertFalse(x[2] > 4.0)
 
