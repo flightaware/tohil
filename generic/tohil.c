@@ -22,6 +22,8 @@
 
 #include <stdio.h>
 
+#define STREQU(a, b) (*(a) == *(b) && strcmp((a), (b)) == 0)
+
 // forward definitions
 
 // tclobj python data type that consists of a standard python
@@ -539,8 +541,6 @@ PyReturnException(Tcl_Interp *interp, char *description)
 // call python from tcl with very explicit arguments versus
 //   slamming stuff through eval
 //
-//   NB we need one like this going the other direction
-//
 static int
 TohilCall_Cmd(ClientData clientData, /* Not used. */
               Tcl_Interp *interp,    /* Current interpreter */
@@ -559,7 +559,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
     const char *objandfn = tohil_TclObjToUTF8(objv[1], &ds);
     int objStart = 2;
 
-    if (*objandfn == '-' && strcmp(objandfn, "-kwlist") == 0) {
+    if (*objandfn == '-' && STREQU(objandfn, "-kwlist")) {
         if (objc < 4)
             goto wrongargs;
         kwObj = tclListObjToPyDictObject(interp, objv[2]);
@@ -857,7 +857,7 @@ PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     PyTclObj *self = (PyTclObj *)type->tp_alloc(type, 0);
     if (self != NULL) {
         if (pSource == NULL) {
-            if (strcmp(type->tp_name, "tohil.tcldict") == 0) {
+            if (STREQU(type->tp_name, "tohil.tcldict")) {
                 self->tclobj = Tcl_NewDictObj();
             } else {
                 self->tclobj = Tcl_NewObj();
@@ -872,6 +872,9 @@ PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     return (PyObject *)self;
 }
 
+//
+// deallocate function for python tclobj type
+//
 static void
 PyTclObj_dealloc(PyTclObj *self)
 {
@@ -880,12 +883,18 @@ PyTclObj_dealloc(PyTclObj *self)
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
+//
+// init function for python tclobj type
+//
 static int
 PyTclObj_init(PyTclObj *self, PyObject *args, PyObject *kwds)
 {
     return 0;
 }
 
+//
+// str() method for python tclobj type
+//
 static PyObject *
 PyTclObj_str(PyTclObj *self)
 {
@@ -903,6 +912,9 @@ PyTclObj_str(PyTclObj *self)
     return pObj;
 }
 
+//
+// repr() method for python tclobj type
+//
 static PyObject *
 PyTclObj_repr(PyTclObj *self)
 {
@@ -916,6 +928,9 @@ PyTclObj_repr(PyTclObj *self)
     return repr;
 }
 
+//
+// richcompare() method for python tclobj type
+//
 static PyObject *
 PyTclObj_richcompare(PyTclObj *self, PyObject *other, int op)
 {
@@ -2292,9 +2307,20 @@ static PyTypeObject TohilTclDictType = {
 //
 //
 
-// say return tohil_python_return(interp, tcl_result, to string, resultObject)
-// from any python C function in this library that accepts a to=python_data_type argument,
-// and this routine ought to handle it
+// tohil_python_return - you call this routine when you have a tcl object
+//   that you want to turn into a python object.  usually you call it when
+//   you are returning from a C function called from python, but it is
+//   used repeatedly in PyTclObj_slice to prepare a list of python objects
+//   converted from tcl objects.
+//
+//   this code is called  a lot.  it also can return tcl errors, and it
+//   can convert the tcl object to a specific python type if the "to" type
+//   is not null.  (If null the conversion type defaults to str.)
+//
+// NB these strcmps could be replaced by more efficient direct
+// address comparisons if you grabbed the addresses of the type objects
+// we are insterested in compared to them
+//
 PyObject *
 tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj)
 {
@@ -2333,7 +2359,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
     }
     // printf("tohil_python_return called: tcl result %d, to=%s, resulObj '%s'\n", tcl_result, toString, Tcl_GetString(resultObj));
 
-    if (toType == NULL || strcmp(toString, "str") == 0) {
+    if (toType == NULL || STREQU(toString, "str")) {
         int tclStringSize;
         char *tclString;
         int utf8len;
@@ -2349,7 +2375,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         return pObj;
     }
 
-    if (strcmp(toString, "int") == 0) {
+    if (STREQU(toString, "int")) {
         long longValue;
 
         if (Tcl_GetLongFromObj(interp, resultObj, &longValue) == TCL_OK) {
@@ -2359,7 +2385,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         return NULL;
     }
 
-    if (strcmp(toString, "bool") == 0) {
+    if (STREQU(toString, "bool")) {
         int boolValue;
 
         if (Tcl_GetBooleanFromObj(interp, resultObj, &boolValue) == TCL_OK) {
@@ -2371,7 +2397,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         return NULL;
     }
 
-    if (strcmp(toString, "float") == 0) {
+    if (STREQU(toString, "float")) {
         double doubleValue;
 
         if (Tcl_GetDoubleFromObj(interp, resultObj, &doubleValue) == TCL_OK) {
@@ -2381,27 +2407,27 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         return NULL;
     }
 
-    if (strcmp(toString, "tohil.tclobj") == 0) {
+    if (STREQU(toString, "tohil.tclobj")) {
         return PyTclObj_FromTclObj(resultObj);
     }
 
-    if (strcmp(toString, "tohil.tcldict") == 0) {
+    if (STREQU(toString, "tohil.tcldict")) {
         return TohilTclDict_FromTclObj(resultObj);
     }
 
-    if (strcmp(toString, "list") == 0) {
+    if (STREQU(toString, "list")) {
         return tclListObjToPyListObject(interp, resultObj);
     }
 
-    if (strcmp(toString, "set") == 0) {
+    if (STREQU(toString, "set")) {
         return tclListObjToPySetObject(interp, resultObj);
     }
 
-    if (strcmp(toString, "dict") == 0) {
+    if (STREQU(toString, "dict")) {
         return tclListObjToPyDictObject(interp, resultObj);
     }
 
-    if (strcmp(toString, "tuple") == 0) {
+    if (STREQU(toString, "tuple")) {
         return tclListObjToPyTupleObject(interp, resultObj);
     }
 
@@ -2704,6 +2730,8 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
 
 //
 // python C extension structure defining functions
+//
+// these are the tohil.* ones like tohil.eval, tohil.call, etc
 //
 static PyMethodDef TohilMethods[] = {
     {"eval", (PyCFunction)tohil_eval, METH_VARARGS | METH_KEYWORDS, "Evaluate tcl code"},
