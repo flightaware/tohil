@@ -7,17 +7,19 @@ from tohil import tclobj, tcldict
 
 class TestTD(unittest.TestCase):
     def test_td1(self):
-        """tohil.tclobj td_get """
-        x = tohil.eval("list a 1 b 2 c 3", to=tohil.tclobj)
-        self.assertEqual(x.td_get("a"), "1")
-        self.assertEqual(x.td_get("a", to=int), 1)
+        """tohil.tcldict get """
+        x = tohil.eval("list a 1 b 2 c 3", to=tohil.tcldict)
+        self.assertEqual(x["a"], "1")
+        x.to = int
+        self.assertEqual(x["a"], 1)
         with self.assertRaises(KeyError):
-            x.td_get("z")
-        self.assertEqual(x.td_get("z", default="bar"), "bar")
-        self.assertEqual(x.td_get("z", default="bar", to=list), ["bar"])
+            x.get("z")
+        x.to = str
+        self.assertEqual(x.get("z", default="bar"), "bar")
+        self.assertEqual(x.get("z", default="bar", to=list), ["bar"])
         with self.assertRaises(RuntimeError):
-            x.td_get("z", default="bar", to=int)
-        self.assertEqual(x.td_get("z", default="1", to=int), 1)
+            x.get("z", default="bar", to=int)
+        self.assertEqual(x.get("z", default="1", to=int), 1)
 
     def test_td2(self):
         """tohil.tcldict get and delete """
@@ -28,7 +30,7 @@ class TestTD(unittest.TestCase):
         self.assertEqual(str(x), 'a 1 b 2')
 
     def test_td3(self):
-        """tohil.tclobj td_set """
+        """tohil.tcldict set """
         x = tohil.tcldict()
         x["foo"] = "bar"
         x["hey"] = "you"
@@ -38,64 +40,64 @@ class TestTD(unittest.TestCase):
         self.assertEqual(str(x), 'hey you')
 
     def test_td4(self):
-        """tohil.tclobj td_set, get and remove """
-        x = tclobj()
+        """tohil.tcldict set, get and remove """
+        x = tcldict()
         x["foo"] = 5
         x["foo"] = 5
         self.assertEqual(x["foo"], "5")
         self.assertEqual(x.get("foo", to=int), 5)
         self.assertEqual(repr(x), "<tohil.tcldict: 'foo 5'>")
-        x.td_remove("foo")
+        del x["foo"]
         self.assertEqual(repr(x), "<tohil.tcldict: ''>")
 
-    def test_td4(self):
-        """tohil.tclobj list remove """
+    def test_td5(self):
+        """tohil.tcldict list remove """
         x = tcldict()
-        x.td_set("a", 1)
-        x.td_set("b", 2)
-        x.td_set("c", 3)
+        x["a"] = 1
+        x["b"] = 2
+        x["c"] = 3
         del x["a"]
         del x["c"]
         del x["c"]
         self.assertEqual(str(x), 'b 2')
 
-    def test_td5(self):
-        """tohil.tclobj td_set with list of keys"""
-        x = tclobj()
-        x.td_set(["a", "b", "c", "d"], "bar")
-        self.assertEqual(repr(x), "<tohil.tclobj: 'a {b {c {d bar}}}'>")
-
     def test_td6(self):
-        """tohil.tclobj td_get with list of keys"""
-        x = tclobj()
-        x.td_set(["a", "b", "c", "d"], "foo")
-        x.td_set("b", "bar")
-        self.assertEqual(x.td_get(["a", "b", "c", "d"]), "foo")
+        """tohil.tcldict td_set with list of keys"""
+        x = tcldict()
+        x[["a", "b", "c", "d"]] = "bar"
+        self.assertEqual(repr(x), "<tohil.tcldict: 'a {b {c {d bar}}}'>")
 
     def test_td7(self):
-        """tohil.tclobj td_exists"""
-        x = tclobj()
-        x.td_set(["a", "b", "c"], "foo")
-        x.td_set("b", "bar")
-        self.assertEqual(x.td_get(["a", "b", "c"]), "foo")
-        self.assertEqual(x.td_exists(["a", "b", "c"]), True)
-        self.assertEqual(x.td_exists(["a", "d", "d"]), False)
-        x.set("monkey")
-        with self.assertRaises(TypeError):
-            x.td_exists(["a", "b", "c"])
+        """tohil.tcldict access with list of keys"""
+        x = tcldict()
+        x[["a", "b", "c", "d"]] = "foo"
+        x["b"] = "bar"
+        self.assertEqual(x[["a", "b", "c", "d"]], "foo")
 
     def test_td8(self):
-        """tohil.tclobj td_get of nested dictionaries"""
-        t = tclobj()
-        t.td_set(["a", "b", "c", "d"], 1)
-        t.td_set("b", "bar")
-        self.assertEqual(t.td_get(["a", "b", "c", "d"]), "1")
-        self.assertEqual(t.td_get(["a", "b"]), "c {d 1}")
-        x = t.td_get(["a", "b"], to=tohil.tclobj)
+        """tohil.tcldict td_exists"""
+        x = tcldict()
+        x[["a", "b", "c"]] = "foo"
+        x["b"] = "bar"
+        self.assertEqual(x[["a", "b", "c"]], "foo")
+        self.assertEqual(["a", "b", "c"] in x, True)
+        self.assertEqual(["a", "d", "d"] in x, False)
+        x.set("monkey")
         with self.assertRaises(KeyError):
-            x.td_get("d")
-        self.assertEqual(x.td_get(["c", "d"]), "1")
-        self.assertEqual(x.td_exists(["c", "d"]), True)
+            x.td_exists(["a", "b", "c"])
+
+    def test_td9(self):
+        """tohil.tcldict access amnd manipulation of nested dictionaries"""
+        t = tcldict()
+        t[["a", "b", "c", "d"]] = 1
+        t["b"] = "bar"
+        self.assertEqual(t.get(["a", "b", "c", "d"]), "1")
+        self.assertEqual(t.get(["a", "b"]), "c {d 1}")
+        x = t.get(["a", "b"], to=tohil.tcldict)
+        with self.assertRaises(KeyError):
+            x["d"]
+        self.assertEqual(x[["c", "d"]], "1")
+        self.assertEqual(["c", "d"] in x, "d", True)
 
 
 if __name__ == "__main__":
