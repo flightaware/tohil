@@ -2,7 +2,7 @@ import unittest
 
 import tohil
 
-from tohil import tclobj
+from tohil import tclobj, tcldict
 
 
 class TestTD(unittest.TestCase):
@@ -20,44 +20,44 @@ class TestTD(unittest.TestCase):
         self.assertEqual(x.td_get("z", default="1", to=int), 1)
 
     def test_td2(self):
-        """tohil.tclobj td_remove """
-        x = tohil.eval("list a 1 b 2 c 3", to=tohil.tclobj)
-        self.assertEqual(x.td_get("b"), "2")
-        self.assertEqual(x.td_get("b", to=int), 2)
-        x.td_remove("c")
-        self.assertEqual(repr(x), "<tohil.tclobj: 'a 1 b 2'>")
+        """tohil.tcldict get and delete """
+        x = tohil.eval("list a 1 b 2 c 3", to=tohil.tcldict)
+        self.assertEqual(x["b"], "2")
+        self.assertEqual(x.get("b", to=int), 2)
+        del x["c"]
+        self.assertEqual(str(x), 'a 1 b 2')
 
     def test_td3(self):
         """tohil.tclobj td_set """
-        x = tohil.tclobj()
-        x.td_set("foo", "bar")
-        x.td_set("hey", "you")
-        self.assertEqual(x.td_get("foo"), "bar")
-        self.assertEqual(repr(x), "<tohil.tclobj: 'foo bar hey you'>")
-        x.td_remove("foo")
-        self.assertEqual(repr(x), "<tohil.tclobj: 'hey you'>")
+        x = tohil.tcldict()
+        x["foo"] = "bar"
+        x["hey"] = "you"
+        self.assertEqual(x["foo"], "bar")
+        self.assertEqual(str(x), 'foo bar hey you')
+        del x["foo"]
+        self.assertEqual(str(x), 'hey you')
 
     def test_td4(self):
         """tohil.tclobj td_set, get and remove """
         x = tclobj()
-        x.td_set("foo", 5)
-        x.td_set("foo", 5)
-        self.assertEqual(x.td_get("foo"), "5")
-        self.assertEqual(x.td_get("foo", to=int), 5)
-        self.assertEqual(repr(x), "<tohil.tclobj: 'foo 5'>")
+        x["foo"] = 5
+        x["foo"] = 5
+        self.assertEqual(x["foo"], "5")
+        self.assertEqual(x.get("foo", to=int), 5)
+        self.assertEqual(repr(x), "<tohil.tcldict: 'foo 5'>")
         x.td_remove("foo")
-        self.assertEqual(repr(x), "<tohil.tclobj: ''>")
+        self.assertEqual(repr(x), "<tohil.tcldict: ''>")
 
     def test_td4(self):
         """tohil.tclobj list remove """
-        x = tclobj()
+        x = tcldict()
         x.td_set("a", 1)
         x.td_set("b", 2)
         x.td_set("c", 3)
-        x.td_remove("a")
-        x.td_remove(["c"])
-        x.td_remove(["c"])
-        self.assertEqual(repr(x), "<tohil.tclobj: 'b 2'>")
+        del x["a"]
+        del x["c"]
+        del x["c"]
+        self.assertEqual(str(x), 'b 2')
 
     def test_td5(self):
         """tohil.tclobj td_set with list of keys"""

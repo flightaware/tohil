@@ -1329,77 +1329,6 @@ PyTclObj_td_size(PyTclObj *self, PyObject *pyobj)
 }
 
 static int
-PyTclObj_td_remove_keys(PyTclObj *self, PyObject *keys)
-{
-    if (PyList_Check(keys)) {
-        int objc = 0;
-        Tcl_Obj **objv = NULL;
-
-        // build up a tcl objv of the keys
-        pyListToTclObjv((PyListObject *)keys, &objc, &objv);
-
-        // we are about to try to modify the object, so if it's shared we need to copy
-        if (Tcl_IsShared(self->tclobj)) {
-            self->tclobj = Tcl_DuplicateObj(self->tclobj);
-        }
-
-        int status = (Tcl_DictObjRemoveKeyList(tcl_interp, self->tclobj, objc, objv));
-
-        // tear down the objv of the keys we created
-        pyListToObjv_teardown(objc, objv);
-
-        if (status == TCL_ERROR) {
-            PyErr_SetString(PyExc_KeyError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
-            return -1;
-        }
-    } else {
-        Tcl_Obj *keyObj = _pyObjToTcl(tcl_interp, keys);
-
-        if (keyObj == NULL) {
-            PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be used as a dictionary key");
-            return -1;
-        }
-
-        // we are about to try to modify the object, so if it's shared we need to copy
-        if (Tcl_IsShared(self->tclobj)) {
-            self->tclobj = Tcl_DuplicateObj(self->tclobj);
-        }
-
-        if (Tcl_DictObjRemove(NULL, self->tclobj, keyObj) == TCL_ERROR) {
-            Tcl_DecrRefCount(keyObj);
-            PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
-            return -1;
-        }
-        Tcl_DecrRefCount(keyObj);
-    }
-
-    return 0;
-}
-
-//
-// td_remove(key) - if key is a python list, do a dict remove keylist on the tcl object,
-//   where the arg is a python list of a hierarchy of names to remove.
-//
-//   if key is not a python list, does a dict remove on the tcl object for that key
-//
-static PyObject *
-PyTclObj_td_remove(PyTclObj *self, PyObject *args, PyObject *kwargs)
-{
-    static char *kwlist[] = {"key", NULL};
-    PyObject *keys = NULL;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwlist, &keys)) {
-        return NULL;
-    }
-
-    if (PyTclObj_td_remove_keys(self, keys) < 0) {
-        return NULL;
-    }
-
-    Py_RETURN_NONE;
-}
-
-static int
 TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
 {
     Tcl_Obj *valueObj = pyObjToTcl(tcl_interp, pValue);
@@ -2088,7 +2017,6 @@ static PyMethodDef PyTclObj_methods[] = {
     {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
     {"td_get", (PyCFunction)PyTclObj_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
     {"td_exists", (PyCFunction)PyTclObj_td_exists, METH_VARARGS | METH_KEYWORDS, "see if key exists in tcl dict"},
-    {"td_remove", (PyCFunction)PyTclObj_td_remove, METH_VARARGS | METH_KEYWORDS, "remove item or list hierarchy from tcl dict"},
     {"td_iter", (PyCFunction)PyTohil_TD_td_iter, METH_VARARGS | METH_KEYWORDS, "iterate on a tclobj containing a tcl dict"},
     {"td_set", (PyCFunction)PyTclObj_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
     {"td_size", (PyCFunction)PyTclObj_td_size, METH_NOARGS, "get size of tcl dict"},
@@ -2174,10 +2102,49 @@ TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
 static int
 TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
 {
-    // NB this is the same thing as what we're returning,
-    // but i don't like the name of the thing we're calling
-    // and i like that delitem is more self-documenting
-    return PyTclObj_td_remove_keys(self, keys);
+    if (PyList_Check(keys)) {
+        int objc = 0;
+        Tcl_Obj **objv = NULL;
+
+        // build up a tcl objv of the keys
+        pyListToTclObjv((PyListObject *)keys, &objc, &objv);
+
+        // we are about to try to modify the object, so if it's shared we need to copy
+        if (Tcl_IsShared(self->tclobj)) {
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+
+        int status = (Tcl_DictObjRemoveKeyList(tcl_interp, self->tclobj, objc, objv));
+
+        // tear down the objv of the keys we created
+        pyListToObjv_teardown(objc, objv);
+
+        if (status == TCL_ERROR) {
+            PyErr_SetString(PyExc_KeyError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            return -1;
+        }
+    } else {
+        Tcl_Obj *keyObj = _pyObjToTcl(tcl_interp, keys);
+
+        if (keyObj == NULL) {
+            PyErr_SetString(PyExc_RuntimeError, "unable to fashion argument into a string to be used as a dictionary key");
+            return -1;
+        }
+
+        // we are about to try to modify the object, so if it's shared we need to copy
+        if (Tcl_IsShared(self->tclobj)) {
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+
+        if (Tcl_DictObjRemove(NULL, self->tclobj, keyObj) == TCL_ERROR) {
+            Tcl_DecrRefCount(keyObj);
+            PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
+            return -1;
+        }
+        Tcl_DecrRefCount(keyObj);
+    }
+
+    return 0;
 }
 
 static int
@@ -2246,6 +2213,7 @@ static PyTypeObject TohilTclDictType = {
     .tp_as_mapping = &TohilTclDict_as_mapping,
     .tp_repr = (reprfunc)PyTclObj_repr,
     .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
+    .tp_getset = PyTclObj_getsetters,
 };
 
 //
