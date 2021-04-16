@@ -980,7 +980,7 @@ PyTclObj_richcompare(PyTclObj *self, PyObject *other, int op)
 }
 
 //
-// tclobj.reset()
+// tclobj.reset() - reset a tclobj or tcldict to an empty tcl object
 //
 static PyObject *
 PyTclObj_reset(PyTclObj *self, PyObject *pyobj)
@@ -1252,8 +1252,10 @@ PyTclObj_setvar(PyTclObj *self, PyObject *var)
     Py_RETURN_NONE;
 }
 
+//
 // set - tclobj type set method can set an object to a lot
 // of possible python stuff -- NB there must be a better way
+//
 static PyObject *
 PyTclObj_set(PyTclObj *self, PyObject *pyObject)
 {
@@ -1268,6 +1270,11 @@ PyTclObj_set(PyTclObj *self, PyObject *pyObject)
     Py_RETURN_NONE;
 }
 
+//
+// lindex - obtain the n'th element of tclobj as a tcl list.
+//
+// to=type can be used to control what python type is returned.
+//
 static PyObject *
 PyTclObj_lindex(PyTclObj *self, PyObject *args, PyObject *kwargs)
 {
@@ -1390,12 +1397,24 @@ PyTclObj_lappend_list(PyTclObj *self, PyObject *pObject)
     Py_RETURN_NONE;
 }
 
+//
+// PyTclObj_refcount - return the reference count of the
+//   tclobj or tcldict's internal tcl object
+//
 static PyObject *
 PyTclObj_refcount(PyTclObj *self, PyObject *dummy)
 {
     return PyLong_FromLong(self->tclobj->refCount);
 }
 
+//
+// PyTclObj_type - return the internal tcl data type of
+//   the corresponding tclobj/tcldict python type
+//
+//   this can use useful but it's not canonical - the type
+//   may not have been set to anything if the string therein
+//   hasn't been used as a list, dict, etc.
+//
 static PyObject *
 PyTclObj_type(PyTclObj *self, PyObject *dummy)
 {
@@ -1416,8 +1435,12 @@ PyTclObjIter(PyObject *self)
 
 static PyObject *PyTclObj_subscript(PyTclObj *, PyObject *);
 
-// slice stuff significantly cribbed from cpython source for listobjects...
-
+//
+// PyTclObj_slice - return a python list containing a slice
+//   of the referenced tclobj as a list.
+//
+// significantly cribbed from cpython source for listobjects...
+//
 static PyObject *
 PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 {
@@ -1459,6 +1482,10 @@ PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
     return (PyObject *)np;
 }
 
+//
+// PyTclObj_item - return the i'th element of a tclobj containing
+//   a list, or set an error and return NULL if something's wrong
+//
 static PyObject *
 PyTclObj_item(PyTclObj *self, Py_ssize_t i)
 {
@@ -1487,6 +1514,9 @@ PyTclObj_item(PyTclObj *self, Py_ssize_t i)
     return ret;
 }
 
+//
+// PyTclObj_ass_item - assign an item into a tclobj containing a list
+//
 static int
 PyTclObj_ass_item(PyTclObj *self, Py_ssize_t i, PyObject *v)
 {
@@ -1526,6 +1556,13 @@ PyTclObj_ass_item(PyTclObj *self, Py_ssize_t i, PyObject *v)
     return 0;
 }
 
+//
+// PyTclObj_length - return the length of the tclobj, looking at it
+//   as a tcl list.  returns -1 if string cannot be represented as
+//   a list, or 0 or larger, representing the number of elements
+//   in the list.
+//
+//
 static Py_ssize_t
 PyTclObj_length(PyTclObj *self, Py_ssize_t i)
 {
@@ -1533,12 +1570,17 @@ PyTclObj_length(PyTclObj *self, Py_ssize_t i)
 
     if (Tcl_ListObjLength(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
-        return 0;
+        return -1;
     }
 
     return size;
 }
 
+//
+// PyTclObj_subscript - subscript a tclobj.  we treat the tclobj
+//   as a list, so item can be an integer (to obtain a single element),
+//   or a slice (to obtain zero or more elements.)
+//
 static PyObject *
 PyTclObj_subscript(PyTclObj *self, PyObject *item)
 {
@@ -1731,6 +1773,10 @@ static PyTypeObject PyTohil_TD_IterType = {
 //
 //
 
+//
+// PyTclObj_getto - get "to" value, settable attribute for what
+//   type to convert tclobjs and tcldicts to
+//
 static PyObject *
 PyTclObj_getto(PyTclObj *self, void *closure)
 {
@@ -1741,6 +1787,10 @@ PyTclObj_getto(PyTclObj *self, void *closure)
     return (PyObject *)self->to;
 }
 
+//
+// PyTclObj_getto - get "to" value, attribute for what
+//   type to convert tclobjs and tcldicts to
+//
 static int
 PyTclObj_setto(PyTclObj *self, PyTypeObject *toType, void *closure)
 {
@@ -1756,8 +1806,8 @@ PyTclObj_setto(PyTclObj *self, PyTypeObject *toType, void *closure)
 
 static PyGetSetDef PyTclObj_getsetters[] = {
     {"to", (getter)PyTclObj_getto, (setter)PyTclObj_setto, "python type to default returns to", NULL},
-    {"refcount", (getter)PyTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
-    {"tcltype", (getter)PyTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
+    {"_refcount", (getter)PyTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
+    {"_tcltype", (getter)PyTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
                                             {NULL}};
 
 static PyMappingMethods PyTclObj_as_mapping = {(lenfunc)PyTclObj_length, (binaryfunc)PyTclObj_subscript, NULL};
@@ -1948,6 +1998,13 @@ TohilTclDict_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
     return tohil_python_return(tcl_interp, TCL_OK, to, valueObj);
 }
 
+//
+// TohilTclDict_subscript - return the value of an element in
+//   the tcl dict.  value may itself be a sub-dictionary.
+//
+//   key can be a list of keys in which case the tcl dict is
+//   treated as a hierarchy of dicts.
+//
 static PyObject *
 TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
 {
@@ -1963,6 +2020,11 @@ TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
     return tohil_python_return(tcl_interp, TCL_OK, self->to, valueObj);
 }
 
+//
+// TohilTclDict_delitem - removes an item from the tcldict.  if
+//   keys is a python list, treats tcl dict as a hierarchy of
+//   tcl dicts.
+//
 static int
 TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
 {
@@ -2007,6 +2069,11 @@ TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
     return 0;
 }
 
+//
+// self.setitem(keys, value) - translates python value object to
+//   tcl and sets it in the tcldict.  if keys is a python list,
+//   treats it as a hierarchy of dictionaries.
+//
 static int
 TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
 {
@@ -2055,9 +2122,9 @@ TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
 }
 
 //
-// tclobj.td_set(key, value) - do a dict set on the tcl object
-//   if key is a python list, td_set operates on a nested tree
-//   of dictionaries
+// tclobj.td_set(key, value) - do a dict set on the tcl object.
+//   if key is a python list, td_set operates on a nested hierarchy
+//   of dictionaries.
 //
 static PyObject *
 TohilTclDict_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
@@ -2078,6 +2145,15 @@ TohilTclDict_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
     Py_RETURN_NONE;
 }
 
+//
+// TohilTclDict_ass_sub() - if a python key object and python value
+//   object are present, set in the tcl dict for the key, the value.
+//
+//   the key may be a list in which case the dictionary is a hierarchy
+//   of dictionaries.
+//
+//   if the value is NULL then deletes the item.
+//
 static int
 TohilTclDict_ass_sub(PyTclObj *self, PyObject *key, PyObject *val)
 {
@@ -2088,6 +2164,10 @@ TohilTclDict_ass_sub(PyTclObj *self, PyObject *key, PyObject *val)
     }
 }
 
+//
+// TohilTclDict_length() - return the dict size of a python tcldict's
+//   tcl object or set a python error and return -1 if something went wrong.
+//
 static Py_ssize_t
 TohilTclDict_length(PyTclObj *self)
 {
@@ -2099,6 +2179,25 @@ TohilTclDict_length(PyTclObj *self)
     return -1;
 }
 
+//
+// TohilTclDict_size() - return a python object containing the dict size
+//   of a python tcldict's tcl object.
+//   returns null i.e. exception thrown if tcl object isn't a proper tcl dict.
+//
+static PyObject *
+TohilTclDict_size(PyTclObj *self, PyObject *pyobj)
+{
+    int length = TohilTclDict_length(self);
+    if (length < 0) {
+        return NULL;
+    }
+    return PyLong_FromLong(length);
+}
+
+//
+// TohilTclDictIter() - returns a tcldict iterator object that can
+//   iterate over a tcldict.
+//
 static PyObject *
 TohilTclDictIter(PyTclObj *self)
 {
@@ -2126,20 +2225,10 @@ TohilTclDictIter(PyTclObj *self)
 }
 
 //
-// TohilTclDict_size() - return the dict size of a python tclobj's tcl object
-//   exception thrown if tcl object isn't a proper tcl dict
+// TohilTclDict_Contains - return 0 if key or keys is not
+//   contained in tcldict, 1 if it is, or -1 if there was
+//   an error.
 //
-static PyObject *
-TohilTclDict_size(PyTclObj *self, PyObject *pyobj)
-{
-    int length;
-    if (Tcl_DictObjSize(tcl_interp, self->tclobj, &length) == TCL_OK) {
-        return PyLong_FromLong(length);
-    }
-    PyErr_SetString(PyExc_TypeError, "tclobj contents cannot be converted into a td");
-    return NULL;
-}
-
 static int
 TohilTclDict_Contains(PyObject *self, PyObject *keys)
 {
