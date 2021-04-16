@@ -2923,6 +2923,13 @@ PyInit__tohil(void)
         return NULL;
     }
 
+    // set the near-standard dunder version for our module (tohil._tohil)
+    // to the package version passed to the compiler command line by
+    // the build tools
+    if (PyObject_SetAttrString(m, "__version__", PyUnicode_FromString(PACKAGE_VERSION)) < 0) {
+        return NULL;
+    }
+
     // find the TclObjIterator class and keep a reference to it
     pyTclObjIterator = PyObject_GetAttrString(pTohilMod, "TclObjIterator");
     if (pyTclObjIterator == NULL || !PyCallable_Check(pyTclObjIterator)) {
