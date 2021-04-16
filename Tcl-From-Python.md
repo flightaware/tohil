@@ -48,6 +48,14 @@ quoted, but that's pretty hard and kind of error prone and if you miss
 running your data through your conditioner anywhere, you've got the risk
 of the problem again.
 
+```
+>>> tohil.package_require("clock::rfc2822")
+'0.1'
+>>> clock = tohil.eval('::clock::rfc2822::parse_date "Wed, 14 Apr 2021 12:04:48 -0500"')
+>>> clock
+'1618419888'
+```
+
 ### tohil.call
 
 tohil.call is a way to call tcl with each argument specified explicitly.
@@ -56,12 +64,29 @@ This way, even if the arguments contain metacharacters we can ensure they
 are not evaluated by tcl because when invoked this way, tcl will not
 evaluate tohil.call's arguments.
 
+```
+>>> user = "leon"
+>>> name = "Leon Kowalski"
+>>> address = "1187 Unterwasser"
+>>> phone = "+1-415-555-2822"
+>>> tohil.call("set", f"users({user})", tohil.call("list", "name", name, "address", address, "phone", phone))
+'name {Leon Kowalski} address {1187 Unterwasser} phone +1-415-555-2822'
+```
+
+
+```
+>>> clock = tohil.call('::clock::rfc2822::parse_date', "Wed, 14 Apr 2021 12:04:48 -0500")
+>>> clock
+'1618419888'
+```
+
 There are tcl-side equivalents to these things for calling python from
 tcl, by the way.
 
-And we provide that...  And it's really handy.  But since you have to
-explicitly invoke this "call" function every time you want to call out to
-tcl from python and to python from tcl, we wouldn't call that fluent.
+So that's handy.
+
+But since you have to explicitly invoke this "call" function when
+you want to call, that can get old pretty quick.
 
 "Fluent" would be where the tcl commands look and act like python commands
 to a very high degree.
