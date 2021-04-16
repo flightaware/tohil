@@ -1609,6 +1609,7 @@ typedef struct {
 static PyObject *
 PyTohil_TD_iter(PyTohil_TD_IterObj *self)
 {
+    // printf("PyTohil_TD_iter\n");
     Py_INCREF(self);
 
     self->started = 0;
@@ -1624,6 +1625,7 @@ PyTohil_TD_iter(PyTohil_TD_IterObj *self)
 PyObject *
 PyTohil_TD_iternext(PyTohil_TD_IterObj *self)
 {
+    // printf("PyTohil_TD_iternext\n");
     Tcl_Obj *keyObj = NULL;
     Tcl_Obj *valueObj = NULL;
     int done = 0;
@@ -1698,7 +1700,6 @@ static PyTypeObject PyTohil_TD_IterType = {
     .tp_iter = (getiterfunc)PyTohil_TD_iter,
     .tp_iternext = (iternextfunc)PyTohil_TD_iternext,
 };
-
 
 //
 //
@@ -1840,6 +1841,7 @@ TohilTclDict_FromTclObj(Tcl_Obj *obj)
 static Tcl_Obj *
 TohilTclDict_td_locate(PyTclObj *self, PyObject *keys)
 {
+    // printf("TohilTclDict_td_locate\n");
     Tcl_Obj *keyObj = NULL;
     Tcl_Obj *valueObj = NULL;
 
@@ -1924,6 +1926,7 @@ TohilTclDict_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
 static PyObject *
 TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
 {
+    // printf("TohilTclDict_subscript\n");
     Tcl_Obj *valueObj = TohilTclDict_td_locate(self, keys);
     if (valueObj == NULL) {
         // not there, no default.  it's an error.
@@ -2080,6 +2083,7 @@ TohilTclDict_length(PyTclObj *self)
 static PyObject *
 TohilTclDictIter(PyTclObj *self)
 {
+    // printf("TohilTclDictIter\n");
     // we don't need size but we use this to make tclobj is or can be a dict
     int size = 0;
     if (Tcl_DictObjSize(tcl_interp, self->tclobj, &size) == TCL_ERROR) {
@@ -2117,8 +2121,26 @@ TohilTclDict_size(PyTclObj *self, PyObject *pyobj)
     return NULL;
 }
 
+static int
+TohilTclDict_Contains(PyObject *self, PyObject *keys)
+{
+    // printf("TohilTclDict_Contains\n");
+    Tcl_Obj *valueObj = TohilTclDict_td_locate((PyTclObj *)self, keys);
+    if (valueObj == NULL) {
+        if (PyErr_Occurred() != NULL) {
+            return -1;
+        }
+        return 0;
+    }
+    return 1;
+}
+
 static PyMappingMethods TohilTclDict_as_mapping = {(lenfunc)TohilTclDict_length, (binaryfunc)TohilTclDict_subscript,
                                                    (objobjargproc)TohilTclDict_ass_sub};
+
+static PySequenceMethods TohilTclDict_as_sequence = {
+    .sq_contains = TohilTclDict_Contains,
+};
 
 static PyMethodDef TohilTclDict_methods[] = {
     {"get", (PyCFunction)TohilTclDict_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
@@ -2144,7 +2166,6 @@ static PyTypeObject TohilTclDictType = {
     .tp_doc = "Tcl TD tcldict Object",
     .tp_basicsize = sizeof(PyTclObj),
     .tp_itemsize = 0,
-    .tp_as_sequence = NULL,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_new = PyTclObj_new,
     .tp_init = (initproc)PyTclObj_init,
@@ -2153,6 +2174,7 @@ static PyTypeObject TohilTclDictType = {
     .tp_str = (reprfunc)PyTclObj_str,
     .tp_iter = (getiterfunc)TohilTclDictIter,
     .tp_as_mapping = &TohilTclDict_as_mapping,
+    .tp_as_sequence = &TohilTclDict_as_sequence,
     .tp_repr = (reprfunc)PyTclObj_repr,
     .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
     .tp_getset = PyTclObj_getsetters,
@@ -2174,7 +2196,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
     PyTypeObject *pt = NULL;
 
     if (PyErr_Occurred() != NULL) {
-        printf("tohil_python_return invoked with a python error already present\n");
+        // printf("tohil_python_return invoked with a python error already present\n");
         // return NULL;
     }
 
