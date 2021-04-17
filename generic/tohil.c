@@ -923,7 +923,7 @@ PyTclObj_repr(PyTclObj *self)
 
     PyObject *stringRep = PyUnicode_FromFormat("%s", utf8string);
     Tcl_DStringFree(&ds);
-    PyObject *repr = PyUnicode_FromFormat("<%s: %R>", Py_TYPE(self)->tp_name, stringRep);
+    PyObject *repr = PyUnicode_FromFormat("<%s: %.100R...>", Py_TYPE(self)->tp_name, stringRep);
     Py_DECREF(stringRep);
     return repr;
 }
@@ -1139,7 +1139,8 @@ PyTclObj_as_byte_array(PyTclObj *self, PyObject *pyobj)
     return PyByteArray_FromStringAndSize((const char *)byteArray, size);
 }
 
-void PyTclObj_dup_if_shared(PyTclObj *self)
+void
+PyTclObj_dup_if_shared(PyTclObj *self)
 {
     if (!Tcl_IsShared(self->tclobj)) {
         return;
@@ -1819,10 +1820,9 @@ PyTclObj_setto(PyTclObj *self, PyTypeObject *toType, void *closure)
     return 0;
 }
 
-static PyGetSetDef PyTclObj_getsetters[] = {
-    {"to", (getter)PyTclObj_getto, (setter)PyTclObj_setto, "python type to default returns to", NULL},
-    {"_refcount", (getter)PyTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
-    {"_tcltype", (getter)PyTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
+static PyGetSetDef PyTclObj_getsetters[] = {{"to", (getter)PyTclObj_getto, (setter)PyTclObj_setto, "python type to default returns to", NULL},
+                                            {"_refcount", (getter)PyTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
+                                            {"_tcltype", (getter)PyTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
                                             {NULL}};
 
 static PyMappingMethods PyTclObj_as_mapping = {(lenfunc)PyTclObj_length, (binaryfunc)PyTclObj_subscript, NULL};

@@ -570,6 +570,7 @@ cp tohil1.0.0.dylib build/lib.macosx-10.6-x86_64-3.8/tohil.cpython-38-darwin.so
 * a way to pass kwargs thought tohil::eval - done
 * if python is the parent, register a tcl panic handler and invoke Py_FatalError if tcl panics.
 * the reverse of the above if tcl is the parent if python has a panic-type function with a registerable callback
+* python tclobj and tcldict types have worked out pretty well.  what might we do with a tcl type that encapsulates a python object?
 
 Below is the old list.  Some of this stuff has been done.  We probably don't have the same priorities.  Will update over time.
 
