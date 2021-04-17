@@ -99,9 +99,9 @@ fi
 AC_MSG_RESULT([using python version of... "$PYTHON_VERSION"])
 
 if test "$need_python_config" = "1"; then
-    AC_PATH_PROGS(PYTHON_CONFIG, python3-config)
+    AC_PATH_PROGS(PYTHON_CONFIG, python${PYTHON_VERSION}-config)
     if test "$PYTHON_CONFIG" = ""; then
-		AC_MSG_ERROR([Cannot locate program python3-config to determine python paths.  Make sure python3-config is in PATH or set PYTHON_CONFIG env var to path to python3-config or use --with-python-include and --with-python-lib configure arguments to specify location of files.])
+		AC_MSG_ERROR([Cannot locate program python${PYTHON_VERSION}-config to determine python paths.  Make sure python3-config is in PATH or set PYTHON_CONFIG env var to path to python3-config or use --with-python-include and --with-python-lib configure arguments to specify location of files.])
     fi
     if test "${with_python_include+set}" != "set"; then
         PYTHON_INCLUDES="`$PYTHON_CONFIG --includes`"
