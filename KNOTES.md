@@ -175,6 +175,24 @@ scrape the comment headers of the procs to create the docstrings for the tohil s
 
 ### stuff
 
-look at https://github.com/python/cpython/blob/master/Modules/_tkinter.c
+look at https://github.com/python/cpython/blob/master/Modules/_tkinter.c_
+
+---
+
+a dict, a list, a canal, panama
+
+right now a tclobj or tcldict returns data types it has been configured to return, or a default type of string.
+
+if it's a nest of dicts and you're pulling a chunk of dict stuff out, you want a tcldict
+
+but if it's something terminal in the tree, you don't want a dict, you want the value
+
+if you try to get it as a dict it'll be an error
+
+it's considered unsafe practice to examine tcl's objects to see what data type they are, and it
+is unsafe because they can have the correct format that they will be the structure of a list or
+dict or whatever, but they haven't been parsed into one so their type is string or whatever.
+
+or it could be a list if looked at as a list but still also be a dict.  dicts will parse as lists.
 
 
