@@ -5,12 +5,72 @@
 
 Great!
 
-Tohil gives you a few options for how to run tcl code and access tcl data from python.
+Tohil gives you a few options for how to run tcl code and access tcl data
+from python.
 
-You can pick and choose what you need, and how far you want to go.
+
+The easiest way is to load up your tcl
+code and then use tohil.import_tcl() to create corresponding
+python functions, and start using them.
+
+```
+import tohil
+tohil.package_require("Tclx")
+tcl = tohil.import_tcl()
+>>> intersect_list = tcl.intersect(["A", "B", "C", "D", "E", "F"], ["D", "E", "F", "G", "H", "I"], to=list)
+>>> intersect_list
+['D', 'E', 'F']
+```
+
+Bam.  That's it.  This really is enough to get going.
+
+But let's go ahead and dig a little deeper.
+
+Note the use of `to=list`, indicating we want the result as a python list.
+All the python functions tohil makes and most or all tohil functions that
+return data from tcl support a "to" named parameter, allowing the caller
+to specify what python data type
+they want to get the result back as.  You can get stuff back as str (the
+default), int, bool, float, list, set, dict, tuple, or as one of a
+couple of data types that tohil itself provides, tohil.tclobj and
+tohil.tcldict.  More on this later.
+
+You probably noticed `tohil.package_require()` above.  Yeah, that's
+a convenience function tohil provides, along with `tohil.source()`
+for sourcing in tcl code, and a few others.
+
+Once you've used import_tcl() to import all of tcl into python, you
+can as easily do `tcl.package("require", "yajl")` or
+`tcl.source("myfile.tcl)`.
+
+There's nothing special about calling the thing resulting from
+import_tcl() "tcl", by the way.  It's a TclNamespace object, you're
+invoking your tcl procs and C commands by invoking methods on it.
+
+All the Tcl namespaces are recursively imported, and chaining works,
+so you can chain through namespaces to get to a function
+
+
+
+
+
+
+
+
+
+"tcl", above, is a TclNamespace object, and all the procs and C commands
+found are methods.
+
+
 
 After building and installing tohil, from python you should be able
 to `import tohil` from the python command line.
+
+
+
+
+You can pick and choose what you need, and how far you want to go.
+
 
 ### tohil.eval
 

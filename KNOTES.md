@@ -196,3 +196,15 @@ dict or whatever, but they haven't been parsed into one so their type is string 
 or it could be a list if looked at as a list but still also be a dict.  dicts will parse as lists.
 
 
+---
+
+apt install autoconf pre 2.71
+
+apt install autoconf2.64
+python3-ipython
+
+---
+
+crap, valtype::imei is both a namespace and a proc
+
+
