@@ -2802,7 +2802,7 @@ Tohil_Init(Tcl_Interp *interp)
     if (!Py_IsInitialized()) {
         // figure out argv0; it will help the python interpreter hopefully find
         // a path to the right python run-time libraries.
-        char *argv0 = Tcl_GetVar(interp, "::argv0", 0);
+        const char *argv0 = Tcl_GetVar(interp, "::argv0", 0);
         if (argv0 != NULL) {
             wchar_t *wide_argv0 = Py_DecodeLocale(argv0, NULL);
             if (wide_argv0 != NULL) {
