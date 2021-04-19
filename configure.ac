@@ -147,7 +147,7 @@ TEA_ADD_TCL_SOURCES([tclsrc/tohil.tcl])
 # TEA_ADD_* any platform specific compiler/build info here.
 #--------------------------------------------------------------------
 
-CLEANFILES="pkgIndex.tcl"
+CLEANFILES=""
 if test "${TEA_PLATFORM}" = "windows" ; then
     AC_DEFINE(BUILD_sample, 1, [Build windows export dll])
     CLEANFILES="$CLEANFILES *.lib *.dll *.exp *.ilk *.pdb vc*.pch"

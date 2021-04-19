@@ -358,7 +358,7 @@ clean: clean-python-module
 	-rm -rf autom4te.cache
 	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
-distclean: clean
+distclean: clean distclean-python-module
 	-rm -f *.tab.c
 	-rm -f $(CONFIG_CLEAN_FILES)
 	-rm -f config.cache config.log config.status
@@ -460,4 +460,7 @@ install-python-module:
 	python3 setup.py install
 
 clean-python-module:
+	rm -rf build/ dist/ pysrc/tohil.egg-info/ tests/__pycache__/
+
+distclean-python-module:
 	rm -rf setup.py build/ dist/ pysrc/tohil.egg-info/ tests/__pycache__/
