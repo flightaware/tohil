@@ -940,7 +940,7 @@ TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
 
     // if you want equal and they point to the exact same object,
     // we are donezo
-    if (op == Py_EQ && TohilTclObj_Check(other) && self->tclobj == ((TohilTclObj *)other)->tclobj) {
+    if (op == Py_EQ && (TohilTclObj_Check(other) || TohilTclDict_Check(other)) && self->tclobj == ((TohilTclObj *)other)->tclobj) {
         Py_INCREF(Py_True);
         return Py_True;
     }
@@ -949,7 +949,7 @@ TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
 
     char *otherString = NULL;
     Tcl_Obj *otherObj = NULL;
-    if (TohilTclObj_Check(other)) {
+    if (TohilTclObj_Check(other) || TohilTclDict_Check(other)) {
         otherString = Tcl_GetString(((TohilTclObj *)other)->tclobj);
     } else {
         otherObj = pyObjToTcl(tcl_interp, other);
@@ -1821,10 +1821,11 @@ TohilTclObj_setto(TohilTclObj *self, PyTypeObject *toType, void *closure)
     return 0;
 }
 
-static PyGetSetDef TohilTclObj_getsetters[] = {{"to", (getter)TohilTclObj_getto, (setter)TohilTclObj_setto, "python type to default returns to", NULL},
-                                            {"_refcount", (getter)TohilTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
-                                            {"_tcltype", (getter)TohilTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
-                                            {NULL}};
+static PyGetSetDef TohilTclObj_getsetters[] = {
+    {"to", (getter)TohilTclObj_getto, (setter)TohilTclObj_setto, "python type to default returns to", NULL},
+    {"_refcount", (getter)TohilTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
+    {"_tcltype", (getter)TohilTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
+    {NULL}};
 
 static PyMappingMethods TohilTclObj_as_mapping = {(lenfunc)TohilTclObj_length, (binaryfunc)TohilTclObj_subscript, NULL};
 
@@ -2768,8 +2769,6 @@ static struct PyModuleDef TohilModule = {
 int
 Tohil_Init(Tcl_Interp *interp)
 {
-    /* TODO: all TCL_ERRORs should set an error return */
-
     if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
         return TCL_ERROR;
 
