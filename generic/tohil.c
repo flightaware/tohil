@@ -34,11 +34,11 @@ typedef struct {
     PyObject_HEAD;
     PyTypeObject *to;
     Tcl_Obj *tclobj;
-} PyTclObj;
+} TohilTclObj;
 
-int PyTclObj_Check(PyObject *pyObj);
+int TohilTclObj_Check(PyObject *pyObj);
 int TohilTclDict_Check(PyObject *pyObj);
-static PyTypeObject PyTclObjType;
+static PyTypeObject TohilTclObjType;
 
 int TohilTclDict_Check(PyObject *pyObj);
 static PyTypeObject TohilTclDictType;
@@ -356,8 +356,8 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         tObj = Tcl_NewObj();
     } else if (pObj == Py_True || pObj == Py_False) {
         tObj = Tcl_NewBooleanObj(pObj == Py_True);
-    } else if (PyTclObj_Check(pObj) || TohilTclDict_Check(pObj)) {
-        PyTclObj *pyTclObj = (PyTclObj *)pObj;
+    } else if (TohilTclObj_Check(pObj) || TohilTclDict_Check(pObj)) {
+        TohilTclObj *pyTclObj = (TohilTclObj *)pObj;
         tObj = pyTclObj->tclobj;
     } else if (PyBytes_Check(pObj)) {
         tObj = Tcl_NewByteArrayObj((const unsigned char *)PyBytes_AS_STRING(pObj), PyBytes_GET_SIZE(pObj));
@@ -810,18 +810,18 @@ TohilInteract_Cmd(ClientData clientData, /* Not used. */
 // return true if python object is a tclobj type
 //
 int
-PyTclObj_Check(PyObject *pyObj)
+TohilTclObj_Check(PyObject *pyObj)
 {
-    return PyObject_TypeCheck(pyObj, &PyTclObjType);
+    return PyObject_TypeCheck(pyObj, &TohilTclObjType);
 }
 
 //
 // create a new python tclobj object from a tclobj
 //
 static PyObject *
-PyTclObj_FromTclObj(Tcl_Obj *obj)
+TohilTclObj_FromTclObj(Tcl_Obj *obj)
 {
-    PyTclObj *self = (PyTclObj *)PyTclObjType.tp_alloc(&PyTclObjType, 0);
+    TohilTclObj *self = (TohilTclObj *)TohilTclObjType.tp_alloc(&TohilTclObjType, 0);
     if (self != NULL) {
         self->tclobj = obj;
         self->to = NULL;
@@ -838,7 +838,7 @@ PyTclObj_FromTclObj(Tcl_Obj *obj)
 // and makes the new tclobj object point to that
 //
 static PyObject *
-PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     PyObject *pSource = NULL;
     PyObject *toType = NULL;
@@ -854,7 +854,7 @@ PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         }
     }
 
-    PyTclObj *self = (PyTclObj *)type->tp_alloc(type, 0);
+    TohilTclObj *self = (TohilTclObj *)type->tp_alloc(type, 0);
     if (self != NULL) {
         if (pSource == NULL) {
             if (STREQU(type->tp_name, "tohil.tcldict")) {
@@ -876,7 +876,7 @@ PyTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 // deallocate function for python tclobj type
 //
 static void
-PyTclObj_dealloc(PyTclObj *self)
+TohilTclObj_dealloc(TohilTclObj *self)
 {
     Tcl_DecrRefCount(self->tclobj);
     Py_XDECREF(self->to);
@@ -887,7 +887,7 @@ PyTclObj_dealloc(PyTclObj *self)
 // init function for python tclobj type
 //
 static int
-PyTclObj_init(PyTclObj *self, PyObject *args, PyObject *kwds)
+TohilTclObj_init(TohilTclObj *self, PyObject *args, PyObject *kwds)
 {
     return 0;
 }
@@ -896,7 +896,7 @@ PyTclObj_init(PyTclObj *self, PyObject *args, PyObject *kwds)
 // str() method for python tclobj type
 //
 static PyObject *
-PyTclObj_str(PyTclObj *self)
+TohilTclObj_str(TohilTclObj *self)
 {
     int tclStringSize;
     char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
@@ -916,7 +916,7 @@ PyTclObj_str(PyTclObj *self)
 // repr() method for python tclobj type
 //
 static PyObject *
-PyTclObj_repr(PyTclObj *self)
+TohilTclObj_repr(TohilTclObj *self)
 {
     Tcl_DString ds;
     char *utf8string = tohil_TclObjToUTF8(self->tclobj, &ds);
@@ -932,14 +932,14 @@ PyTclObj_repr(PyTclObj *self)
 // richcompare() method for python tclobj type
 //
 static PyObject *
-PyTclObj_richcompare(PyTclObj *self, PyObject *other, int op)
+TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
 {
 
-    // NB ugh other isn't necessarily a PyTclObj
+    // NB ugh other isn't necessarily a TohilTclObj
 
     // if you want equal and they point to the exact same object,
     // we are donezo
-    if (op == Py_EQ && PyTclObj_Check(other) && self->tclobj == ((PyTclObj *)other)->tclobj) {
+    if (op == Py_EQ && TohilTclObj_Check(other) && self->tclobj == ((TohilTclObj *)other)->tclobj) {
         Py_INCREF(Py_True);
         return Py_True;
     }
@@ -948,8 +948,8 @@ PyTclObj_richcompare(PyTclObj *self, PyObject *other, int op)
 
     char *otherString = NULL;
     Tcl_Obj *otherObj = NULL;
-    if (PyTclObj_Check(other)) {
-        otherString = Tcl_GetString(((PyTclObj *)other)->tclobj);
+    if (TohilTclObj_Check(other)) {
+        otherString = Tcl_GetString(((TohilTclObj *)other)->tclobj);
     } else {
         otherObj = pyObjToTcl(tcl_interp, other);
         otherString = Tcl_GetString(otherObj);
@@ -998,7 +998,7 @@ PyTclObj_richcompare(PyTclObj *self, PyObject *other, int op)
 // tclobj.reset() - reset a tclobj or tcldict to an empty tcl object
 //
 static PyObject *
-PyTclObj_reset(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_reset(TohilTclObj *self, PyObject *pyobj)
 {
     Tcl_DecrRefCount(self->tclobj);
     self->tclobj = Tcl_NewObj();
@@ -1012,7 +1012,7 @@ PyTclObj_reset(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_int()
 //
 static PyObject *
-PyTclObj_as_int(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_int(TohilTclObj *self, PyObject *pyobj)
 {
     long longValue;
 
@@ -1027,7 +1027,7 @@ PyTclObj_as_int(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_float()
 //
 static PyObject *
-PyTclObj_as_float(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_float(TohilTclObj *self, PyObject *pyobj)
 {
     double doubleValue;
 
@@ -1042,7 +1042,7 @@ PyTclObj_as_float(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_bool()
 //
 static PyObject *
-PyTclObj_as_bool(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_bool(TohilTclObj *self, PyObject *pyobj)
 {
     int intValue;
     if (Tcl_GetBooleanFromObj(tcl_interp, self->tclobj, &intValue) == TCL_OK) {
@@ -1058,7 +1058,7 @@ PyTclObj_as_bool(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_string()
 //
 static PyObject *
-PyTclObj_as_string(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_string(TohilTclObj *self, PyObject *pyobj)
 {
     int tclStringSize;
     char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
@@ -1078,7 +1078,7 @@ PyTclObj_as_string(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_list()
 //
 static PyObject *
-PyTclObj_as_list(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_list(TohilTclObj *self, PyObject *pyobj)
 {
     return tclListObjToPyListObject(tcl_interp, self->tclobj);
 }
@@ -1087,7 +1087,7 @@ PyTclObj_as_list(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_set()
 //
 static PyObject *
-PyTclObj_as_set(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_set(TohilTclObj *self, PyObject *pyobj)
 {
     return tclListObjToPySetObject(tcl_interp, self->tclobj);
 }
@@ -1096,7 +1096,7 @@ PyTclObj_as_set(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_tuple()
 //
 static PyObject *
-PyTclObj_as_tuple(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_tuple(TohilTclObj *self, PyObject *pyobj)
 {
     return tclListObjToPyTupleObject(tcl_interp, self->tclobj);
 }
@@ -1105,7 +1105,7 @@ PyTclObj_as_tuple(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_dict()
 //
 static PyObject *
-PyTclObj_as_dict(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_dict(TohilTclObj *self, PyObject *pyobj)
 {
     return tclListObjToPyDictObject(tcl_interp, self->tclobj);
 }
@@ -1114,16 +1114,16 @@ PyTclObj_as_dict(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_tclobj()
 //
 static PyObject *
-PyTclObj_as_tclobj(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_tclobj(TohilTclObj *self, PyObject *pyobj)
 {
-    return PyTclObj_FromTclObj(self->tclobj);
+    return TohilTclObj_FromTclObj(self->tclobj);
 }
 
 //
 // tclobj.as_tcldict()
 //
 static PyObject *
-PyTclObj_as_tcldict(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_tcldict(TohilTclObj *self, PyObject *pyobj)
 {
     return TohilTclDict_FromTclObj(self->tclobj);
 }
@@ -1132,7 +1132,7 @@ PyTclObj_as_tcldict(PyTclObj *self, PyObject *pyobj)
 // tclobj.as_byte_array()
 //
 static PyObject *
-PyTclObj_as_byte_array(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_as_byte_array(TohilTclObj *self, PyObject *pyobj)
 {
     int size;
     unsigned char *byteArray = Tcl_GetByteArrayFromObj(self->tclobj, &size);
@@ -1140,7 +1140,7 @@ PyTclObj_as_byte_array(PyTclObj *self, PyObject *pyobj)
 }
 
 void
-PyTclObj_dup_if_shared(PyTclObj *self)
+TohilTclObj_dup_if_shared(TohilTclObj *self)
 {
     if (!Tcl_IsShared(self->tclobj)) {
         return;
@@ -1158,7 +1158,7 @@ PyTclObj_dup_if_shared(PyTclObj *self)
 // tclobj.incr() - increment a python tclobj object
 //
 static PyObject *
-PyTclObj_incr(PyTclObj *self, PyObject *args, PyObject *kwargs)
+TohilTclObj_incr(TohilTclObj *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"incr", NULL};
     long longValue = 0;
@@ -1175,7 +1175,7 @@ PyTclObj_incr(PyTclObj *self, PyObject *args, PyObject *kwargs)
 
     longValue += increment;
 
-    PyTclObj_dup_if_shared(self);
+    TohilTclObj_dup_if_shared(self);
     Tcl_SetLongObj(self->tclobj, longValue);
     return PyLong_FromLong(longValue);
 }
@@ -1225,7 +1225,7 @@ pyListToObjv_teardown(int objc, Tcl_Obj **objv)
 //   as a list.  exception thrown if tcl object isn't a list
 //
 static PyObject *
-PyTclObj_llength(PyTclObj *self, PyObject *pyobj)
+TohilTclObj_llength(TohilTclObj *self, PyObject *pyobj)
 {
     int length;
     if (Tcl_ListObjLength(tcl_interp, self->tclobj, &length) == TCL_OK) {
@@ -1239,7 +1239,7 @@ PyTclObj_llength(PyTclObj *self, PyObject *pyobj)
 // getvar - set python tclobj to contain the value of a tcl var
 //
 static PyObject *
-PyTclObj_getvar(PyTclObj *self, PyObject *var)
+TohilTclObj_getvar(TohilTclObj *self, PyObject *var)
 {
     char *varString = (char *)PyUnicode_1BYTE_DATA(var);
     Tcl_Obj *newObj = Tcl_GetVar2Ex(tcl_interp, varString, NULL, (TCL_LEAVE_ERR_MSG));
@@ -1257,7 +1257,7 @@ PyTclObj_getvar(PyTclObj *self, PyObject *var)
 // setvar - set set tcl var to point to the tcl object of a python tclobj
 //
 static PyObject *
-PyTclObj_setvar(PyTclObj *self, PyObject *var)
+TohilTclObj_setvar(TohilTclObj *self, PyObject *var)
 {
     char *varString = (char *)PyUnicode_1BYTE_DATA(var);
     // setvar handles incrementing the reference count
@@ -1273,7 +1273,7 @@ PyTclObj_setvar(PyTclObj *self, PyObject *var)
 // of possible python stuff -- NB there must be a better way
 //
 static PyObject *
-PyTclObj_set(PyTclObj *self, PyObject *pyObject)
+TohilTclObj_set(TohilTclObj *self, PyObject *pyObject)
 {
     Tcl_Obj *newObj = pyObjToTcl(tcl_interp, pyObject);
     if (newObj == NULL) {
@@ -1292,7 +1292,7 @@ PyTclObj_set(PyTclObj *self, PyObject *pyObject)
 // to=type can be used to control what python type is returned.
 //
 static PyObject *
-PyTclObj_lindex(PyTclObj *self, PyObject *args, PyObject *kwargs)
+TohilTclObj_lindex(TohilTclObj *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"index", "to", NULL};
     PyTypeObject *to = NULL;
@@ -1328,7 +1328,7 @@ PyTclObj_lindex(PyTclObj *self, PyObject *args, PyObject *kwargs)
 // lappend something to the tclobj
 //
 static PyObject *
-PyTclObj_lappend(PyTclObj *self, PyObject *pObject)
+TohilTclObj_lappend(TohilTclObj *self, PyObject *pObject)
 {
     Tcl_Obj *newObj = pyObjToTcl(tcl_interp, pObject);
     if (newObj == NULL) {
@@ -1362,13 +1362,13 @@ PyTclObj_lappend(PyTclObj *self, PyObject *pObject)
 // appended to the list while being converted to tcl objects
 //
 static PyObject *
-PyTclObj_lappend_list(PyTclObj *self, PyObject *pObject)
+TohilTclObj_lappend_list(TohilTclObj *self, PyObject *pObject)
 {
 
     // if passed python object is a tclobj, use tcl list C stuff
     // to append the list to the list
-    if (PyTclObj_Check(pObject)) {
-        Tcl_Obj *appendListObj = ((PyTclObj *)pObject)->tclobj;
+    if (TohilTclObj_Check(pObject)) {
+        Tcl_Obj *appendListObj = ((TohilTclObj *)pObject)->tclobj;
 
         // NB i think we don't increment here because ListObjAppendList
         // will do it for us.
@@ -1414,17 +1414,17 @@ PyTclObj_lappend_list(PyTclObj *self, PyObject *pObject)
 }
 
 //
-// PyTclObj_refcount - return the reference count of the
+// TohilTclObj_refcount - return the reference count of the
 //   tclobj or tcldict's internal tcl object
 //
 static PyObject *
-PyTclObj_refcount(PyTclObj *self, PyObject *dummy)
+TohilTclObj_refcount(TohilTclObj *self, PyObject *dummy)
 {
     return PyLong_FromLong(self->tclobj->refCount);
 }
 
 //
-// PyTclObj_type - return the internal tcl data type of
+// TohilTclObj_type - return the internal tcl data type of
 //   the corresponding tclobj/tcldict python type
 //
 //   this can use useful but it's not canonical - the type
@@ -1432,7 +1432,7 @@ PyTclObj_refcount(PyTclObj *self, PyObject *dummy)
 //   hasn't been used as a list, dict, etc.
 //
 static PyObject *
-PyTclObj_type(PyTclObj *self, PyObject *dummy)
+TohilTclObj_type(TohilTclObj *self, PyObject *dummy)
 {
     const Tcl_ObjType *typePtr = self->tclobj->typePtr;
     if (typePtr == NULL) {
@@ -1442,23 +1442,23 @@ PyTclObj_type(PyTclObj *self, PyObject *dummy)
 }
 
 static PyObject *
-PyTclObjIter(PyObject *self)
+TohilTclObjIter(PyObject *self)
 {
     assert(pyTclObjIterator != NULL);
     PyObject *pyRet = PyObject_CallFunction(pyTclObjIterator, "O", self);
     return pyRet;
 }
 
-static PyObject *PyTclObj_subscript(PyTclObj *, PyObject *);
+static PyObject *TohilTclObj_subscript(TohilTclObj *, PyObject *);
 
 //
-// PyTclObj_slice - return a python list containing a slice
+// TohilTclObj_slice - return a python list containing a slice
 //   of the referenced tclobj as a list.
 //
 // significantly cribbed from cpython source for listobjects...
 //
 static PyObject *
-PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
+TohilTclObj_slice(TohilTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 {
     PyListObject *np;
     int listObjc;
@@ -1499,11 +1499,11 @@ PyTclObj_slice(PyTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 }
 
 //
-// PyTclObj_item - return the i'th element of a tclobj containing
+// TohilTclObj_item - return the i'th element of a tclobj containing
 //   a list, or set an error and return NULL if something's wrong
 //
 static PyObject *
-PyTclObj_item(PyTclObj *self, Py_ssize_t i)
+TohilTclObj_item(TohilTclObj *self, Py_ssize_t i)
 {
     int size = 0;
 
@@ -1531,10 +1531,10 @@ PyTclObj_item(PyTclObj *self, Py_ssize_t i)
 }
 
 //
-// PyTclObj_ass_item - assign an item into a tclobj containing a list
+// TohilTclObj_ass_item - assign an item into a tclobj containing a list
 //
 static int
-PyTclObj_ass_item(PyTclObj *self, Py_ssize_t i, PyObject *v)
+TohilTclObj_ass_item(TohilTclObj *self, Py_ssize_t i, PyObject *v)
 {
     int size = 0;
 
@@ -1573,14 +1573,14 @@ PyTclObj_ass_item(PyTclObj *self, Py_ssize_t i, PyObject *v)
 }
 
 //
-// PyTclObj_length - return the length of the tclobj, looking at it
+// TohilTclObj_length - return the length of the tclobj, looking at it
 //   as a tcl list.  returns -1 if string cannot be represented as
 //   a list, or 0 or larger, representing the number of elements
 //   in the list.
 //
 //
 static Py_ssize_t
-PyTclObj_length(PyTclObj *self, Py_ssize_t i)
+TohilTclObj_length(TohilTclObj *self, Py_ssize_t i)
 {
     int size = 0;
 
@@ -1593,12 +1593,12 @@ PyTclObj_length(PyTclObj *self, Py_ssize_t i)
 }
 
 //
-// PyTclObj_subscript - subscript a tclobj.  we treat the tclobj
+// TohilTclObj_subscript - subscript a tclobj.  we treat the tclobj
 //   as a list, so item can be an integer (to obtain a single element),
 //   or a slice (to obtain zero or more elements.)
 //
 static PyObject *
-PyTclObj_subscript(PyTclObj *self, PyObject *item)
+TohilTclObj_subscript(TohilTclObj *self, PyObject *item)
 {
     int size = 0;
 
@@ -1641,7 +1641,7 @@ PyTclObj_subscript(PyTclObj *self, PyObject *item)
         if (slicelength <= 0) {
             return tohil_python_return(tcl_interp, TCL_OK, self->to, Tcl_NewObj());
         } else if (step == 1) {
-            return PyTclObj_slice(self, start, stop);
+            return TohilTclObj_slice(self, start, stop);
         } else {
             result = PyList_New(slicelength);
             if (!result)
@@ -1790,11 +1790,11 @@ static PyTypeObject PyTohil_TD_IterType = {
 //
 
 //
-// PyTclObj_getto - get "to" value, settable attribute for what
+// TohilTclObj_getto - get "to" value, settable attribute for what
 //   type to convert tclobjs and tcldicts to
 //
 static PyObject *
-PyTclObj_getto(PyTclObj *self, void *closure)
+TohilTclObj_getto(TohilTclObj *self, void *closure)
 {
     if (self->to == NULL) {
         Py_RETURN_NONE;
@@ -1804,11 +1804,11 @@ PyTclObj_getto(PyTclObj *self, void *closure)
 }
 
 //
-// PyTclObj_getto - get "to" value, attribute for what
+// TohilTclObj_getto - get "to" value, attribute for what
 //   type to convert tclobjs and tcldicts to
 //
 static int
-PyTclObj_setto(PyTclObj *self, PyTypeObject *toType, void *closure)
+TohilTclObj_setto(TohilTclObj *self, PyTypeObject *toType, void *closure)
 {
     if (!PyType_Check(toType)) {
         return -1;
@@ -1820,66 +1820,66 @@ PyTclObj_setto(PyTclObj *self, PyTypeObject *toType, void *closure)
     return 0;
 }
 
-static PyGetSetDef PyTclObj_getsetters[] = {{"to", (getter)PyTclObj_getto, (setter)PyTclObj_setto, "python type to default returns to", NULL},
-                                            {"_refcount", (getter)PyTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
-                                            {"_tcltype", (getter)PyTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
+static PyGetSetDef TohilTclObj_getsetters[] = {{"to", (getter)TohilTclObj_getto, (setter)TohilTclObj_setto, "python type to default returns to", NULL},
+                                            {"_refcount", (getter)TohilTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
+                                            {"_tcltype", (getter)TohilTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
                                             {NULL}};
 
-static PyMappingMethods PyTclObj_as_mapping = {(lenfunc)PyTclObj_length, (binaryfunc)PyTclObj_subscript, NULL};
+static PyMappingMethods TohilTclObj_as_mapping = {(lenfunc)TohilTclObj_length, (binaryfunc)TohilTclObj_subscript, NULL};
 
-static PySequenceMethods PyTclObj_as_sequence = {
-    .sq_length = (lenfunc)PyTclObj_length,
+static PySequenceMethods TohilTclObj_as_sequence = {
+    .sq_length = (lenfunc)TohilTclObj_length,
     // .sq_concat = (binaryfunc)tclobj_concat,
     // .sq_repeat = (ssizeargfunc)tclobj_repeat,
-    .sq_item = (ssizeargfunc)PyTclObj_item,
-    .sq_ass_item = (ssizeobjargproc)PyTclObj_ass_item,
+    .sq_item = (ssizeargfunc)TohilTclObj_item,
+    .sq_ass_item = (ssizeobjargproc)TohilTclObj_ass_item,
     // .sq_contains = (objobjproc)list_contains,
     //.sq_inplace_concat = (binaryfunc)list_inplace_concat,
     //.sq_inplace_repeat = (ssizeargfunc)list_inplace_repeat,
 };
 
-static PyMethodDef PyTclObj_methods[] = {
-    {"__getitem__", (PyCFunction)PyTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
-    {"reset", (PyCFunction)PyTclObj_reset, METH_NOARGS, "reset the tclobj"},
-    {"as_str", (PyCFunction)PyTclObj_as_string, METH_NOARGS, "return tclobj as str"},
-    {"as_int", (PyCFunction)PyTclObj_as_int, METH_NOARGS, "return tclobj as int"},
-    {"as_float", (PyCFunction)PyTclObj_as_float, METH_NOARGS, "return tclobj as float"},
-    {"as_bool", (PyCFunction)PyTclObj_as_bool, METH_NOARGS, "return tclobj as bool"},
-    {"as_list", (PyCFunction)PyTclObj_as_list, METH_NOARGS, "return tclobj as list"},
-    {"as_set", (PyCFunction)PyTclObj_as_set, METH_NOARGS, "return tclobj as set"},
-    {"as_tuple", (PyCFunction)PyTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
-    {"as_dict", (PyCFunction)PyTclObj_as_dict, METH_NOARGS, "return tclobj as dict"},
-    {"as_tclobj", (PyCFunction)PyTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
-    {"as_tcldict", (PyCFunction)PyTclObj_as_tcldict, METH_NOARGS, "return tclobj as tcldict"},
-    {"as_byte_array", (PyCFunction)PyTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
-    {"incr", (PyCFunction)PyTclObj_incr, METH_VARARGS | METH_KEYWORDS, "increment tclobj as int"},
-    {"llength", (PyCFunction)PyTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
-    {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
-    {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
-    {"set", (PyCFunction)PyTclObj_set, METH_O, "set tclobj from some python object"},
-    {"lindex", (PyCFunction)PyTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from tclobj as tcl list"},
-    {"lappend", (PyCFunction)PyTclObj_lappend, METH_O, "lappend (list-append) something to tclobj"},
-    {"lappend_list", (PyCFunction)PyTclObj_lappend_list, METH_O, "lappend another tclobj or a python list of stuff to tclobj"},
+static PyMethodDef TohilTclObj_methods[] = {
+    {"__getitem__", (PyCFunction)TohilTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
+    {"reset", (PyCFunction)TohilTclObj_reset, METH_NOARGS, "reset the tclobj"},
+    {"as_str", (PyCFunction)TohilTclObj_as_string, METH_NOARGS, "return tclobj as str"},
+    {"as_int", (PyCFunction)TohilTclObj_as_int, METH_NOARGS, "return tclobj as int"},
+    {"as_float", (PyCFunction)TohilTclObj_as_float, METH_NOARGS, "return tclobj as float"},
+    {"as_bool", (PyCFunction)TohilTclObj_as_bool, METH_NOARGS, "return tclobj as bool"},
+    {"as_list", (PyCFunction)TohilTclObj_as_list, METH_NOARGS, "return tclobj as list"},
+    {"as_set", (PyCFunction)TohilTclObj_as_set, METH_NOARGS, "return tclobj as set"},
+    {"as_tuple", (PyCFunction)TohilTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
+    {"as_dict", (PyCFunction)TohilTclObj_as_dict, METH_NOARGS, "return tclobj as dict"},
+    {"as_tclobj", (PyCFunction)TohilTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
+    {"as_tcldict", (PyCFunction)TohilTclObj_as_tcldict, METH_NOARGS, "return tclobj as tcldict"},
+    {"as_byte_array", (PyCFunction)TohilTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
+    {"incr", (PyCFunction)TohilTclObj_incr, METH_VARARGS | METH_KEYWORDS, "increment tclobj as int"},
+    {"llength", (PyCFunction)TohilTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
+    {"getvar", (PyCFunction)TohilTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
+    {"setvar", (PyCFunction)TohilTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
+    {"set", (PyCFunction)TohilTclObj_set, METH_O, "set tclobj from some python object"},
+    {"lindex", (PyCFunction)TohilTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from tclobj as tcl list"},
+    {"lappend", (PyCFunction)TohilTclObj_lappend, METH_O, "lappend (list-append) something to tclobj"},
+    {"lappend_list", (PyCFunction)TohilTclObj_lappend_list, METH_O, "lappend another tclobj or a python list of stuff to tclobj"},
     {NULL} // sentinel
 };
 
-static PyTypeObject PyTclObjType = {
+static PyTypeObject TohilTclObjType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil.tclobj",
     .tp_doc = "Tcl Object",
-    .tp_basicsize = sizeof(PyTclObj),
+    .tp_basicsize = sizeof(TohilTclObj),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_new = PyTclObj_new,
-    .tp_init = (initproc)PyTclObj_init,
-    .tp_dealloc = (destructor)PyTclObj_dealloc,
-    .tp_methods = PyTclObj_methods,
-    .tp_str = (reprfunc)PyTclObj_str,
-    .tp_iter = (getiterfunc)PyTclObjIter,
-    .tp_as_sequence = &PyTclObj_as_sequence,
-    .tp_as_mapping = &PyTclObj_as_mapping,
-    .tp_repr = (reprfunc)PyTclObj_repr,
-    .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
-    .tp_getset = PyTclObj_getsetters,
+    .tp_new = TohilTclObj_new,
+    .tp_init = (initproc)TohilTclObj_init,
+    .tp_dealloc = (destructor)TohilTclObj_dealloc,
+    .tp_methods = TohilTclObj_methods,
+    .tp_str = (reprfunc)TohilTclObj_str,
+    .tp_iter = (getiterfunc)TohilTclObjIter,
+    .tp_as_sequence = &TohilTclObj_as_sequence,
+    .tp_as_mapping = &TohilTclObj_as_mapping,
+    .tp_repr = (reprfunc)TohilTclObj_repr,
+    .tp_richcompare = (richcmpfunc)TohilTclObj_richcompare,
+    .tp_getset = TohilTclObj_getsetters,
 };
 
 //
@@ -1909,7 +1909,7 @@ TohilTclDict_Check(PyObject *pyObj)
 static PyObject *
 TohilTclDict_FromTclObj(Tcl_Obj *obj)
 {
-    PyTclObj *self = (PyTclObj *)TohilTclDictType.tp_alloc(&TohilTclDictType, 0);
+    TohilTclObj *self = (TohilTclObj *)TohilTclDictType.tp_alloc(&TohilTclDictType, 0);
     if (self != NULL) {
         self->tclobj = obj;
         Tcl_IncrRefCount(obj);
@@ -1929,7 +1929,7 @@ TohilTclDict_FromTclObj(Tcl_Obj *obj)
 //   internal routine used by td_get and td_exists
 //
 static Tcl_Obj *
-TohilTclDict_td_locate(PyTclObj *self, PyObject *keys)
+TohilTclDict_td_locate(TohilTclObj *self, PyObject *keys)
 {
     // printf("TohilTclDict_td_locate\n");
     Tcl_Obj *keyObj = NULL;
@@ -1977,7 +1977,7 @@ TohilTclDict_td_locate(PyTclObj *self, PyObject *keys)
 // td_get(key) - do a dict get on the tcl object
 //
 static PyObject *
-TohilTclDict_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
+TohilTclDict_td_get(TohilTclObj *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"key", "to", "default", NULL};
     PyObject *keys = NULL;
@@ -2021,7 +2021,7 @@ TohilTclDict_td_get(PyTclObj *self, PyObject *args, PyObject *kwargs)
 //   treated as a hierarchy of dicts.
 //
 static PyObject *
-TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
+TohilTclDict_subscript(TohilTclObj *self, PyObject *keys)
 {
     // printf("TohilTclDict_subscript\n");
     Tcl_Obj *valueObj = TohilTclDict_td_locate(self, keys);
@@ -2041,7 +2041,7 @@ TohilTclDict_subscript(PyTclObj *self, PyObject *keys)
 //   tcl dicts.
 //
 static int
-TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
+TohilTclDict_delitem(TohilTclObj *self, PyObject *keys)
 {
     if (PyList_Check(keys)) {
         int objc = 0;
@@ -2051,7 +2051,7 @@ TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
         pyListToTclObjv((PyListObject *)keys, &objc, &objv);
 
         // we are about to try to modify the object, so if it's shared we need to copy
-        PyTclObj_dup_if_shared(self);
+        TohilTclObj_dup_if_shared(self);
 
         int status = (Tcl_DictObjRemoveKeyList(tcl_interp, self->tclobj, objc, objv));
 
@@ -2071,7 +2071,7 @@ TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
         }
 
         // we are about to try to modify the object, so if it's shared we need to copy
-        PyTclObj_dup_if_shared(self);
+        TohilTclObj_dup_if_shared(self);
 
         if (Tcl_DictObjRemove(NULL, self->tclobj, keyObj) == TCL_ERROR) {
             Tcl_DecrRefCount(keyObj);
@@ -2090,12 +2090,12 @@ TohilTclDict_delitem(PyTclObj *self, PyObject *keys)
 //   treats it as a hierarchy of dictionaries.
 //
 static int
-TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
+TohilTclDict_setitem(TohilTclObj *self, PyObject *keys, PyObject *pValue)
 {
     Tcl_Obj *valueObj = pyObjToTcl(tcl_interp, pValue);
 
     // we are about to try to modify the object, so if it's shared we need to copy
-    PyTclObj_dup_if_shared(self);
+    TohilTclObj_dup_if_shared(self);
 
     if (PyList_Check(keys)) {
         int objc;
@@ -2142,7 +2142,7 @@ TohilTclDict_setitem(PyTclObj *self, PyObject *keys, PyObject *pValue)
 //   of dictionaries.
 //
 static PyObject *
-TohilTclDict_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
+TohilTclDict_td_set(TohilTclObj *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"key", "value", NULL};
     PyObject *keys = NULL;
@@ -2170,7 +2170,7 @@ TohilTclDict_td_set(PyTclObj *self, PyObject *args, PyObject *kwargs)
 //   if the value is NULL then deletes the item.
 //
 static int
-TohilTclDict_ass_sub(PyTclObj *self, PyObject *key, PyObject *val)
+TohilTclDict_ass_sub(TohilTclObj *self, PyObject *key, PyObject *val)
 {
     if (val == NULL) {
         return TohilTclDict_delitem(self, key);
@@ -2184,7 +2184,7 @@ TohilTclDict_ass_sub(PyTclObj *self, PyObject *key, PyObject *val)
 //   tcl object or set a python error and return -1 if something went wrong.
 //
 static Py_ssize_t
-TohilTclDict_length(PyTclObj *self)
+TohilTclDict_length(TohilTclObj *self)
 {
     int length;
     if (Tcl_DictObjSize(tcl_interp, self->tclobj, &length) == TCL_OK) {
@@ -2200,7 +2200,7 @@ TohilTclDict_length(PyTclObj *self)
 //   returns null i.e. exception thrown if tcl object isn't a proper tcl dict.
 //
 static PyObject *
-TohilTclDict_size(PyTclObj *self, PyObject *pyobj)
+TohilTclDict_size(TohilTclObj *self, PyObject *pyobj)
 {
     int length = TohilTclDict_length(self);
     if (length < 0) {
@@ -2214,7 +2214,7 @@ TohilTclDict_size(PyTclObj *self, PyObject *pyobj)
 //   iterate over a tcldict.
 //
 static PyObject *
-TohilTclDictIter(PyTclObj *self)
+TohilTclDictIter(TohilTclObj *self)
 {
     // printf("TohilTclDictIter\n");
     // we don't need size but we use this to make tclobj is or can be a dict
@@ -2233,7 +2233,7 @@ TohilTclDictIter(PyTclObj *self)
 
     memset((void *)&pIter->search, 0, sizeof(Tcl_DictSearch));
 
-    pIter->dictObj = ((PyTclObj *)self)->tclobj;
+    pIter->dictObj = ((TohilTclObj *)self)->tclobj;
     Tcl_IncrRefCount(pIter->dictObj);
 
     return (PyObject *)pIter;
@@ -2248,7 +2248,7 @@ static int
 TohilTclDict_Contains(PyObject *self, PyObject *keys)
 {
     // printf("TohilTclDict_Contains\n");
-    Tcl_Obj *valueObj = TohilTclDict_td_locate((PyTclObj *)self, keys);
+    Tcl_Obj *valueObj = TohilTclDict_td_locate((TohilTclObj *)self, keys);
     if (valueObj == NULL) {
         if (PyErr_Occurred() != NULL) {
             return -1;
@@ -2272,9 +2272,9 @@ static PyMethodDef TohilTclDict_methods[] = {
     // enumerating the elements
     {"__len__", (PyCFunction)TohilTclDict_size, METH_VARARGS | METH_KEYWORDS, "get length of tcl dict"},
     {"td_set", (PyCFunction)TohilTclDict_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
-    {"getvar", (PyCFunction)PyTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
-    {"setvar", (PyCFunction)PyTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
-    {"set", (PyCFunction)PyTclObj_set, METH_O, "set tclobj from some python object"},
+    {"getvar", (PyCFunction)TohilTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
+    {"setvar", (PyCFunction)TohilTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
+    {"set", (PyCFunction)TohilTclObj_set, METH_O, "set tclobj from some python object"},
     {NULL} // sentinel
 };
 
@@ -2282,23 +2282,23 @@ static PyMethodDef TohilTclDict_methods[] = {
 
 static PyTypeObject TohilTclDictType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-        // .tp_base = &PyTclObjType, NB - len() breaks when we inherit
+        // .tp_base = &TohilTclObjType, NB - len() breaks when we inherit
         .tp_name = "tohil.tcldict",
     .tp_doc = "Tcl TD tcldict Object",
-    .tp_basicsize = sizeof(PyTclObj),
+    .tp_basicsize = sizeof(TohilTclObj),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_new = PyTclObj_new,
-    .tp_init = (initproc)PyTclObj_init,
-    .tp_dealloc = (destructor)PyTclObj_dealloc,
+    .tp_new = TohilTclObj_new,
+    .tp_init = (initproc)TohilTclObj_init,
+    .tp_dealloc = (destructor)TohilTclObj_dealloc,
     .tp_methods = TohilTclDict_methods,
-    .tp_str = (reprfunc)PyTclObj_str,
+    .tp_str = (reprfunc)TohilTclObj_str,
     .tp_iter = (getiterfunc)TohilTclDictIter,
     .tp_as_mapping = &TohilTclDict_as_mapping,
     .tp_as_sequence = &TohilTclDict_as_sequence,
-    .tp_repr = (reprfunc)PyTclObj_repr,
-    .tp_richcompare = (richcmpfunc)PyTclObj_richcompare,
-    .tp_getset = PyTclObj_getsetters,
+    .tp_repr = (reprfunc)TohilTclObj_repr,
+    .tp_richcompare = (richcmpfunc)TohilTclObj_richcompare,
+    .tp_getset = TohilTclObj_getsetters,
 };
 
 //
@@ -2310,7 +2310,7 @@ static PyTypeObject TohilTclDictType = {
 // tohil_python_return - you call this routine when you have a tcl object
 //   that you want to turn into a python object.  usually you call it when
 //   you are returning from a C function called from python, but it is
-//   used repeatedly in PyTclObj_slice to prepare a list of python objects
+//   used repeatedly in TohilTclObj_slice to prepare a list of python objects
 //   converted from tcl objects.
 //
 //   this code is called  a lot.  it also can return tcl errors, and it
@@ -2334,7 +2334,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
 
     if (tcl_result == TCL_ERROR) {
         Tcl_Obj *returnOptionsObj = Tcl_GetReturnOptions(interp, tcl_result);
-        PyObject *pReturnOptionsObj = PyTclObj_FromTclObj(returnOptionsObj);
+        PyObject *pReturnOptionsObj = TohilTclObj_FromTclObj(returnOptionsObj);
 
         PyObject *pRetTuple = PyTuple_New(2);
         int tclStringSize;
@@ -2408,7 +2408,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
     }
 
     if (STREQU(toString, "tohil.tclobj")) {
-        return PyTclObj_FromTclObj(resultObj);
+        return TohilTclObj_FromTclObj(resultObj);
     }
 
     if (STREQU(toString, "tohil.tcldict")) {
@@ -2894,7 +2894,7 @@ PyInit__tohil(void)
     tcl_interp = interp;
 
     // turn up the tclobj python type
-    if (PyType_Ready(&PyTclObjType) < 0) {
+    if (PyType_Ready(&TohilTclObjType) < 0) {
         return NULL;
     }
 
@@ -2941,9 +2941,9 @@ PyInit__tohil(void)
     Py_INCREF(pyTclObjIterator);
 
     // add our tclobj type to python
-    Py_INCREF(&PyTclObjType);
-    if (PyModule_AddObject(m, "tclobj", (PyObject *)&PyTclObjType) < 0) {
-        Py_DECREF(&PyTclObjType);
+    Py_INCREF(&TohilTclObjType);
+    if (PyModule_AddObject(m, "tclobj", (PyObject *)&TohilTclObjType) < 0) {
+        Py_DECREF(&TohilTclObjType);
         Py_DECREF(m);
         return NULL;
     }
