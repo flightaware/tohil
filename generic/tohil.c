@@ -922,8 +922,9 @@ TohilTclObj_repr(TohilTclObj *self)
     char *utf8string = tohil_TclObjToUTF8(self->tclobj, &ds);
 
     PyObject *stringRep = PyUnicode_FromFormat("%s", utf8string);
+    char *format = PyUnicode_GET_LENGTH(stringRep) > 100 ? "<%s: %.100R...>" : "<%s: %.100R>";
     Tcl_DStringFree(&ds);
-    PyObject *repr = PyUnicode_FromFormat("<%s: %.100R...>", Py_TYPE(self)->tp_name, stringRep);
+    PyObject *repr = PyUnicode_FromFormat(format, Py_TYPE(self)->tp_name, stringRep);
     Py_DECREF(stringRep);
     return repr;
 }
