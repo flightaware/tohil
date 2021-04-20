@@ -20,6 +20,9 @@ TCL_INCLUDES = """ @TCL_INCLUDES@ """
 # this is where tclConfig.sh resides
 TCL_BIN_DIR = "@TCL_BIN_DIR@"
 
+TCL_LIB_FLAG="@TCL_LIB_FLAG@"
+tcl_lib = TCL_LIB_FLAG[2:]
+
 PYTHON_INCLUDES = """ @PYTHON_INCLUDES@ """
 
 PYTHON_LIB_DIR = """ @PYTHON_LIB_DIR@ """
@@ -55,8 +58,9 @@ tohil_c_module = Extension(
     "tohil._tohil",
     define_macros=[("PACKAGE_VERSION", f'"{TOHIL_VERSION}"'),
         ("PYTHON_VERSION", f'"{PYTHON_VERSION}"')],
-    #libraries=[f"python{PYTHON_VERSION}", "tcl8.6"],
-    libraries=["tcl8.6"],
+    # tcl library name is usually libtcl8.6 but someone uses
+    # libtcl86, i'm looking at you, freebsd.
+    libraries=[tcl_lib],
     include_dirs=[prefix_include_dir, tcl_include_dir],
     library_dirs=[prefix_lib_dir],
     sources=["generic/tohil.c"],
