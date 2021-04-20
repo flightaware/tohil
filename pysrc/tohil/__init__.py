@@ -291,14 +291,17 @@ def info_procs(pattern=None, what="procs"):
 
 
 def info_commands(pattern=None):
+    """wrapper for 'info commands'"""
     return info_procs(pattern, what="commands")
 
 
 def info_body(proc):
+    """wrapper for 'info body'"""
     return call("info", "body", proc, to=str)
 
 
 def namespace_children(namespace):
+    """wrapper for 'namespace children'"""
     return sorted(call("namespace", "children", namespace, to=list))
 
 
@@ -448,10 +451,10 @@ class TclProc:
         # these args are positional from the python side; python already split out
         # named parameters into kwargs before calling us.
         #
-        # advance matching the tcl arg names to the args tuple, but if an
+        # advance, matching the tcl arg names to the args tuple, but if an
         # arg name is already in the final array due to having come from
         # a named parameter, advance to the next argument, without advancing
-        # the args list
+        # the args list.
         # print("checking positional parameters")
         pos = 0
         # for arg_name, arg in zip(self.proc_args, args):
@@ -465,7 +468,7 @@ class TclProc:
                     # print(f"trampoline filling in position arg {arg_name}, '{repr(args[pos])}'")
                 else:
                     # already have this from a named parameter, skip but
-                    # keep the positional parameter for the next arg
+                    # keep the current positional parameter for the next arg
                     continue
             else:
                 # this argument is the tcl-special "args",
@@ -475,20 +478,23 @@ class TclProc:
                 break
             pos += 1
 
-        # pump any default values if needed
+        # pump any default values, if needed, by checking for the existence
+        # of the default values' var names in the final array.  if it isn't
+        # there, put it there.  if it is there, the default isn't needed.
         # print("checking defaults")
         for arg_name, def_value in self.defaults.items():
             if arg_name not in final:
                 # print(f"trampoline filling in default value {arg_name}, '{def_value}'")
                 final[arg_name] = def_value
 
-        # make sure we've got everything
+        # make sure we've got something for each of the proc's argument - if anything are
+        # missing, it's an error.
         for arg_name in self.proc_args:
             # it's ok if args is missing
             if not arg_name in final and arg_name != "args":
                 raise TypeError(f"required arg '{arg_name}' missing")
 
-        # assemble the final argument list
+        # assemble the final argument list in the correct order for the proc
         final_arg_list = list()
         for arg_name in self.proc_args:
             if arg_name != "args":
@@ -501,11 +507,20 @@ class TclProc:
                 if "args" in final:
                     final_arg_list.extend(final[arg_name])
 
+        # ...and invoke the proc
         # print(f"trampoline calling {self.proc} with final of '{repr(final_arg_list)}'")
         return call(self.proc, *final_arg_list, to=to_type)
 
 
 class TclNamespace:
+    """tcl namespace class -- one instance corresponds to a tcl namespace
+
+    it has the facility to import all the procs and C commands as TclProc
+    objects and keep track of them from the namespace
+
+
+
+    """
     proc_excluder = (
         "break",
         "continue",
@@ -535,6 +550,8 @@ class TclNamespace:
         # print(f"{self} done importing namespace '{namespace}'")
 
     def __tohil_import_proc__(self, proc):
+        """ create a callable TclProc object corresponding to "proc",
+        which can be a tcl proc or a C command"""
         tclproc = TclProc(proc)
         # print(f"setting name '{tclproc.function_name}'")
         self.__tohil_procs__[proc] = tclproc
@@ -547,7 +564,7 @@ class TclNamespace:
         # be called as a method of tclproc, i.e. self will be the first
         # argument and will be the tclproc object ergo we can get to the
         # trampoline and other stuff about the proc like its arguments,
-        # defaults, etc.
+        # defaults, etc, because self is us.
         self.__setattr__(
             tclproc.function_name,
             tclproc
@@ -555,7 +572,7 @@ class TclNamespace:
         )
 
     def __tohil_import_procs__(self, pattern=None):
-        """import all the commands in one namespace"""
+        """import all the procs commands in one namespace"""
         # print(f"    importing procs pattern '{pattern}', '{info_commands(pattern)}'")
         for proc in info_commands(pattern):
             # NB this excluder stuff is a little clumsy, but if it was
