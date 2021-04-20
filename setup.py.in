@@ -53,8 +53,10 @@ import pathlib
 
 tohil_c_module = Extension(
     "tohil._tohil",
-    define_macros=[("PACKAGE_VERSION", f'"{TOHIL_VERSION}"')],
-    libraries=[f"python{PYTHON_VERSION}", "tcl8.6"],
+    define_macros=[("PACKAGE_VERSION", f'"{TOHIL_VERSION}"'),
+        ("PYTHON_VERSION", f'"{PYTHON_VERSION}"')],
+    #libraries=[f"python{PYTHON_VERSION}", "tcl8.6"],
+    libraries=["tcl8.6"],
     include_dirs=[prefix_include_dir, tcl_include_dir],
     library_dirs=[prefix_lib_dir],
     sources=["generic/tohil.c"],
