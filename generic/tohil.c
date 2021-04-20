@@ -2816,6 +2816,11 @@ Tohil_Init(Tcl_Interp *interp)
             }
         }
 
+        char *python_lib = "libpython" PYTHON_VERSION ".so";
+        if (dlopen(python_lib, RTLD_GLOBAL|RTLD_LAZY) == NULL) {
+            fprintf(stderr, "load %s failed\n", python_lib);
+        }
+
         Py_Initialize();
     }
 
