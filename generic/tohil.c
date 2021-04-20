@@ -59,7 +59,7 @@ static Tcl_Interp *tcl_interp = NULL;
 // NB this could be a problem if either of these functions get redefined
 static PyObject *pTohilHandleException = NULL;
 static PyObject *pTohilTclErrorClass = NULL;
-static PyObject *pyTclObjIterator = NULL;
+static PyObject *tohilTclObjIterator = NULL;
 
 //
 // tohil_TclObjToUTF8 - convert a Tcl object (string in WTF-8) to real UTF-8
@@ -1448,8 +1448,8 @@ TohilTclObj_type(TohilTclObj *self, PyObject *dummy)
 static PyObject *
 TohilTclObjIter(PyObject *self)
 {
-    assert(pyTclObjIterator != NULL);
-    PyObject *pyRet = PyObject_CallFunction(pyTclObjIterator, "O", self);
+    assert(tohilTclObjIterator != NULL);
+    PyObject *pyRet = PyObject_CallFunction(tohilTclObjIterator, "O", self);
     return pyRet;
 }
 
@@ -2816,6 +2816,11 @@ Tohil_Init(Tcl_Interp *interp)
             }
         }
 
+        // NB without this ugly hack then on linux if tcl starts
+        // python then python gets errors loading C shared libraries
+        // such as "import sqlite3", where loading the shared library
+        // causes a complaint about undefined symbols trying to access
+        // python stuff
         char *python_lib = "libpython" PYTHON_VERSION ".so";
         if (dlopen(python_lib, RTLD_GLOBAL|RTLD_LAZY) == NULL) {
             fprintf(stderr, "load %s failed\n", python_lib);
@@ -2952,14 +2957,14 @@ PyInit__tohil(void)
     }
 
     // find the TclObjIterator class and keep a reference to it
-    pyTclObjIterator = PyObject_GetAttrString(pTohilMod, "TclObjIterator");
-    if (pyTclObjIterator == NULL || !PyCallable_Check(pyTclObjIterator)) {
+    tohilTclObjIterator = PyObject_GetAttrString(pTohilMod, "TclObjIterator");
+    if (tohilTclObjIterator == NULL || !PyCallable_Check(tohilTclObjIterator)) {
         Py_DECREF(pTohilMod);
-        Py_XDECREF(pyTclObjIterator);
+        Py_XDECREF(tohilTclObjIterator);
         PyErr_SetString(PyExc_RuntimeError, "unable to find tohil.TclObjIterator class in python interpreter");
         return NULL;
     }
-    Py_INCREF(pyTclObjIterator);
+    Py_INCREF(tohilTclObjIterator);
 
     // add our tclobj type to python
     Py_INCREF(&TohilTclObjType);
