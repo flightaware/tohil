@@ -2341,9 +2341,13 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
     }
 
     if (tcl_result == TCL_ERROR) {
+        // dig out tcl error information and create a tohil tcldict containing it
+        // (Tcl_GetReturnOptions returns a tcl dict object)
         Tcl_Obj *returnOptionsObj = Tcl_GetReturnOptions(interp, tcl_result);
-        PyObject *pReturnOptionsObj = TohilTclObj_FromTclObj(returnOptionsObj);
+        PyObject *pReturnOptionsObj = TohilTclDict_FromTclObj(returnOptionsObj);
 
+        // construct a two-element tuple comprising the interpreter result
+        // and the tcldict containing the info grabbed from tcl
         PyObject *pRetTuple = PyTuple_New(2);
         int tclStringSize;
         char *tclString;
@@ -2351,6 +2355,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", tclString, tclStringSize));
         PyTuple_SET_ITEM(pRetTuple, 1, pReturnOptionsObj);
 
+        // ...and set the python error object to
+        // TclError(interp_result_string, tcldict_object)
         PyErr_SetObject(pTohilTclErrorClass, pRetTuple);
         return NULL;
     }
