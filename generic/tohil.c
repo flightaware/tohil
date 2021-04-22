@@ -2828,7 +2828,7 @@ Tohil_Init(Tcl_Interp *interp)
         // causes a complaint about undefined symbols trying to access
         // python stuff
         char *python_lib = "libpython" PYTHON_VERSION ".so";
-        if (dlopen(python_lib, RTLD_GLOBAL|RTLD_LAZY) == NULL) {
+        if (dlopen(python_lib, RTLD_GLOBAL | RTLD_LAZY) == NULL) {
             fprintf(stderr, "load %s failed\n", python_lib);
         }
 

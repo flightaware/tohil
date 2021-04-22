@@ -153,6 +153,7 @@ class ShadowDict(MutableMapping):
 # misc stuff and helpers
 #
 
+
 def source(file_name, encoding=""):
     """source in a tcl file with optional specification of
     the encoding of the data stored in the file.  if encoding
@@ -190,7 +191,7 @@ class TclError(Exception):
 
     def __init__(self, result, return_options):
         self.result = result
-        for key  in return_options:
+        for key in return_options:
             value = return_options[key]
             key = key[1:]
             # print(f"setting attribute '{key}' to '{value}'")
@@ -520,6 +521,7 @@ class TclNamespace:
 
 
     """
+
     proc_excluder = (
         "break",
         "continue",
@@ -549,7 +551,7 @@ class TclNamespace:
         # print(f"{self} done importing namespace '{namespace}'")
 
     def __tohil_import_proc__(self, proc):
-        """ create a callable TclProc object corresponding to "proc",
+        """create a callable TclProc object corresponding to "proc",
         which can be a tcl proc or a C command"""
         tclproc = TclProc(proc)
         # print(f"setting name '{tclproc.function_name}'")
