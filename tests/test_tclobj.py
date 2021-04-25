@@ -206,6 +206,34 @@ class TestTclObj(unittest.TestCase):
             t.set("foo")
             t.incr()
 
+    def test_tclobj21(self):
+        """tohil.tclobj numer type 'boolean' tests"""
+        self.assertEqual(bool(tohil.tclobj('f')), False)
+        self.assertEqual(bool(tohil.tclobj('F')), False)
+        self.assertEqual(bool(tohil.tclobj('n')), False)
+        self.assertEqual(bool(tohil.tclobj('N')), False)
+        self.assertEqual(bool(tohil.tclobj('0')), False)
+        self.assertEqual(bool(tohil.tclobj('t')), True)
+        self.assertEqual(bool(tohil.tclobj('T')), True)
+        self.assertEqual(bool(tohil.tclobj('y')), True)
+        self.assertEqual(bool(tohil.tclobj('Y')), True)
+        self.assertEqual(bool(tohil.tclobj('1')), True)
+        with self.assertRaises(TypeError):
+            bool(tohil.tclobj('foo'))
+
+    def test_tclobj22(self):
+        """tohil.tclobj numer type 'int' tests"""
+        self.assertEqual(int(tohil.tclobj('5')), 5)
+        self.assertEqual(int(tohil.tclobj(5)), 5)
+        self.assertEqual(int(tohil.tclobj('5.0')), 5)
+        self.assertEqual(int(tohil.tclobj(5.0)), 5)
+
+    def test_tclobj23(self):
+        """tohil.tclobj numer type 'float' tests"""
+        self.assertEqual(float(tohil.tclobj('5')), 5.0)
+        self.assertEqual(float(tohil.tclobj(5)), 5.0)
+        self.assertEqual(float(tohil.tclobj('5.0')), 5.0)
+        self.assertEqual(float(tohil.tclobj(5.0)), 5.0)
 
 if __name__ == "__main__":
     unittest.main()

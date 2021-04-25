@@ -1795,6 +1795,56 @@ static PyTypeObject PyTohil_TD_IterType = {
 //
 
 //
+// tclobj number methods
+//
+
+static int
+tclobj_bool(TohilTclObj *self)
+{
+    int intValue = 0;
+    if (Tcl_GetBooleanFromObj(self->interp, self->tclobj, &intValue) == TCL_ERROR) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return -1;
+    }
+    return intValue;
+}
+
+static PyObject *
+tclobj_long(PyObject *p)
+{
+    long longValue = 0;
+    TohilTclObj *self = (TohilTclObj *)p;
+    if (Tcl_GetLongFromObj(self->interp, self->tclobj, &longValue) == TCL_ERROR) {
+        double doubleValue = 0;
+        if (Tcl_GetDoubleFromObj(NULL, self->tclobj, &doubleValue) == TCL_OK) {
+            return PyLong_FromDouble(doubleValue);
+        }
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return NULL;
+    }
+    return PyLong_FromLong(longValue);
+}
+
+static PyObject *
+tclobj_float(PyObject *p)
+{
+    double doubleValue = 0;
+    TohilTclObj *self = (TohilTclObj *)p;
+    if (Tcl_GetDoubleFromObj(self->interp, self->tclobj, &doubleValue) == TCL_ERROR) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return NULL;
+    }
+    return PyFloat_FromDouble(doubleValue);
+}
+
+
+static PyNumberMethods tclobj_as_number = {
+    .nb_bool = (inquiry)tclobj_bool,
+    .nb_int = tclobj_long,
+    .nb_float = tclobj_float,
+};
+
+//
 // TohilTclObj_getto - get "to" value, settable attribute for what
 //   type to convert tclobjs and tcldicts to
 //
@@ -1825,6 +1875,8 @@ TohilTclObj_setto(TohilTclObj *self, PyTypeObject *toType, void *closure)
     return 0;
 }
 
+
+
 static PyGetSetDef TohilTclObj_getsetters[] = {
     {"to", (getter)TohilTclObj_getto, (setter)TohilTclObj_setto, "python type to default returns to", NULL},
     {"_refcount", (getter)TohilTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
@@ -1846,6 +1898,7 @@ static PySequenceMethods TohilTclObj_as_sequence = {
 
 static PyMethodDef TohilTclObj_methods[] = {
     {"__getitem__", (PyCFunction)TohilTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
+    {"__bool__", (PyCFunction)TohilTclObj_as_bool, METH_NOARGS, "return tclobj as bool"},
     {"reset", (PyCFunction)TohilTclObj_reset, METH_NOARGS, "reset the tclobj"},
     {"as_str", (PyCFunction)TohilTclObj_as_string, METH_NOARGS, "return tclobj as str"},
     {"as_int", (PyCFunction)TohilTclObj_as_int, METH_NOARGS, "return tclobj as int"},
@@ -1886,6 +1939,7 @@ static PyTypeObject TohilTclObjType = {
     .tp_repr = (reprfunc)TohilTclObj_repr,
     .tp_richcompare = (richcmpfunc)TohilTclObj_richcompare,
     .tp_getset = TohilTclObj_getsetters,
+    .tp_as_number = &tclobj_as_number,
 };
 
 //
