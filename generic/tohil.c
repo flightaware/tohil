@@ -1837,11 +1837,166 @@ tclobj_float(PyObject *p)
     return PyFloat_FromDouble(doubleValue);
 }
 
+static int
+tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr)
+{
+    if (PyLong_Check(v)) {
+        *longPtr = PyLong_AsLong(v);
+        return 0;
+    }
+
+    if (PyFloat_Check(v)) {
+        *doublePtr = PyFloat_AsDouble(v);
+        return 1;
+    }
+
+    if (TohilTclObj_Check(v)) {
+        TohilTclObj *self = (TohilTclObj *)v;
+
+        if (Tcl_GetLongFromObj(self->interp, self->tclobj, longPtr) == TCL_OK) {
+            return 0;
+        }
+
+        if (Tcl_GetDoubleFromObj(NULL, self->tclobj, doublePtr) == TCL_OK) {
+            return 1;
+        }
+
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return -1;
+    }
+    return 2;
+}
+
+enum tclobj_op{Add, Sub, Mul, And, Or, Xor, Lshift, Rshift};
+
+static PyObject *
+tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
+{
+    double doubleV = 0.0;
+    long longV = 0;
+    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+
+    double doubleW = 0.0;
+    long longW = 0;
+    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW);
+
+    if (vFloat < 0 || wFloat < 0) {
+        return NULL;
+    } else if ((vFloat == 2) || (wFloat == 2)) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+
+    if (vFloat || wFloat) {
+        if (!wFloat) {
+            doubleW = longW;
+        } else if (!vFloat) {
+            doubleV = longV;
+        }
+
+        switch (operator) {
+            case Add:
+                return PyFloat_FromDouble(doubleV + doubleW);
+
+            case Sub:
+                return PyFloat_FromDouble(doubleV - doubleW);
+
+            case Mul:
+                return PyFloat_FromDouble(doubleV * doubleW);
+
+            default:
+                Py_RETURN_NOTIMPLEMENTED;
+        }
+    } else {
+        switch (operator) {
+            case Add:
+                return PyLong_FromLong(longV + longW);
+
+            case Sub:
+                return PyLong_FromLong(longV - longW);
+
+            case Mul:
+                return PyLong_FromLong(longV * longW);
+
+            case And:
+                return PyLong_FromLong(longV & longW);
+
+            case Or:
+                return PyLong_FromLong(longV | longW);
+
+            case Xor:
+                return PyLong_FromLong(longV ^ longW);
+
+            case Lshift:
+                return PyLong_FromLong(longV << longW);
+
+            case Rshift:
+                return PyLong_FromLong(longV >> longW);
+        }
+    }
+}
+
+static PyObject *
+tclobj_add(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Add);
+}
+
+static PyObject *
+tclobj_subtract(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Sub);
+}
+
+static PyObject *
+tclobj_multiply(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Mul);
+}
+
+static PyObject *
+tclobj_and(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, And);
+}
+
+static PyObject *
+tclobj_or(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Or);
+}
+
+static PyObject *
+tclobj_xor(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Xor);
+}
+
+static PyObject *
+tclobj_lshift(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Lshift);
+}
+
+static PyObject *
+tclobj_rshift(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Rshift);
+}
+
+
 
 static PyNumberMethods tclobj_as_number = {
     .nb_bool = (inquiry)tclobj_bool,
     .nb_int = tclobj_long,
     .nb_float = tclobj_float,
+    .nb_add = tclobj_add,
+    .nb_subtract = tclobj_subtract,
+    .nb_multiply = tclobj_multiply,
+    .nb_and = tclobj_and,
+    .nb_or = tclobj_or,
+    .nb_xor = tclobj_xor,
+    .nb_lshift = tclobj_lshift,
+    .nb_rshift = tclobj_rshift,
 };
 
 //
