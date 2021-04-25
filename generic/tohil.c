@@ -1867,7 +1867,47 @@ tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr)
     return 2;
 }
 
-enum tclobj_op{Add, Sub, Mul, And, Or, Xor, Lshift, Rshift};
+enum tclobj_unary_op { Abs, Negative, Positive, Invert };
+
+static PyObject *
+tclobj_unaryop(PyObject *v, enum tclobj_unary_op operator)
+{
+    double doubleV = 0.0;
+    long longV = 0;
+    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+
+    if (vFloat) {
+        switch (operator) {
+        case Abs:
+            return PyFloat_FromDouble(fabs(doubleV));
+
+        case Negative:
+            return PyFloat_FromDouble(-doubleV);
+
+        case Positive:
+            return PyFloat_FromDouble(doubleV);
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+    } else {
+        switch (operator) {
+        case Abs:
+            return PyLong_FromLong(labs(longV));
+
+        case Negative:
+            return PyLong_FromLong(-longV);
+
+        case Positive:
+            return PyLong_FromLong(longV);
+
+        case Invert:
+            return PyLong_FromLong(~longV);
+        }
+    }
+}
+
+enum tclobj_op { Add, Sub, Mul, And, Or, Xor, Lshift, Rshift };
 
 static PyObject *
 tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
@@ -1894,43 +1934,43 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         }
 
         switch (operator) {
-            case Add:
-                return PyFloat_FromDouble(doubleV + doubleW);
+        case Add:
+            return PyFloat_FromDouble(doubleV + doubleW);
 
-            case Sub:
-                return PyFloat_FromDouble(doubleV - doubleW);
+        case Sub:
+            return PyFloat_FromDouble(doubleV - doubleW);
 
-            case Mul:
-                return PyFloat_FromDouble(doubleV * doubleW);
+        case Mul:
+            return PyFloat_FromDouble(doubleV * doubleW);
 
-            default:
-                Py_RETURN_NOTIMPLEMENTED;
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
         }
     } else {
         switch (operator) {
-            case Add:
-                return PyLong_FromLong(longV + longW);
+        case Add:
+            return PyLong_FromLong(longV + longW);
 
-            case Sub:
-                return PyLong_FromLong(longV - longW);
+        case Sub:
+            return PyLong_FromLong(longV - longW);
 
-            case Mul:
-                return PyLong_FromLong(longV * longW);
+        case Mul:
+            return PyLong_FromLong(longV * longW);
 
-            case And:
-                return PyLong_FromLong(longV & longW);
+        case And:
+            return PyLong_FromLong(longV & longW);
 
-            case Or:
-                return PyLong_FromLong(longV | longW);
+        case Or:
+            return PyLong_FromLong(longV | longW);
 
-            case Xor:
-                return PyLong_FromLong(longV ^ longW);
+        case Xor:
+            return PyLong_FromLong(longV ^ longW);
 
-            case Lshift:
-                return PyLong_FromLong(longV << longW);
+        case Lshift:
+            return PyLong_FromLong(longV << longW);
 
-            case Rshift:
-                return PyLong_FromLong(longV >> longW);
+        case Rshift:
+            return PyLong_FromLong(longV >> longW);
         }
     }
 }
@@ -1983,7 +2023,29 @@ tclobj_rshift(PyObject *v, PyObject *w)
     return tclobj_binop(v, w, Rshift);
 }
 
+static PyObject *
+tclobj_negative(PyObject *v, enum tclobj_op operator)
+{
+    return tclobj_unaryop(v, Negative);
+}
 
+static PyObject *
+tclobj_positive(PyObject *v, enum tclobj_op operator)
+{
+    return tclobj_unaryop(v, Positive);
+}
+
+static PyObject *
+tclobj_absolute(PyObject *v, enum tclobj_op operator)
+{
+    return tclobj_unaryop(v, Abs);
+}
+
+static PyObject *
+tclobj_invert(PyObject *v, enum tclobj_op operator)
+{
+    return tclobj_unaryop(v, Invert);
+}
 
 static PyNumberMethods tclobj_as_number = {
     .nb_bool = (inquiry)tclobj_bool,
@@ -1997,6 +2059,10 @@ static PyNumberMethods tclobj_as_number = {
     .nb_xor = tclobj_xor,
     .nb_lshift = tclobj_lshift,
     .nb_rshift = tclobj_rshift,
+    .nb_negative = (unaryfunc)tclobj_negative,
+    .nb_positive = (unaryfunc)tclobj_positive,
+    .nb_absolute = (unaryfunc)tclobj_absolute,
+    .nb_invert = (unaryfunc)tclobj_invert,
 };
 
 //
@@ -2029,8 +2095,6 @@ TohilTclObj_setto(TohilTclObj *self, PyTypeObject *toType, void *closure)
     Py_XDECREF(tmp);
     return 0;
 }
-
-
 
 static PyGetSetDef TohilTclObj_getsetters[] = {
     {"to", (getter)TohilTclObj_getto, (setter)TohilTclObj_setto, "python type to default returns to", NULL},
@@ -3031,7 +3095,7 @@ Tohil_Init(Tcl_Interp *interp)
         // causes a complaint about undefined symbols trying to access
         // python stuff
         char *python_lib = "libpython" PYTHON_VERSION ".so";
-        if (dlopen(python_lib, RTLD_GLOBAL|RTLD_LAZY) == NULL) {
+        if (dlopen(python_lib, RTLD_GLOBAL | RTLD_LAZY) == NULL) {
             fprintf(stderr, "load %s failed\n", python_lib);
         }
 
