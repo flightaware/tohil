@@ -1015,72 +1015,6 @@ TohilTclObj_reset(TohilTclObj *self, PyObject *pyobj)
 }
 
 //
-// tclobj.as_int()
-//
-static PyObject *
-TohilTclObj_as_int(TohilTclObj *self, PyObject *pyobj)
-{
-    long longValue;
-
-    if (Tcl_GetLongFromObj(self->interp, self->tclobj, &longValue) == TCL_OK) {
-        return PyLong_FromLong(longValue);
-    }
-    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-    return NULL;
-}
-
-//
-// tclobj.as_float()
-//
-static PyObject *
-TohilTclObj_as_float(TohilTclObj *self, PyObject *pyobj)
-{
-    double doubleValue;
-
-    if (Tcl_GetDoubleFromObj(self->interp, self->tclobj, &doubleValue) == TCL_OK) {
-        return PyFloat_FromDouble(doubleValue);
-    }
-    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-    return NULL;
-}
-
-//
-// tclobj.as_bool()
-//
-static PyObject *
-TohilTclObj_as_bool(TohilTclObj *self, PyObject *pyobj)
-{
-    int intValue;
-    if (Tcl_GetBooleanFromObj(self->interp, self->tclobj, &intValue) == TCL_OK) {
-        PyObject *p = (intValue ? Py_True : Py_False);
-        Py_INCREF(p);
-        return p;
-    }
-    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-    return NULL;
-}
-
-//
-// tclobj.as_string()
-//
-static PyObject *
-TohilTclObj_as_string(TohilTclObj *self, PyObject *pyobj)
-{
-    int tclStringSize;
-    char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
-
-    int utf8len;
-    char *utf8string;
-    if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-        return NULL;
-    }
-    PyObject *pObj = Py_BuildValue("s#", utf8string, utf8len);
-    ckfree(utf8string);
-    return pObj;
-}
-
-//
 // tclobj.as_list()
 //
 static PyObject *
@@ -2311,12 +2245,7 @@ static PySequenceMethods TohilTclObj_as_sequence = {
 
 static PyMethodDef TohilTclObj_methods[] = {
     {"__getitem__", (PyCFunction)TohilTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
-    {"__bool__", (PyCFunction)TohilTclObj_as_bool, METH_NOARGS, "return tclobj as bool"},
     {"reset", (PyCFunction)TohilTclObj_reset, METH_NOARGS, "reset the tclobj"},
-    {"as_str", (PyCFunction)TohilTclObj_as_string, METH_NOARGS, "return tclobj as str"},
-    {"as_int", (PyCFunction)TohilTclObj_as_int, METH_NOARGS, "return tclobj as int"},
-    {"as_float", (PyCFunction)TohilTclObj_as_float, METH_NOARGS, "return tclobj as float"},
-    {"as_bool", (PyCFunction)TohilTclObj_as_bool, METH_NOARGS, "return tclobj as bool"},
     {"as_list", (PyCFunction)TohilTclObj_as_list, METH_NOARGS, "return tclobj as list"},
     {"as_set", (PyCFunction)TohilTclObj_as_set, METH_NOARGS, "return tclobj as set"},
     {"as_tuple", (PyCFunction)TohilTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
