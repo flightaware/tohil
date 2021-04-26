@@ -67,8 +67,8 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(-6. * t, -36.)
 
     def test_tclobj_math6(self):
-        """exercise tohil.tclobj remainder math ops"""
-        t = tohil.tclobj(9)
+        """exercise tohil.tclobj remainder ops"""
+        t = tohil.tclobj(1)
 
         self.assertEqual(t % 7, 2)
         self.assertEqual(11 % t, 2)
@@ -78,6 +78,75 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(-7 % 9, 2)
         self.assertEqual(t % t, 0)
         self.assertEqual(-6. % t, 3)
+
+    def test_tclobj_math7(self):
+        """exercise tohil.tclobj left shift math ops"""
+        t = tohil.tclobj(2)
+
+        self.assertEqual(t << 4, 32)
+        self.assertEqual(t << t, 8)
+        self.assertEqual(16 << 2, 64)
+
+    def test_tclobj_math8(self):
+        """exercise tohil.tclobj right shift math ops"""
+        t = tohil.tclobj(8)
+
+        self.assertEqual(t >> 1, 4)
+        self.assertEqual(t >> t, 0)
+        self.assertEqual(65536 >> t, 256)
+
+    def test_tclobj_math9(self):
+        """exercise tohil.tclobj "and" math ops"""
+        t = tohil.tclobj(31)
+
+        self.assertEqual(t & 16, 16)
+        self.assertEqual(t & t, 31)
+        self.assertEqual(8 & t, 8)
+
+    def test_tclobj_math10(self):
+        """exercise tohil.tclobj "or" math ops"""
+        t = tohil.tclobj(16)
+
+        self.assertEqual(t | 8, 24)
+        self.assertEqual(4 | t, 20)
+        self.assertEqual(t | t, 16)
+
+    def test_tclobj_math11(self):
+        """exercise tohil.tclobj "or" math ops"""
+        t = tohil.tclobj(31)
+
+        self.assertEqual(t ^ 15, 16)
+        self.assertEqual(15 ^ t, 16)
+        self.assertEqual(t ^ t, 0)
+
+    def test_tclobj_math12(self):
+        """exercise tohil.tclobj "inplace add" math ops"""
+        t = tohil.tclobj(7)
+        t5 = tohil.tclobj(5)
+
+        t += 5
+        self.assertEqual(t, 12)
+        t += t
+        self.assertEqual(t, 24)
+        t += t5
+        self.assertEqual(t, 29)
+        t5 += t
+        self.assertEqual(t5, 34)
+
+    def test_tclobj_math13(self):
+        """exercise tohil.tclobj "inplace subtract" math ops"""
+        t = tohil.tclobj(7)
+        t5 = tohil.tclobj(5)
+
+        t -= -1
+        self.assertEqual(t, 8)
+        t -= t
+        self.assertEqual(t, 0)
+        t -= t5
+        self.assertEqual(t, -5)
+        t5 -= t
+        self.assertEqual(t5, 10)
+
 
 
 
