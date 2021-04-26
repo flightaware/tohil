@@ -267,5 +267,43 @@ class TestTclObj(unittest.TestCase):
         t //= tm7
         self.assertEqual(t, 66 // -7)
 
+    def test_tclobj_math22(self):
+        """exercise tohil.tclobj inplace remainder ops"""
+        t = tohil.tclobj(5)
+        t %= 7
+        self.assertEqual(t, 5 % 7)
+
+        t = tohil.tclobj(11)
+        t %= 5
+        self.assertEqual(t, 11 % 5)
+
+        t = tohil.tclobj(77)
+        t %= -7
+        self.assertEqual(t, 77 % -7)
+
+        t = tohil.tclobj(-77)
+        t %= -7
+        self.assertEqual(t, -77 % -7)
+
+        t = tohil.tclobj(-77)
+        t %= 7
+        self.assertEqual(t, -77 % 7)
+
+        t = tohil.tclobj(-77)
+        tm7 = tohil.tclobj('-7.')
+        t %= tm7
+        self.assertEqual(t, -77 % -7.)
+
+        t = tohil.tclobj(-77.)
+        tm7 = tohil.tclobj('-7')
+        t %= tm7
+        self.assertEqual(t, -77. % -7)
+
+        t = tohil.tclobj(-77.)
+        tm7 = tohil.tclobj(-7.)
+        t %= tm7
+        self.assertEqual(t, -77. % -7.)
+
+
 if __name__ == "__main__":
     unittest.main()

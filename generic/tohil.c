@@ -2095,7 +2095,7 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             break;
 
         case Remainder:
-            Tcl_SetDoubleObj(self->tclobj, fmod(doubleV, doubleW));
+            Tcl_SetDoubleObj(self->tclobj, fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
             break;
 
         case Truediv:
@@ -2156,7 +2156,7 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             break;
 
         case Remainder:
-            Tcl_SetLongObj(self->tclobj, longV % longW);
+            Tcl_SetLongObj(self->tclobj, ((longV % longW) + longW) % longW);
             break;
 
         default:
