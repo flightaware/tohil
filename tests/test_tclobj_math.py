@@ -112,7 +112,7 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(t | t, 16)
 
     def test_tclobj_math11(self):
-        """exercise tohil.tclobj "or" math ops"""
+        """exercise tohil.tclobj "xor" math ops"""
         t = tohil.tclobj(31)
 
         self.assertEqual(t ^ 15, 16)
@@ -147,8 +147,68 @@ class TestTclObj(unittest.TestCase):
         t5 -= t
         self.assertEqual(t5, 10)
 
+    def test_tclobj_math14(self):
+        """exercise tohil.tclobj "inplace multiply" math ops"""
+        t = tohil.tclobj(7)
+        t5 = tohil.tclobj(5)
 
+        t *= -1
+        self.assertEqual(t, -7)
+        t *= t
+        self.assertEqual(t, 49)
+        t *= t5
+        self.assertEqual(t, 245)
+        t5 *= t
+        self.assertEqual(t5, 1225)
 
+    def test_tclobj_math15(self):
+        """exercise tohil.tclobj "inplace left shift" math ops"""
+        t = tohil.tclobj(7)
+        t5 = tohil.tclobj(2)
+
+        t <<= 2
+        self.assertEqual(t, 28)
+        t5 <<= t5
+        self.assertEqual(t5, 8)
+
+    def test_tclobj_math16(self):
+        """exercise tohil.tclobj "inplace right shift" math ops"""
+        t = tohil.tclobj(32)
+        t5 = tohil.tclobj(2)
+
+        t >>= 1
+        self.assertEqual(t, 16)
+        t >>= t5
+        self.assertEqual(t, 4)
+
+    def test_tclobj_math16(self):
+        """exercise tohil.tclobj "inplace bitwise or" math ops"""
+        t = tohil.tclobj(16)
+        t2 = tohil.tclobj(8)
+
+        t |= 32
+        self.assertEqual(t, 48)
+        t |= t2
+        self.assertEqual(t, 56)
+
+    def test_tclobj_math17(self):
+        """exercise tohil.tclobj "inplace bitwise and" math ops"""
+        t = tohil.tclobj(31)
+        t2 = tohil.tclobj(8)
+
+        t &= 24
+        self.assertEqual(t, 24)
+        t &= t2
+        self.assertEqual(t, 8)
+
+    def test_tclobj_math17(self):
+        """exercise tohil.tclobj "inplace bitwise xor" math ops"""
+        t = tohil.tclobj(31)
+
+        t ^= 15
+        self.assertEqual(t, 16)
+        t ^= 17
+        self.assertEqual(t, 1)
 
 if __name__ == "__main__":
     unittest.main()
