@@ -1890,7 +1890,7 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyFloat_FromDouble(floor(doubleV / doubleW));
 
         case Remainder:
-            return PyFloat_FromDouble(fmod(doubleV, doubleW));
+            return PyFloat_FromDouble(fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
 
         case Divmod:
             quotient = doubleV / doubleW;
@@ -1937,7 +1937,7 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyLong_FromLong(ldiv_res.quot);
 
         case Remainder:
-            return PyLong_FromLong(longV % longW);
+            return PyLong_FromLong(((longV % longW) + longW) % longW);
 
 
         case Divmod:

@@ -68,16 +68,19 @@ class TestTclObj(unittest.TestCase):
 
     def test_tclobj_math6(self):
         """exercise tohil.tclobj remainder ops"""
-        t = tohil.tclobj(1)
+        t = tohil.tclobj(5)
 
-        self.assertEqual(t % 7, 2)
-        self.assertEqual(11 % t, 2)
-        self.assertEqual(-7 % t, 2)
+        self.assertEqual(t % 7, 5 % 7)
+        self.assertEqual(11 % t, 11 % 5)
+        self.assertEqual(-7 % t, -7 % 5)
+        self.assertEqual(t % -7, 5 % -7)
 
-        self.assertEqual(t % -7., -5)
-        self.assertEqual(-7 % 9, 2)
-        self.assertEqual(t % t, 0)
-        self.assertEqual(-6. % t, 3)
+        tm7 = tohil.tclobj('-7.')
+
+        self.assertEqual(t % -7., 5 % -7.)
+        self.assertEqual(t % tm7, 5 % -7.)
+        self.assertEqual(t % t, 5 % 5)
+        self.assertEqual(tm7 % t, -7 % 5)
 
     def test_tclobj_math7(self):
         """exercise tohil.tclobj left shift math ops"""
