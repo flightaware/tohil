@@ -21,8 +21,8 @@
 #include <dlfcn.h>
 
 #include <math.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define STREQU(a, b) (*(a) == *(b) && strcmp((a), (b)) == 0)
 
@@ -2080,6 +2080,155 @@ tclobj_invert(PyObject *v, enum tclobj_op operator)
     return tclobj_unaryop(v, Invert);
 }
 
+static PyObject *
+tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
+{
+    // NB same chunk of code in tclobj_binop
+    double doubleV = 0.0;
+    long longV = 0;
+    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+
+    double doubleW = 0.0;
+    long longW = 0;
+    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW);
+
+    if (vFloat < 0 || wFloat < 0) {
+        return NULL;
+    } else if ((vFloat == 2) || (wFloat == 2)) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+
+    assert(TohilTclObj_Check(v));
+    TohilTclObj *self = (TohilTclObj *)v;
+
+    if (vFloat || wFloat) {
+        if (!wFloat) {
+            doubleW = longW;
+        } else if (!vFloat) {
+            doubleV = longV;
+        }
+
+        switch (operator) {
+        case Add:
+            Tcl_SetDoubleObj(self->tclobj, doubleV + doubleW);
+            break;
+
+        case Sub:
+            Tcl_SetDoubleObj(self->tclobj, doubleV - doubleW);
+            break;
+
+        case Mul:
+            Tcl_SetDoubleObj(self->tclobj, doubleV * doubleW);
+            break;
+
+        case Remainder:
+            Tcl_SetDoubleObj(self->tclobj, fmod(doubleV, doubleW));
+            break;
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+    } else {
+        switch (operator) {
+        case Add:
+            Tcl_SetLongObj(self->tclobj, longV + longW);
+            break;
+
+        case Sub:
+            Tcl_SetLongObj(self->tclobj, longV - longW);
+            break;
+
+        case Mul:
+            Tcl_SetLongObj(self->tclobj, longV * longW);
+            break;
+
+        case And:
+            Tcl_SetLongObj(self->tclobj, longV & longW);
+            break;
+
+        case Or:
+            Tcl_SetLongObj(self->tclobj, longV | longW);
+            break;
+
+        case Xor:
+            Tcl_SetLongObj(self->tclobj, longV ^ longW);
+            break;
+
+        case Lshift:
+            Tcl_SetLongObj(self->tclobj, longV << longW);
+            break;
+
+        case Rshift:
+            Tcl_SetLongObj(self->tclobj, longV >> longW);
+            break;
+
+        case Remainder:
+            Tcl_SetLongObj(self->tclobj, longV % longW);
+            break;
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+    }
+    Py_INCREF(v);
+    return v;
+}
+
+static PyObject *
+tclobj_inplace_add(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Add);
+}
+
+static PyObject *
+tclobj_inplace_subtract(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Sub);
+}
+
+static PyObject *
+tclobj_inplace_multiply(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Mul);
+}
+
+static PyObject *
+tclobj_inplace_remainder(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Remainder);
+}
+
+static PyObject *
+tclobj_inplace_and(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, And);
+}
+
+static PyObject *
+tclobj_inplace_or(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Or);
+}
+
+static PyObject *
+tclobj_inplace_xor(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Xor);
+}
+
+static PyObject *
+tclobj_inplace_lshift(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Lshift);
+}
+
+static PyObject *
+tclobj_inplace_rshift(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Rshift);
+}
+
+
 static PyNumberMethods tclobj_as_number = {
     .nb_bool = (inquiry)tclobj_bool,
     .nb_int = tclobj_long,
@@ -2098,6 +2247,15 @@ static PyNumberMethods tclobj_as_number = {
     .nb_positive = (unaryfunc)tclobj_positive,
     .nb_absolute = (unaryfunc)tclobj_absolute,
     .nb_invert = (unaryfunc)tclobj_invert,
+    .nb_inplace_add = tclobj_inplace_add,
+    .nb_inplace_subtract = tclobj_inplace_subtract,
+    .nb_inplace_multiply = tclobj_inplace_multiply,
+    .nb_inplace_remainder = tclobj_inplace_remainder,
+    .nb_inplace_and = tclobj_inplace_and,
+    .nb_inplace_or = tclobj_inplace_or,
+    .nb_inplace_xor = tclobj_inplace_xor,
+    .nb_inplace_lshift = tclobj_inplace_lshift,
+    .nb_inplace_rshift = tclobj_inplace_rshift,
 };
 
 //
