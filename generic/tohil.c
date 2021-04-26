@@ -1532,6 +1532,42 @@ TohilTclObj_length(TohilTclObj *self, Py_ssize_t i)
     return size;
 }
 
+static PyObject *
+TohilTclObj_concat(TohilTclObj *self, PyObject *item)
+{
+    Tcl_Obj *tItem;
+    if (TohilTclObj_Check(item)) {
+        tItem = ((TohilTclObj *)item)->tclobj;
+    } else {
+        tItem = _pyObjToTcl(tcl_interp, item);
+        if (tItem == NULL)
+            Py_RETURN_NOTIMPLEMENTED;
+    }
+    Tcl_Obj *returnObj = Tcl_DuplicateObj(self->tclobj);
+    Tcl_AppendObjToObj(returnObj, tItem);
+    Tcl_DString ds;
+    PyObject *pRet = Py_BuildValue("s", tohil_TclObjToUTF8(returnObj, &ds));
+    Tcl_DecrRefCount(returnObj);
+    return pRet;
+}
+
+
+static PyObject *
+TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
+{
+    Tcl_Obj *tItem;
+    if (TohilTclObj_Check(item)) {
+        tItem = ((TohilTclObj *)item)->tclobj;
+    } else {
+        tItem = _pyObjToTcl(tcl_interp, item);
+        if (tItem == NULL)
+            Py_RETURN_NOTIMPLEMENTED;
+    }
+    TohilTclObj_dup_if_shared(self);
+    Tcl_AppendObjToObj(self->tclobj, tItem);
+    return (PyObject *)self;
+}
+
 //
 // TohilTclObj_subscript - subscript a tclobj.  we treat the tclobj
 //   as a list, so item can be an integer (to obtain a single element),
@@ -1861,6 +1897,9 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     double remainder;
 
     if (vFloat < 0 || wFloat < 0) {
+        if (operator == Add) {
+            Py_RETURN_NOTIMPLEMENTED;
+        }
         return NULL;
     } else if ((vFloat == 2) || (wFloat == 2)) {
         Py_RETURN_NOTIMPLEMENTED;
@@ -2302,12 +2341,12 @@ static PyMappingMethods TohilTclObj_as_mapping = {(lenfunc)TohilTclObj_length, (
 
 static PySequenceMethods TohilTclObj_as_sequence = {
     .sq_length = (lenfunc)TohilTclObj_length,
-    // .sq_concat = (binaryfunc)tclobj_concat,
+    .sq_concat = (binaryfunc)TohilTclObj_concat,
     // .sq_repeat = (ssizeargfunc)tclobj_repeat,
     .sq_item = (ssizeargfunc)TohilTclObj_item,
     .sq_ass_item = (ssizeobjargproc)TohilTclObj_ass_item,
     // .sq_contains = (objobjproc)list_contains,
-    //.sq_inplace_concat = (binaryfunc)list_inplace_concat,
+    .sq_inplace_concat = (binaryfunc)TohilTclObj_inplace_concat,
     //.sq_inplace_repeat = (ssizeargfunc)list_inplace_repeat,
 };
 
