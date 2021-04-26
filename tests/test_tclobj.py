@@ -52,9 +52,9 @@ class TestTclObj(unittest.TestCase):
         """exercise tohil.tclobj as_tuple()"""
         x = tohil.expr("5", to=tohil.tclobj)
 
-        self.assertEqual(x.as_int(), 5)
-        self.assertEqual(x.as_float(), 5.0)
-        self.assertEqual(x.as_bool(), True)
+        self.assertEqual(int(x), 5)
+        self.assertEqual(float(x), 5.0)
+        self.assertEqual(bool(x), True)
 
     def test_tclobj8(self):
         """exercise tohil.tclobj setvar()"""

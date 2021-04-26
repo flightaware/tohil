@@ -2054,6 +2054,14 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             doubleV = longV;
         }
 
+        // if tclobj is shared then decrement it and make a new
+        // one and stick it in self's tclobj.  duplicating
+        // the Tcl_Obj isn't necessary as we will set it below probably.
+        if (Tcl_IsShared(self->tclobj)) {
+            Tcl_DecrRefCount(self->tclobj);
+            self->tclobj = Tcl_NewObj();
+        }
+
         switch (operator) {
         case Add:
             Tcl_SetDoubleObj(self->tclobj, doubleV + doubleW);
@@ -2107,6 +2115,11 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         case Rshift:
             Tcl_SetLongObj(self->tclobj, longV >> longW);
             break;
+
+        case Truediv:
+            Tcl_SetDoubleObj(self->tclobj, (double)longV / (double)doubleW);
+            break;
+
 
         case Remainder:
             Tcl_SetLongObj(self->tclobj, longV % longW);
@@ -2174,6 +2187,12 @@ tclobj_inplace_rshift(PyObject *v, PyObject *w)
     return tclobj_binop(v, w, Rshift);
 }
 
+static PyObject *
+tclobj_inplace_true_divide(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Truediv);
+}
+
 
 static PyNumberMethods tclobj_as_number = {
     .nb_bool = (inquiry)tclobj_bool,
@@ -2204,6 +2223,7 @@ static PyNumberMethods tclobj_as_number = {
     .nb_inplace_and = tclobj_inplace_and,
     .nb_inplace_or = tclobj_inplace_or,
     .nb_inplace_xor = tclobj_inplace_xor,
+    .nb_inplace_true_divide = tclobj_inplace_true_divide,
 };
 
 //
