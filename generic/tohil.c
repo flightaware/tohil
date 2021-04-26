@@ -20,6 +20,8 @@
 #include <assert.h>
 #include <dlfcn.h>
 
+#include <math.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #define STREQU(a, b) (*(a) == *(b) && strcmp((a), (b)) == 0)
@@ -1907,7 +1909,7 @@ tclobj_unaryop(PyObject *v, enum tclobj_unary_op operator)
     }
 }
 
-enum tclobj_op { Add, Sub, Mul, And, Or, Xor, Lshift, Rshift, Remainder };
+enum tclobj_op { Add, Sub, Mul, And, Or, Xor, Lshift, Rshift, Remainder, Divmod };
 
 static PyObject *
 tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
@@ -1919,6 +1921,10 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     double doubleW = 0.0;
     long longW = 0;
     int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW);
+
+    ldiv_t ldiv_res;
+    double quotient;
+    double remainder;
 
     if (vFloat < 0 || wFloat < 0) {
         return NULL;
@@ -1945,6 +1951,11 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
         case Remainder:
             return PyFloat_FromDouble(fmod(doubleV, doubleW));
+
+        case Divmod:
+            quotient = doubleV / doubleW;
+            remainder = fmod(doubleV, doubleW);
+            return Py_BuildValue("dd", quotient, remainder);
 
         default:
             Py_RETURN_NOTIMPLEMENTED;
@@ -1977,6 +1988,10 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
         case Remainder:
             return PyLong_FromLong(longV % longW);
+
+        case Divmod:
+            ldiv_res = ldiv(longV, longW);
+            return Py_BuildValue("ll", ldiv_res.quot, ldiv_res.rem);
         }
     }
 }
@@ -2003,6 +2018,12 @@ static PyObject *
 tclobj_remainder(PyObject *v, PyObject *w)
 {
     return tclobj_binop(v, w, Remainder);
+}
+
+static PyObject *
+tclobj_divmod(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Divmod);
 }
 
 static PyObject *
@@ -2067,6 +2088,7 @@ static PyNumberMethods tclobj_as_number = {
     .nb_subtract = tclobj_subtract,
     .nb_multiply = tclobj_multiply,
     .nb_remainder = tclobj_remainder,
+    .nb_divmod = tclobj_divmod,
     .nb_and = tclobj_and,
     .nb_or = tclobj_or,
     .nb_xor = tclobj_xor,
