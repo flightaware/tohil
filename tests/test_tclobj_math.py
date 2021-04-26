@@ -210,5 +210,13 @@ class TestTclObj(unittest.TestCase):
         t ^= 17
         self.assertEqual(t, 1)
 
+    def test_tclobj_math18(self):
+        """exercise tohil.tclobj "true divide" math ops"""
+        t = tohil.tclobj(66)
+
+        self.assertEqual(t / 6, 11.0)
+        self.assertEqual(726 / t, 11.0)
+        self.assertEqual(t / t, 1.0)
+
 if __name__ == "__main__":
     unittest.main()
