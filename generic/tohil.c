@@ -1532,6 +1532,14 @@ TohilTclObj_length(TohilTclObj *self, Py_ssize_t i)
     return size;
 }
 
+//
+// concatenate a tclobj object with some other python
+//   object, possible a tclobj object, but not necessarily,
+//   and return the result as a str
+//
+//   will be invoked by tclobj "+" operator when tclobj doesn't
+//   contain a number
+//
 static PyObject *
 TohilTclObj_concat(TohilTclObj *self, PyObject *item)
 {
@@ -1551,7 +1559,13 @@ TohilTclObj_concat(TohilTclObj *self, PyObject *item)
     return pRet;
 }
 
-
+//
+// in-place concatenation - concatenate something grabbed from
+//   a python object onto the end of a tclobj object.
+//
+//   this will be invoked by tclobj "+=" operator when tclobj doesn't
+//   contain a number
+//
 static PyObject *
 TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
 {
@@ -1565,6 +1579,7 @@ TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
     }
     TohilTclObj_dup_if_shared(self);
     Tcl_AppendObjToObj(self->tclobj, tItem);
+    Py_INCREF(self);
     return (PyObject *)self;
 }
 
@@ -1833,7 +1848,6 @@ tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr)
             return 1;
         }
 
-        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return -1;
     }
     return 2;
@@ -1847,6 +1861,10 @@ tclobj_unaryop(PyObject *v, enum tclobj_unary_op operator)
     double doubleV = 0.0;
     long longV = 0;
     int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+    if (vFloat < 0) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        return NULL;
+    }
 
     if (vFloat) {
         switch (operator) {
@@ -1900,6 +1918,7 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         if (operator == Add) {
             Py_RETURN_NOTIMPLEMENTED;
         }
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
     } else if ((vFloat == 2) || (wFloat == 2)) {
         Py_RETURN_NOTIMPLEMENTED;
@@ -1982,6 +2001,9 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         case Divmod:
             ldiv_res = ldiv(longV, longW);
             return Py_BuildValue("ll", ldiv_res.quot, ldiv_res.rem);
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
         }
     }
 }
@@ -2097,6 +2119,10 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     ldiv_t ldiv_res;
 
     if (vFloat < 0 || wFloat < 0) {
+        if (operator == Add) {
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
     } else if ((vFloat == 2) || (wFloat == 2)) {
         Py_RETURN_NOTIMPLEMENTED;
@@ -2183,7 +2209,7 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             break;
 
         case Truediv:
-            Tcl_SetDoubleObj(self->tclobj, (double)longV / (double)doubleW);
+            Tcl_SetDoubleObj(self->tclobj, (double)longV / (double)longW);
             break;
 
         case Floordiv:
@@ -2233,37 +2259,37 @@ tclobj_inplace_remainder(PyObject *v, PyObject *w)
 static PyObject *
 tclobj_inplace_and(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, And);
+    return tclobj_inplace_binop(v, w, And);
 }
 
 static PyObject *
 tclobj_inplace_or(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Or);
+    return tclobj_inplace_binop(v, w, Or);
 }
 
 static PyObject *
 tclobj_inplace_xor(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Xor);
+    return tclobj_inplace_binop(v, w, Xor);
 }
 
 static PyObject *
 tclobj_inplace_lshift(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Lshift);
+    return tclobj_inplace_binop(v, w, Lshift);
 }
 
 static PyObject *
 tclobj_inplace_rshift(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Rshift);
+    return tclobj_inplace_binop(v, w, Rshift);
 }
 
 static PyObject *
 tclobj_inplace_true_divide(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Truediv);
+    return tclobj_inplace_binop(v, w, Truediv);
 }
 
 
