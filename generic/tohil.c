@@ -2247,15 +2247,16 @@ static PyNumberMethods tclobj_as_number = {
     .nb_positive = (unaryfunc)tclobj_positive,
     .nb_absolute = (unaryfunc)tclobj_absolute,
     .nb_invert = (unaryfunc)tclobj_invert,
+
     .nb_inplace_add = tclobj_inplace_add,
     .nb_inplace_subtract = tclobj_inplace_subtract,
     .nb_inplace_multiply = tclobj_inplace_multiply,
     .nb_inplace_remainder = tclobj_inplace_remainder,
+    .nb_inplace_lshift = tclobj_inplace_lshift,
+    .nb_inplace_rshift = tclobj_inplace_rshift,
     .nb_inplace_and = tclobj_inplace_and,
     .nb_inplace_or = tclobj_inplace_or,
     .nb_inplace_xor = tclobj_inplace_xor,
-    .nb_inplace_lshift = tclobj_inplace_lshift,
-    .nb_inplace_rshift = tclobj_inplace_rshift,
 };
 
 //
