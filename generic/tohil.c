@@ -1930,7 +1930,11 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyFloat_FromDouble((double)longV / (double)longW);
 
         case Floordiv:
-            return PyLong_FromLong((long)longV / (long)longW);
+            ldiv_res = ldiv(longV, longW);
+            if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
+                ldiv_res.quot--;
+            }
+            return PyLong_FromLong(ldiv_res.quot);
 
         case Remainder:
             return PyLong_FromLong(longV % longW);
@@ -2051,6 +2055,8 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     long longW = 0;
     int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW);
 
+    ldiv_t ldiv_res;
+
     if (vFloat < 0 || wFloat < 0) {
         return NULL;
     } else if ((vFloat == 2) || (wFloat == 2)) {
@@ -2060,19 +2066,19 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     assert(TohilTclObj_Check(v));
     TohilTclObj *self = (TohilTclObj *)v;
 
+    // if tclobj is shared then decrement it and make a new
+    // one and stick it in self's tclobj.  duplicating
+    // the Tcl_Obj isn't necessary as we will set it below probably.
+    if (Tcl_IsShared(self->tclobj)) {
+        Tcl_DecrRefCount(self->tclobj);
+        self->tclobj = Tcl_NewObj();
+    }
+
     if (vFloat || wFloat) {
         if (!wFloat) {
             doubleW = longW;
         } else if (!vFloat) {
             doubleV = longV;
-        }
-
-        // if tclobj is shared then decrement it and make a new
-        // one and stick it in self's tclobj.  duplicating
-        // the Tcl_Obj isn't necessary as we will set it below probably.
-        if (Tcl_IsShared(self->tclobj)) {
-            Tcl_DecrRefCount(self->tclobj);
-            self->tclobj = Tcl_NewObj();
         }
 
         switch (operator) {
@@ -2090,6 +2096,14 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
         case Remainder:
             Tcl_SetDoubleObj(self->tclobj, fmod(doubleV, doubleW));
+            break;
+
+        case Truediv:
+            Tcl_SetDoubleObj(self->tclobj, doubleV / doubleW);
+            break;
+
+        case Floordiv:
+            Tcl_SetDoubleObj(self->tclobj, floor(doubleV / doubleW));
             break;
 
         default:
@@ -2133,6 +2147,13 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             Tcl_SetDoubleObj(self->tclobj, (double)longV / (double)doubleW);
             break;
 
+        case Floordiv:
+            ldiv_res = ldiv(longV, longW);
+            if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
+                ldiv_res.quot--;
+            }
+            Tcl_SetLongObj(self->tclobj, ldiv_res.quot);
+            break;
 
         case Remainder:
             Tcl_SetLongObj(self->tclobj, longV % longW);

@@ -230,5 +230,39 @@ class TestTclObj(unittest.TestCase):
         j /= j
         self.assertEqual(j, 1.0)
 
+    def test_tclobj_math20(self):
+        """exercise tohil.tclobj "floor divide" math ops"""
+        t66 = tohil.tclobj(66)
+        t10 = tohil.tclobj(10)
+        tm7 = tohil.tclobj(-7)
+
+        self.assertEqual(t66 // t10, 66 // 10)
+        self.assertEqual(66 // t10, 66 // 10)
+        self.assertEqual(t66 // 10, 66 // 10)
+
+        self.assertEqual(t66 // tm7, 66 // -7)
+        self.assertEqual(66 // tm7, 66 // -7)
+        self.assertEqual(t66 // -7, 66 // -7)
+
+        self.assertEqual(tm7 // t10, -7 // 10)
+        self.assertEqual(-7 // t10, -7 // 10)
+        self.assertEqual(tm7 // 10, -7 // 10)
+
+    def test_tclobj_math21(self):
+        """exercise tohil.tclobj "inplace floor divide" math ops"""
+        t66 = tohil.tclobj(66)
+        t10 = tohil.tclobj(10)
+        tm7 = tohil.tclobj(-7)
+        r5 = tohil.tclobj(5)
+
+        t = t66
+        t //= 2
+        self.assertEqual(t, 66 // 2)
+        t //= r5
+        self.assertEqual(t, 33 // 5)
+        t = t66
+        t //= tm7
+        self.assertEqual(t, 66 // -7)
+
 if __name__ == "__main__":
     unittest.main()
