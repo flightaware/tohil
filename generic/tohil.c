@@ -1843,7 +1843,7 @@ tclobj_unaryop(PyObject *v, enum tclobj_unary_op operator)
     }
 }
 
-enum tclobj_op { Add, Sub, Mul, And, Or, Xor, Lshift, Rshift, Remainder, Divmod, Truediv };
+enum tclobj_op { Add, Sub, Mul, And, Or, Xor, Lshift, Rshift, Remainder, Divmod, Truediv, Floordiv };
 
 static PyObject *
 tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
@@ -1886,6 +1886,9 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         case Truediv:
             return PyFloat_FromDouble(doubleV / doubleW);
 
+        case Floordiv:
+            return PyFloat_FromDouble(floor(doubleV / doubleW));
+
         case Remainder:
             return PyFloat_FromDouble(fmod(doubleV, doubleW));
 
@@ -1926,8 +1929,12 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         case Truediv:
             return PyFloat_FromDouble((double)longV / (double)longW);
 
+        case Floordiv:
+            return PyLong_FromLong((long)longV / (long)longW);
+
         case Remainder:
             return PyLong_FromLong(longV % longW);
+
 
         case Divmod:
             ldiv_res = ldiv(longV, longW);
@@ -1958,6 +1965,12 @@ static PyObject *
 tclobj_true_divide(PyObject *v, PyObject *w)
 {
     return tclobj_binop(v, w, Truediv);
+}
+
+static PyObject *
+tclobj_floor_divide(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Floordiv);
 }
 
 static PyObject *
@@ -2202,6 +2215,7 @@ static PyNumberMethods tclobj_as_number = {
     .nb_subtract = tclobj_subtract,
     .nb_multiply = tclobj_multiply,
     .nb_true_divide = tclobj_true_divide,
+    .nb_floor_divide = tclobj_floor_divide,
     .nb_remainder = tclobj_remainder,
     .nb_divmod = tclobj_divmod,
     .nb_and = tclobj_and,
