@@ -1364,6 +1364,16 @@ TohilTclObj_refcount(TohilTclObj *self, PyObject *dummy)
 }
 
 //
+// TohilTclObj_pyrefcount - return the python reference count of the
+//   tclobj or tcldict object
+//
+static PyObject *
+TohilTclObj_pyrefcount(TohilTclObj *self, PyObject *dummy)
+{
+    return PyLong_FromLong(Py_REFCNT(self));
+}
+
+//
 // TohilTclObj_type - return the internal tcl data type of
 //   the corresponding tclobj/tcldict python type
 //
@@ -2360,6 +2370,7 @@ TohilTclObj_setto(TohilTclObj *self, PyTypeObject *toType, void *closure)
 static PyGetSetDef TohilTclObj_getsetters[] = {
     {"to", (getter)TohilTclObj_getto, (setter)TohilTclObj_setto, "python type to default returns to", NULL},
     {"_refcount", (getter)TohilTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
+    {"_pyrefcount", (getter)TohilTclObj_pyrefcount, NULL, "python reference count of the tcl object", NULL},
     {"_tcltype", (getter)TohilTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
     {NULL}};
 
