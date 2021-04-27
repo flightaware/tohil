@@ -20,7 +20,9 @@
 #include <assert.h>
 #include <dlfcn.h>
 
+#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define STREQU(a, b) (*(a) == *(b) && strcmp((a), (b)) == 0)
 
@@ -1013,72 +1015,6 @@ TohilTclObj_reset(TohilTclObj *self, PyObject *pyobj)
 }
 
 //
-// tclobj.as_int()
-//
-static PyObject *
-TohilTclObj_as_int(TohilTclObj *self, PyObject *pyobj)
-{
-    long longValue;
-
-    if (Tcl_GetLongFromObj(self->interp, self->tclobj, &longValue) == TCL_OK) {
-        return PyLong_FromLong(longValue);
-    }
-    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-    return NULL;
-}
-
-//
-// tclobj.as_float()
-//
-static PyObject *
-TohilTclObj_as_float(TohilTclObj *self, PyObject *pyobj)
-{
-    double doubleValue;
-
-    if (Tcl_GetDoubleFromObj(self->interp, self->tclobj, &doubleValue) == TCL_OK) {
-        return PyFloat_FromDouble(doubleValue);
-    }
-    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-    return NULL;
-}
-
-//
-// tclobj.as_bool()
-//
-static PyObject *
-TohilTclObj_as_bool(TohilTclObj *self, PyObject *pyobj)
-{
-    int intValue;
-    if (Tcl_GetBooleanFromObj(self->interp, self->tclobj, &intValue) == TCL_OK) {
-        PyObject *p = (intValue ? Py_True : Py_False);
-        Py_INCREF(p);
-        return p;
-    }
-    PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-    return NULL;
-}
-
-//
-// tclobj.as_string()
-//
-static PyObject *
-TohilTclObj_as_string(TohilTclObj *self, PyObject *pyobj)
-{
-    int tclStringSize;
-    char *tclString = Tcl_GetStringFromObj(self->tclobj, &tclStringSize);
-
-    int utf8len;
-    char *utf8string;
-    if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-        return NULL;
-    }
-    PyObject *pObj = Py_BuildValue("s#", utf8string, utf8len);
-    ckfree(utf8string);
-    return pObj;
-}
-
-//
 // tclobj.as_list()
 //
 static PyObject *
@@ -1428,6 +1364,16 @@ TohilTclObj_refcount(TohilTclObj *self, PyObject *dummy)
 }
 
 //
+// TohilTclObj_pyrefcount - return the python reference count of the
+//   tclobj or tcldict object
+//
+static PyObject *
+TohilTclObj_pyrefcount(TohilTclObj *self, PyObject *dummy)
+{
+    return PyLong_FromLong(Py_REFCNT(self));
+}
+
+//
 // TohilTclObj_type - return the internal tcl data type of
 //   the corresponding tclobj/tcldict python type
 //
@@ -1594,6 +1540,57 @@ TohilTclObj_length(TohilTclObj *self, Py_ssize_t i)
     }
 
     return size;
+}
+
+//
+// concatenate a tclobj object with some other python
+//   object, possible a tclobj object, but not necessarily,
+//   and return the result as a str
+//
+//   will be invoked by tclobj "+" operator when tclobj doesn't
+//   contain a number
+//
+static PyObject *
+TohilTclObj_concat(TohilTclObj *self, PyObject *item)
+{
+    Tcl_Obj *tItem;
+    if (TohilTclObj_Check(item)) {
+        tItem = ((TohilTclObj *)item)->tclobj;
+    } else {
+        tItem = _pyObjToTcl(tcl_interp, item);
+        if (tItem == NULL)
+            Py_RETURN_NOTIMPLEMENTED;
+    }
+    Tcl_Obj *returnObj = Tcl_DuplicateObj(self->tclobj);
+    Tcl_AppendObjToObj(returnObj, tItem);
+    Tcl_DString ds;
+    PyObject *pRet = Py_BuildValue("s", tohil_TclObjToUTF8(returnObj, &ds));
+    Tcl_DecrRefCount(returnObj);
+    return pRet;
+}
+
+//
+// in-place concatenation - concatenate something grabbed from
+//   a python object onto the end of a tclobj object.
+//
+//   this will be invoked by tclobj "+=" operator when tclobj doesn't
+//   contain a number
+//
+static PyObject *
+TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
+{
+    Tcl_Obj *tItem;
+    if (TohilTclObj_Check(item)) {
+        tItem = ((TohilTclObj *)item)->tclobj;
+    } else {
+        tItem = _pyObjToTcl(tcl_interp, item);
+        if (tItem == NULL)
+            Py_RETURN_NOTIMPLEMENTED;
+    }
+    TohilTclObj_dup_if_shared(self);
+    Tcl_AppendObjToObj(self->tclobj, tItem);
+    Py_INCREF(self);
+    return (PyObject *)self;
 }
 
 //
@@ -1795,6 +1792,551 @@ static PyTypeObject PyTohil_TD_IterType = {
 //
 
 //
+// tclobj number methods
+//
+
+static int
+tclobj_bool(TohilTclObj *self)
+{
+    int intValue = 0;
+    if (Tcl_GetBooleanFromObj(self->interp, self->tclobj, &intValue) == TCL_ERROR) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return -1;
+    }
+    return intValue;
+}
+
+static PyObject *
+tclobj_long(PyObject *p)
+{
+    long longValue = 0;
+    TohilTclObj *self = (TohilTclObj *)p;
+    if (Tcl_GetLongFromObj(self->interp, self->tclobj, &longValue) == TCL_ERROR) {
+        double doubleValue = 0;
+        if (Tcl_GetDoubleFromObj(NULL, self->tclobj, &doubleValue) == TCL_OK) {
+            return PyLong_FromDouble(doubleValue);
+        }
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return NULL;
+    }
+    return PyLong_FromLong(longValue);
+}
+
+static PyObject *
+tclobj_float(PyObject *p)
+{
+    double doubleValue = 0;
+    TohilTclObj *self = (TohilTclObj *)p;
+    if (Tcl_GetDoubleFromObj(self->interp, self->tclobj, &doubleValue) == TCL_ERROR) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return NULL;
+    }
+    return PyFloat_FromDouble(doubleValue);
+}
+
+static int
+tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr)
+{
+    if (PyLong_Check(v)) {
+        *longPtr = PyLong_AsLong(v);
+        return 0;
+    }
+
+    if (PyFloat_Check(v)) {
+        *doublePtr = PyFloat_AsDouble(v);
+        return 1;
+    }
+
+    if (TohilTclObj_Check(v)) {
+        TohilTclObj *self = (TohilTclObj *)v;
+
+        if (Tcl_GetLongFromObj(self->interp, self->tclobj, longPtr) == TCL_OK) {
+            return 0;
+        }
+
+        if (Tcl_GetDoubleFromObj(NULL, self->tclobj, doublePtr) == TCL_OK) {
+            return 1;
+        }
+
+        return -1;
+    }
+    return 2;
+}
+
+enum tclobj_unary_op { Abs, Negative, Positive, Invert };
+
+static PyObject *
+tclobj_unaryop(PyObject *v, enum tclobj_unary_op operator)
+{
+    double doubleV = 0.0;
+    long longV = 0;
+    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+    if (vFloat < 0) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        return NULL;
+    }
+
+    if (vFloat) {
+        switch (operator) {
+        case Abs:
+            return PyFloat_FromDouble(fabs(doubleV));
+
+        case Negative:
+            return PyFloat_FromDouble(-doubleV);
+
+        case Positive:
+            return PyFloat_FromDouble(doubleV);
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+    } else {
+        switch (operator) {
+        case Abs:
+            return PyLong_FromLong(labs(longV));
+
+        case Negative:
+            return PyLong_FromLong(-longV);
+
+        case Positive:
+            return PyLong_FromLong(longV);
+
+        case Invert:
+            return PyLong_FromLong(~longV);
+        }
+    }
+}
+
+enum tclobj_op { Add, Sub, Mul, And, Or, Xor, Lshift, Rshift, Remainder, Divmod, Truediv, Floordiv };
+
+static PyObject *
+tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
+{
+    double doubleV = 0.0;
+    long longV = 0;
+    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+
+    double doubleW = 0.0;
+    long longW = 0;
+    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW);
+
+    ldiv_t ldiv_res;
+    double quotient;
+    double remainder;
+
+    if (vFloat < 0 || wFloat < 0) {
+        if (operator == Add) {
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        return NULL;
+    } else if ((vFloat == 2) || (wFloat == 2)) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+
+    if (vFloat || wFloat) {
+        if (!wFloat) {
+            doubleW = longW;
+        } else if (!vFloat) {
+            doubleV = longV;
+        }
+
+        switch (operator) {
+        case Add:
+            return PyFloat_FromDouble(doubleV + doubleW);
+
+        case Sub:
+            return PyFloat_FromDouble(doubleV - doubleW);
+
+        case Mul:
+            return PyFloat_FromDouble(doubleV * doubleW);
+
+        case Truediv:
+            return PyFloat_FromDouble(doubleV / doubleW);
+
+        case Floordiv:
+            return PyFloat_FromDouble(floor(doubleV / doubleW));
+
+        case Remainder:
+            return PyFloat_FromDouble(fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
+
+        case Divmod:
+            quotient = doubleV / doubleW;
+            remainder = fmod(doubleV, doubleW);
+            return Py_BuildValue("dd", quotient, remainder);
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+    } else {
+        switch (operator) {
+        case Add:
+            return PyLong_FromLong(longV + longW);
+
+        case Sub:
+            return PyLong_FromLong(longV - longW);
+
+        case Mul:
+            return PyLong_FromLong(longV * longW);
+
+        case And:
+            return PyLong_FromLong(longV & longW);
+
+        case Or:
+            return PyLong_FromLong(longV | longW);
+
+        case Xor:
+            return PyLong_FromLong(longV ^ longW);
+
+        case Lshift:
+            return PyLong_FromLong(longV << longW);
+
+        case Rshift:
+            return PyLong_FromLong(longV >> longW);
+
+        case Truediv:
+            return PyFloat_FromDouble((double)longV / (double)longW);
+
+        case Floordiv:
+            ldiv_res = ldiv(longV, longW);
+            if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
+                ldiv_res.quot--;
+            }
+            return PyLong_FromLong(ldiv_res.quot);
+
+        case Remainder:
+            return PyLong_FromLong(((longV % longW) + longW) % longW);
+
+
+        case Divmod:
+            ldiv_res = ldiv(longV, longW);
+            return Py_BuildValue("ll", ldiv_res.quot, ldiv_res.rem);
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+    }
+}
+
+static PyObject *
+tclobj_add(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Add);
+}
+
+static PyObject *
+tclobj_subtract(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Sub);
+}
+
+static PyObject *
+tclobj_multiply(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Mul);
+}
+
+static PyObject *
+tclobj_true_divide(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Truediv);
+}
+
+static PyObject *
+tclobj_floor_divide(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Floordiv);
+}
+
+static PyObject *
+tclobj_remainder(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Remainder);
+}
+
+static PyObject *
+tclobj_divmod(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Divmod);
+}
+
+static PyObject *
+tclobj_and(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, And);
+}
+
+static PyObject *
+tclobj_or(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Or);
+}
+
+static PyObject *
+tclobj_xor(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Xor);
+}
+
+static PyObject *
+tclobj_lshift(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Lshift);
+}
+
+static PyObject *
+tclobj_rshift(PyObject *v, PyObject *w)
+{
+    return tclobj_binop(v, w, Rshift);
+}
+
+static PyObject *
+tclobj_negative(PyObject *v, enum tclobj_op operator)
+{
+    return tclobj_unaryop(v, Negative);
+}
+
+static PyObject *
+tclobj_positive(PyObject *v, enum tclobj_op operator)
+{
+    return tclobj_unaryop(v, Positive);
+}
+
+static PyObject *
+tclobj_absolute(PyObject *v, enum tclobj_op operator)
+{
+    return tclobj_unaryop(v, Abs);
+}
+
+static PyObject *
+tclobj_invert(PyObject *v, enum tclobj_op operator)
+{
+    return tclobj_unaryop(v, Invert);
+}
+
+static PyObject *
+tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
+{
+    // NB same chunk of code in tclobj_binop
+    double doubleV = 0.0;
+    long longV = 0;
+    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+
+    double doubleW = 0.0;
+    long longW = 0;
+    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW);
+
+    ldiv_t ldiv_res;
+
+    if (vFloat < 0 || wFloat < 0) {
+        if (operator == Add) {
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        return NULL;
+    } else if ((vFloat == 2) || (wFloat == 2)) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+
+    assert(TohilTclObj_Check(v));
+    TohilTclObj *self = (TohilTclObj *)v;
+
+    // if tclobj is shared then decrement it and make a new
+    // one and stick it in self's tclobj.  duplicating
+    // the Tcl_Obj isn't necessary as we will set it below probably.
+    if (Tcl_IsShared(self->tclobj)) {
+        Tcl_DecrRefCount(self->tclobj);
+        self->tclobj = Tcl_NewObj();
+    }
+
+    if (vFloat || wFloat) {
+        if (!wFloat) {
+            doubleW = longW;
+        } else if (!vFloat) {
+            doubleV = longV;
+        }
+
+        switch (operator) {
+        case Add:
+            Tcl_SetDoubleObj(self->tclobj, doubleV + doubleW);
+            break;
+
+        case Sub:
+            Tcl_SetDoubleObj(self->tclobj, doubleV - doubleW);
+            break;
+
+        case Mul:
+            Tcl_SetDoubleObj(self->tclobj, doubleV * doubleW);
+            break;
+
+        case Remainder:
+            Tcl_SetDoubleObj(self->tclobj, fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
+            break;
+
+        case Truediv:
+            Tcl_SetDoubleObj(self->tclobj, doubleV / doubleW);
+            break;
+
+        case Floordiv:
+            Tcl_SetDoubleObj(self->tclobj, floor(doubleV / doubleW));
+            break;
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+    } else {
+        switch (operator) {
+        case Add:
+            Tcl_SetLongObj(self->tclobj, longV + longW);
+            break;
+
+        case Sub:
+            Tcl_SetLongObj(self->tclobj, longV - longW);
+            break;
+
+        case Mul:
+            Tcl_SetLongObj(self->tclobj, longV * longW);
+            break;
+
+        case And:
+            Tcl_SetLongObj(self->tclobj, longV & longW);
+            break;
+
+        case Or:
+            Tcl_SetLongObj(self->tclobj, longV | longW);
+            break;
+
+        case Xor:
+            Tcl_SetLongObj(self->tclobj, longV ^ longW);
+            break;
+
+        case Lshift:
+            Tcl_SetLongObj(self->tclobj, longV << longW);
+            break;
+
+        case Rshift:
+            Tcl_SetLongObj(self->tclobj, longV >> longW);
+            break;
+
+        case Truediv:
+            Tcl_SetDoubleObj(self->tclobj, (double)longV / (double)longW);
+            break;
+
+        case Floordiv:
+            ldiv_res = ldiv(longV, longW);
+            if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
+                ldiv_res.quot--;
+            }
+            Tcl_SetLongObj(self->tclobj, ldiv_res.quot);
+            break;
+
+        case Remainder:
+            Tcl_SetLongObj(self->tclobj, ((longV % longW) + longW) % longW);
+            break;
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
+        }
+    }
+    Py_INCREF(v);
+    return v;
+}
+
+static PyObject *
+tclobj_inplace_add(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Add);
+}
+
+static PyObject *
+tclobj_inplace_subtract(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Sub);
+}
+
+static PyObject *
+tclobj_inplace_multiply(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Mul);
+}
+
+static PyObject *
+tclobj_inplace_remainder(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Remainder);
+}
+
+static PyObject *
+tclobj_inplace_and(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, And);
+}
+
+static PyObject *
+tclobj_inplace_or(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Or);
+}
+
+static PyObject *
+tclobj_inplace_xor(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Xor);
+}
+
+static PyObject *
+tclobj_inplace_lshift(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Lshift);
+}
+
+static PyObject *
+tclobj_inplace_rshift(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Rshift);
+}
+
+static PyObject *
+tclobj_inplace_true_divide(PyObject *v, PyObject *w)
+{
+    return tclobj_inplace_binop(v, w, Truediv);
+}
+
+
+static PyNumberMethods tclobj_as_number = {
+    .nb_bool = (inquiry)tclobj_bool,
+    .nb_int = tclobj_long,
+    .nb_float = tclobj_float,
+    .nb_add = tclobj_add,
+    .nb_subtract = tclobj_subtract,
+    .nb_multiply = tclobj_multiply,
+    .nb_true_divide = tclobj_true_divide,
+    .nb_floor_divide = tclobj_floor_divide,
+    .nb_remainder = tclobj_remainder,
+    .nb_divmod = tclobj_divmod,
+    .nb_and = tclobj_and,
+    .nb_or = tclobj_or,
+    .nb_xor = tclobj_xor,
+    .nb_lshift = tclobj_lshift,
+    .nb_rshift = tclobj_rshift,
+    .nb_negative = (unaryfunc)tclobj_negative,
+    .nb_positive = (unaryfunc)tclobj_positive,
+    .nb_absolute = (unaryfunc)tclobj_absolute,
+    .nb_invert = (unaryfunc)tclobj_invert,
+
+    .nb_inplace_add = tclobj_inplace_add,
+    .nb_inplace_subtract = tclobj_inplace_subtract,
+    .nb_inplace_multiply = tclobj_inplace_multiply,
+    .nb_inplace_remainder = tclobj_inplace_remainder,
+    .nb_inplace_lshift = tclobj_inplace_lshift,
+    .nb_inplace_rshift = tclobj_inplace_rshift,
+    .nb_inplace_and = tclobj_inplace_and,
+    .nb_inplace_or = tclobj_inplace_or,
+    .nb_inplace_xor = tclobj_inplace_xor,
+    .nb_inplace_true_divide = tclobj_inplace_true_divide,
+};
+
+//
 // TohilTclObj_getto - get "to" value, settable attribute for what
 //   type to convert tclobjs and tcldicts to
 //
@@ -1828,6 +2370,7 @@ TohilTclObj_setto(TohilTclObj *self, PyTypeObject *toType, void *closure)
 static PyGetSetDef TohilTclObj_getsetters[] = {
     {"to", (getter)TohilTclObj_getto, (setter)TohilTclObj_setto, "python type to default returns to", NULL},
     {"_refcount", (getter)TohilTclObj_refcount, NULL, "reference count of the embedded tcl object", NULL},
+    {"_pyrefcount", (getter)TohilTclObj_pyrefcount, NULL, "python reference count of the tcl object", NULL},
     {"_tcltype", (getter)TohilTclObj_type, NULL, "internal tcl data type of the tcl object", NULL},
     {NULL}};
 
@@ -1835,22 +2378,18 @@ static PyMappingMethods TohilTclObj_as_mapping = {(lenfunc)TohilTclObj_length, (
 
 static PySequenceMethods TohilTclObj_as_sequence = {
     .sq_length = (lenfunc)TohilTclObj_length,
-    // .sq_concat = (binaryfunc)tclobj_concat,
+    .sq_concat = (binaryfunc)TohilTclObj_concat,
     // .sq_repeat = (ssizeargfunc)tclobj_repeat,
     .sq_item = (ssizeargfunc)TohilTclObj_item,
     .sq_ass_item = (ssizeobjargproc)TohilTclObj_ass_item,
     // .sq_contains = (objobjproc)list_contains,
-    //.sq_inplace_concat = (binaryfunc)list_inplace_concat,
+    .sq_inplace_concat = (binaryfunc)TohilTclObj_inplace_concat,
     //.sq_inplace_repeat = (ssizeargfunc)list_inplace_repeat,
 };
 
 static PyMethodDef TohilTclObj_methods[] = {
     {"__getitem__", (PyCFunction)TohilTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
     {"reset", (PyCFunction)TohilTclObj_reset, METH_NOARGS, "reset the tclobj"},
-    {"as_str", (PyCFunction)TohilTclObj_as_string, METH_NOARGS, "return tclobj as str"},
-    {"as_int", (PyCFunction)TohilTclObj_as_int, METH_NOARGS, "return tclobj as int"},
-    {"as_float", (PyCFunction)TohilTclObj_as_float, METH_NOARGS, "return tclobj as float"},
-    {"as_bool", (PyCFunction)TohilTclObj_as_bool, METH_NOARGS, "return tclobj as bool"},
     {"as_list", (PyCFunction)TohilTclObj_as_list, METH_NOARGS, "return tclobj as list"},
     {"as_set", (PyCFunction)TohilTclObj_as_set, METH_NOARGS, "return tclobj as set"},
     {"as_tuple", (PyCFunction)TohilTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
@@ -1886,6 +2425,7 @@ static PyTypeObject TohilTclObjType = {
     .tp_repr = (reprfunc)TohilTclObj_repr,
     .tp_richcompare = (richcmpfunc)TohilTclObj_richcompare,
     .tp_getset = TohilTclObj_getsetters,
+    .tp_as_number = &tclobj_as_number,
 };
 
 //

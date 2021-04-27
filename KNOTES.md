@@ -207,4 +207,49 @@ python3-ipython
 
 crap, valtype::imei is both a namespace and a proc
 
+---
+
+need an equivalent to ShadowDicts for scalar variables in tcl
+
+the problem is if it's a class then you don't have any keen assignment
+syntax, unlike with shadow dicts; you're going to have to invoke a function
+because if you say `foo = tohil.ShadowVar("foo")` that's good but you can't
+say `foo = 'bar'` to assign to it because that'll create a new foo.
+
+you'll have to do like foo.set('bar'), which is a bit annoying.
+
+also the class can be callable so you could get it with foo()
+
+and it could reconigze it was called with an argument and could set from that
+
+
+
+analysis = tohil.ShadowVar("analysis")
+
+analysis.set(analysis() + 'foo')
+
+wish we could say analysis += message
+
+that's not too hard actually
+
+we could even make tclobj's += look at the argument and if it's a string use
+concatenation, although we might ought to look at that string as a number,
+we do now, and just stick with that, i don't know.
+
+we've got these tclobjs and they're pretty handy already.  maybe the trick
+is to provide a way to bind a tclobj to a tcl variable so that when read it
+reattaches the tclobj to the var if it doesn't exactly point at it
+
+and after stores a Tcl_ObjSetVar2, or whatever, to keep the var synced
+with the object.
+
+analysis = tohil.tclobj(var="analysis")
+
+we already have t.setvar() and t.getvar() to manually sync
+
+
+
+
+
+
 
