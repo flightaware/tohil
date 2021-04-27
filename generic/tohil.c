@@ -1903,6 +1903,9 @@ tclobj_unaryop(PyObject *v, enum tclobj_unary_op operator)
 
         case Invert:
             return PyLong_FromLong(~longV);
+
+        default:
+            Py_RETURN_NOTIMPLEMENTED;
         }
     }
 }
