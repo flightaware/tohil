@@ -48,6 +48,8 @@ int TohilTclDict_Check(PyObject *pyObj);
 static PyTypeObject TohilTclDictType;
 static PyObject *TohilTclDict_FromTclObj(Tcl_Obj *obj);
 
+static Tcl_Obj *TohilTclObj_objptr(TohilTclObj *self);
+
 PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
 // TCL library begins here
@@ -362,7 +364,7 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         tObj = Tcl_NewBooleanObj(pObj == Py_True);
     } else if (TohilTclObj_Check(pObj) || TohilTclDict_Check(pObj)) {
         TohilTclObj *pyTclObj = (TohilTclObj *)pObj;
-        tObj = pyTclObj->tclobj;
+        tObj = TohilTclObj_objptr(pyTclObj);
     } else if (PyBytes_Check(pObj)) {
         tObj = Tcl_NewByteArrayObj((const unsigned char *)PyBytes_AS_STRING(pObj), PyBytes_GET_SIZE(pObj));
     } else if (PyUnicode_Check(pObj)) {
@@ -919,8 +921,10 @@ TohilTclObj_init(TohilTclObj *self, PyObject *args, PyObject *kwds)
 static Tcl_Obj *
 TohilTclObj_objptr(TohilTclObj *self)
 {
-    if (self->tclvar == NULL)
+    if (self->tclvar == NULL) {
+        assert(self->tclobj->refCount > 0);
         return self->tclobj;
+    }
 
     assert(self->tclobj == NULL);
     Tcl_Obj *obj = Tcl_ObjGetVar2(self->interp, self->tclvar, NULL, TCL_LEAVE_ERR_MSG);
@@ -935,6 +939,7 @@ static int
 TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
 {
     assert(self->tclobj == NULL);
+    assert(self->tclobj->refCount > 0);
     Tcl_Obj *res = Tcl_ObjSetVar2(self->interp, self->tclvar, NULL, obj, TCL_LEAVE_ERR_MSG);
     if (res == NULL) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
@@ -957,6 +962,7 @@ static int
 TohilTclObj_stuff_objptr(TohilTclObj *self, Tcl_Obj *obj)
 {
     if (self->tclvar == NULL) {
+        assert(self->tclobj->refCount > 0);
         Tcl_DecrRefCount(self->tclobj);
         self->tclobj = obj;
         Tcl_IncrRefCount(self->tclobj);
@@ -970,6 +976,7 @@ static Tcl_Obj *
 TohilTclObj_writable_objptr(TohilTclObj *self)
 {
     if (self->tclvar == NULL) {
+        assert(self->tclobj->refCount > 0);
         if (Tcl_IsShared(self->tclobj)) {
             Tcl_DecrRefCount(self->tclobj);
             self->tclobj = Tcl_DuplicateObj(self->tclobj);
@@ -1053,27 +1060,30 @@ TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
         return NULL;
-
-    Tcl_Obj *otherobj = TohilTclObj_objptr((TohilTclObj *)other);
-    if (otherobj == NULL)
-        return NULL;
+    Tcl_Obj *otherobj = NULL;
 
     // if you want equal and they point to the exact same object,
     // we are donezo
-    if (op == Py_EQ && (TohilTclObj_Check(other) || TohilTclDict_Check(other)) && selfobj == otherobj) {
-        Py_INCREF(Py_True);
-        return Py_True;
+    if (op == Py_EQ && (TohilTclObj_Check(other) || TohilTclDict_Check(other))) {
+        otherobj = pyObjToTcl(self->interp, other);
+        if (selfobj == otherobj) {
+            Py_INCREF(Py_True);
+            return Py_True;
+        }
     }
 
     char *selfString = Tcl_GetString(selfobj);
-
     char *otherString = NULL;
-    Tcl_Obj *otherObj = NULL;
     if (TohilTclObj_Check(other) || TohilTclDict_Check(other)) {
+        otherobj = TohilTclObj_objptr((TohilTclObj *)other);
+
+        if (otherobj == NULL)
+            return NULL;
+
         otherString = Tcl_GetString(otherobj);
     } else {
-        otherObj = pyObjToTcl(self->interp, other);
-        otherString = Tcl_GetString(otherObj);
+        otherobj = pyObjToTcl(self->interp, other);
+        otherString = Tcl_GetString(otherobj);
     }
 
     int cmp = strcmp(selfString, otherString);
@@ -1106,9 +1116,6 @@ TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
 
     default:
         assert(0 == 1);
-    }
-    if (otherObj != NULL) {
-        Tcl_DecrRefCount(otherObj);
     }
     PyObject *p = (res ? Py_True : Py_False);
     Py_INCREF(p);
