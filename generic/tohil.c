@@ -852,7 +852,7 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     PyObject *pFrom = NULL;
     PyObject *toType = NULL;
     char *tVar = NULL;
-    static char *kwlist[] = {"from", "to", "var", NULL};
+    static char *kwlist[] = {"source", "to", "var", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O$Os", kwlist, &pFrom, &toType, &tVar)) {
         return NULL;
     }
@@ -1787,14 +1787,23 @@ TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
             Py_RETURN_NOTIMPLEMENTED;
     }
 
-    Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
     if (writeObj == NULL)
         return NULL;
 
+    if (Tcl_IsShared(writeObj)) {
+        Tcl_DecrRefCount(writeObj);
+        writeObj = Tcl_DuplicateObj(writeObj);
+    }
+
     Tcl_AppendObjToObj(writeObj, tItem);
 
-    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
-        return NULL;
+    if (self->tclvar == NULL) {
+        self->tclobj = writeObj;
+    } else {
+        if (TohilTclObj_stuff_var(self, writeObj) < 0)
+            return NULL;
+    }
 
     Py_INCREF(self);
     return (PyObject *)self;
