@@ -871,21 +871,33 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         self->tclobj = NULL;
 
         Tcl_Obj *newObj;
-        if (pFrom == NULL) {
-            if (STREQU(type->tp_name, "tohil.tcldict")) {
-                newObj = Tcl_NewDictObj();
-            } else {
-                newObj = Tcl_NewObj();
-            }
-        } else {
-            newObj = pyObjToTcl(self->interp, pFrom);
-        }
+        // it's from or empty if it gets to here but
+        // if they specified a var= then we don't
+        // want to clobber it
 
+        // if there's a var, connect to that
         if (tVar != NULL) {
             self->tclvar = Tcl_NewStringObj(tVar, -1);
             Tcl_IncrRefCount(self->tclvar);
-            TohilTclObj_stuff_var(self, newObj);
+
+            // if they specified a from, plug it into the var
+            if (pFrom != NULL) {
+                newObj = pyObjToTcl(self->interp, pFrom);
+                TohilTclObj_stuff_var(self, newObj);
+            }
         } else {
+            // there isn't a var, fill the tclobj
+            // if there's no source, make a new tclobj
+            if (pFrom == NULL) {
+                if (STREQU(type->tp_name, "tohil.tcldict")) {
+                    newObj = Tcl_NewDictObj();
+                } else {
+                    newObj = Tcl_NewObj();
+                }
+            } else {
+                // there's a source=, use that for the new tclobj
+                newObj = pyObjToTcl(self->interp, pFrom);
+            }
             self->tclobj = newObj;
             Tcl_IncrRefCount(self->tclobj);
         }
