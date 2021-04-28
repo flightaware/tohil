@@ -122,12 +122,22 @@ class ShadowDictIterator:
 class ShadowDict(MutableMapping):
     """shadow dicts - python dict-like objects that shadow a tcl array"""
 
-    def __init__(self, tcl_array, to=str):
+    def __init__(self, tcl_array, **kwargs):
         self.tcl_array = tcl_array
-        self.to_type = to
+        if "to" in kwargs:
+            self.to_type = kwargs["to"]
+        else:
+            self.to_type = str
+
+        if "default" in kwargs:
+            self.default = kwargs["default"]
 
     def __getitem__(self, key):
-        return getvar(f"{self.tcl_array}({key})", to=self.to_type)
+        try:
+            self.default
+            return getvar(f"{self.tcl_array}({key})", to=self.to_type, default=self.default)
+        except NameError:
+            return getvar(f"{self.tcl_array}({key})", to=self.to_type)
 
     def __delitem__(self, key):
         unset(f"{self.tcl_array}({key})")
