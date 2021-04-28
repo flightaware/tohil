@@ -870,11 +870,11 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     if (self != NULL) {
         self->interp = tcl_interp;
         self->tclvar = NULL;
+        self->tclobj = NULL;
         if (pSource == NULL) {
             if (tVar != NULL) {
                 self->tclvar = Tcl_NewStringObj(tVar, -1);
                 Tcl_IncrRefCount(self->tclvar);
-                self->tclobj = NULL;
             } else {
                 if (STREQU(type->tp_name, "tohil.tcldict")) {
                     self->tclobj = Tcl_NewDictObj();
@@ -921,6 +921,7 @@ TohilTclObj_objptr(TohilTclObj *self)
 {
     Tcl_Obj *obj = NULL;
     if (self->tclvar != NULL) {
+        assert(self->tclobj == NULL);
         obj = Tcl_ObjGetVar2(self->interp, self->tclvar, NULL, TCL_LEAVE_ERR_MSG);
         if (obj == NULL) {
             PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
@@ -943,9 +944,19 @@ TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
 }
 
 static int
+TohilTclObj_possibly_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
+{
+    if (self->tclvar == NULL)
+        return 0;
+
+    return TohilTclObj_stuff_var(self, obj);
+}
+
+static int
 TohilTclObj_stuff_objptr(TohilTclObj *self, Tcl_Obj *obj)
 {
     if (self->tclvar != NULL) {
+        assert(self->tclobj == NULL);
         return TohilTclObj_stuff_var(self, obj);
     } else {
         Tcl_DecrRefCount(self->tclobj);
@@ -966,6 +977,9 @@ TohilTclObj_writable_objptr(TohilTclObj *self)
         return self->tclobj;
     }
 
+    return Tcl_NewObj();
+
+#if 0
     Tcl_Obj *obj = Tcl_ObjGetVar2(self->interp, self->tclvar, NULL, TCL_LEAVE_ERR_MSG);
     if (obj == NULL) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
@@ -973,13 +987,18 @@ TohilTclObj_writable_objptr(TohilTclObj *self)
     }
     if (Tcl_IsShared(obj)) {
         Tcl_DecrRefCount(obj);
-        obj = Tcl_DuplicateObj(self->tclobj);
-        if (Tcl_ObjSetVar2(self->interp, self->tclvar, NULL, obj, TCL_LEAVE_ERR_MSG) == NULL) {
+        obj = Tcl_DuplicateObj(obj);
+        // NB obj returned by set var 2 can change due to traces
+        // this is probably no good; we need to set the var after
+        // not before we set a value into it
+        obj = Tcl_ObjSetVar2(self->interp, self->tclvar, NULL, obj, TCL_LEAVE_ERR_MSG);
+        if (obj == NULL) {
             PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
             return NULL;
         }
     }
     return obj;
+#endif
 }
 
 //
@@ -1247,7 +1266,12 @@ TohilTclObj_incr(TohilTclObj *self, PyObject *args, PyObject *kwargs)
     Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
     if (writeObj == NULL)
         return NULL;
+
     Tcl_SetLongObj(writeObj, longValue);
+
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return NULL;
+
     return PyLong_FromLong(longValue);
 }
 
@@ -1428,8 +1452,8 @@ TohilTclObj_lappend(TohilTclObj *self, PyObject *pObject)
         return NULL;
     }
 
-    //if (TohilTclObj_stuff_objptr(self, writeObj) < 0)
-    //    return NULL;
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return NULL;
 
     // it worked
     Py_RETURN_NONE;
@@ -1450,7 +1474,6 @@ TohilTclObj_lappend_list(TohilTclObj *self, PyObject *pObject)
     Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
     if (writeObj == NULL)
         return NULL;
-
 
     // if passed python object is a tclobj, use tcl list C stuff
     // to append the list to the list
@@ -1485,6 +1508,9 @@ TohilTclObj_lappend_list(TohilTclObj *self, PyObject *pObject)
         PyErr_Format(PyExc_TypeError, "lappend_list argument must be a tclobj or list, not %.200s", Py_TYPE(pObject)->tp_name);
         return NULL;
     }
+
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return NULL;
 
     // it worked
     Py_RETURN_NONE;
@@ -1664,11 +1690,17 @@ TohilTclObj_ass_item(TohilTclObj *self, Py_ssize_t i, PyObject *v)
     }
 
     Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+    if (writeObj == NULL)
+        return -1;
 
     if (Tcl_ListObjReplace(self->interp, writeObj, i, 1, 1, &obj) == TCL_ERROR) {
         PyErr_SetString(PyExc_IndexError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return -1;
     }
+
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -1753,6 +1785,10 @@ TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
         return NULL;
 
     Tcl_AppendObjToObj(writeObj, tItem);
+
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return NULL;
+
     Py_INCREF(self);
     return (PyObject *)self;
 }
@@ -2419,6 +2455,10 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             Py_RETURN_NOTIMPLEMENTED;
         }
     }
+
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return NULL;
+
     Py_INCREF(v);
     return v;
 }
@@ -2775,6 +2815,7 @@ TohilTclDict_subscript(TohilTclObj *self, PyObject *keys)
 static int
 TohilTclDict_delitem(TohilTclObj *self, PyObject *keys)
 {
+    Tcl_Obj *writeObj = NULL;
     if (PyList_Check(keys)) {
         int objc = 0;
         Tcl_Obj **objv = NULL;
@@ -2783,7 +2824,7 @@ TohilTclDict_delitem(TohilTclObj *self, PyObject *keys)
         pyListToTclObjv((PyListObject *)keys, &objc, &objv);
 
         // we are about to try to modify the object, so if it's shared we need to copy
-        Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+        writeObj = TohilTclObj_writable_objptr(self);
         if (writeObj == NULL)
             return -1;
 
@@ -2805,7 +2846,7 @@ TohilTclDict_delitem(TohilTclObj *self, PyObject *keys)
         }
 
         // we are about to try to modify the object, so if it's shared we need to copy
-        Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+        writeObj = TohilTclObj_writable_objptr(self);
         if (writeObj == NULL)
             return -1;
 
@@ -2817,6 +2858,8 @@ TohilTclDict_delitem(TohilTclObj *self, PyObject *keys)
         Tcl_DecrRefCount(keyObj);
     }
 
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return -1;
     return 0;
 }
 
@@ -2873,6 +2916,8 @@ TohilTclDict_setitem(TohilTclObj *self, PyObject *keys, PyObject *pValue)
         // Tcl_DecrRefCount(valueObj);
     }
 
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return -1;
     return 0;
 }
 
