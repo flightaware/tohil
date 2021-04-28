@@ -1708,9 +1708,14 @@ TohilTclObj_ass_item(TohilTclObj *self, Py_ssize_t i, PyObject *v)
         return -1;
     }
 
-    Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
     if (writeObj == NULL)
         return -1;
+
+    if (Tcl_IsShared(writeObj)) {
+        Tcl_DecrRefCount(writeObj);
+        writeObj = Tcl_DuplicateObj(writeObj);
+    }
 
     if (Tcl_ListObjReplace(self->interp, writeObj, i, 1, 1, &obj) == TCL_ERROR) {
         PyErr_SetString(PyExc_IndexError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
