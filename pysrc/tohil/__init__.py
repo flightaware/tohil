@@ -133,6 +133,7 @@ class ShadowDict(MutableMapping):
             self.default = kwargs["default"]
 
     def __getitem__(self, key):
+        """access element of the shadow dict using the [] notation"""
         try:
             self.default
             return getvar(f"{self.tcl_array}({key})", to=self.to_type, default=self.default)
@@ -140,24 +141,53 @@ class ShadowDict(MutableMapping):
             return getvar(f"{self.tcl_array}({key})", to=self.to_type)
 
     def __delitem__(self, key):
+        """delete an item from the shadow dict"""
         unset(f"{self.tcl_array}({key})")
         return
 
     def __setitem__(self, key, value):
+        """set an element of the shadow dict to the specified value"""
         setvar(f"{self.tcl_array}({key})", value)
 
     def __len__(self):
+        """return the length of the shadow dict i.e. the size of the tcl array"""
         return call("array", "size", self.tcl_array, to=int)
 
     def __repr__(self):
+        """return a representation of the shadow dict"""
         return str(call("array", "get", self.tcl_array, to=dict))
 
     def __iter__(self):
+        """return a shadow dict iterator"""
         return ShadowDictIterator(self.tcl_array)
 
     def __contains__(self, key):
+        """return true if the shadow dict has an element named key, else false"""
         return exists(f"{self.tcl_array}({key})")
 
+    def get(self, key, **kwargs):
+        """return the value of an element of the shadow dict, with conversion
+        to the specified type, and with a default value from an argument to
+        get or if not that, a default value from the shadow dict object specified
+        at shadow dict creation time
+
+        likewise 'to' conversion can be specified when creating the object or in
+        the call to 'get', with the args to get having the higher priority"""
+        if "to" in kwargs:
+            to = kwargs["to"]
+        else:
+            to = self.to_type
+        if exists(f"{self.tcl_array}({key})"):
+            return getvar(f"{self.tcl_array}({key})", to=to)
+        if "default" in kwargs:
+            return convert(kwargs["default"], to=to)
+        try:
+            self.default
+            return convert(self.default, to=to)
+        except NameError:
+            raise TypeError(
+                f"element '{key}' doesn't exist in tcl array '{self.tcl_array}', and no default was specified to 'get' or to ShadowDict()"
+            )
 
 #
 # misc stuff and helpers
