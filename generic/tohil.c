@@ -49,6 +49,7 @@ static PyTypeObject TohilTclDictType;
 static PyObject *TohilTclDict_FromTclObj(Tcl_Obj *obj);
 
 static Tcl_Obj *TohilTclObj_objptr(TohilTclObj *self);
+static int TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj);
 
 PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
@@ -848,11 +849,11 @@ TohilTclObj_FromTclObj(Tcl_Obj *obj)
 static PyObject *
 TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pSource = NULL;
+    PyObject *pFrom = NULL;
     PyObject *toType = NULL;
     char *tVar = NULL;
     static char *kwlist[] = {"from", "to", "var", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O$Os", kwlist, &pSource, &toType, &tVar)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O$Os", kwlist, &pFrom, &toType, &tVar)) {
         return NULL;
     }
 
@@ -863,32 +864,31 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         }
     }
 
-    if (pSource != NULL && tVar != NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "can't specify 'from' and 'var'");
-        return NULL;
-    }
-
     TohilTclObj *self = (TohilTclObj *)type->tp_alloc(type, 0);
     if (self != NULL) {
         self->interp = tcl_interp;
         self->tclvar = NULL;
         self->tclobj = NULL;
-        if (pSource == NULL) {
-            if (tVar != NULL) {
-                self->tclvar = Tcl_NewStringObj(tVar, -1);
-                Tcl_IncrRefCount(self->tclvar);
+
+        Tcl_Obj *newObj;
+        if (pFrom == NULL) {
+            if (STREQU(type->tp_name, "tohil.tcldict")) {
+                newObj = Tcl_NewDictObj();
             } else {
-                if (STREQU(type->tp_name, "tohil.tcldict")) {
-                    self->tclobj = Tcl_NewDictObj();
-                } else {
-                    self->tclobj = Tcl_NewObj();
-                }
+                newObj = Tcl_NewObj();
             }
         } else {
-            self->tclobj = pyObjToTcl(self->interp, pSource);
+            newObj = pyObjToTcl(self->interp, pFrom);
         }
-        if (self->tclobj != NULL)
+
+        if (tVar != NULL) {
+            self->tclvar = Tcl_NewStringObj(tVar, -1);
+            Tcl_IncrRefCount(self->tclvar);
+            TohilTclObj_stuff_var(self, newObj);
+        } else {
+            self->tclobj = newObj;
             Tcl_IncrRefCount(self->tclobj);
+        }
         self->to = (PyTypeObject *)toType;
         Py_XINCREF(toType);
     }
