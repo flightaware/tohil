@@ -919,27 +919,28 @@ TohilTclObj_init(TohilTclObj *self, PyObject *args, PyObject *kwds)
 static Tcl_Obj *
 TohilTclObj_objptr(TohilTclObj *self)
 {
-    Tcl_Obj *obj = NULL;
-    if (self->tclvar != NULL) {
-        assert(self->tclobj == NULL);
-        obj = Tcl_ObjGetVar2(self->interp, self->tclvar, NULL, TCL_LEAVE_ERR_MSG);
-        if (obj == NULL) {
-            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-            return NULL;
-        }
-        return obj;
+    if (self->tclvar == NULL)
+        return self->tclobj;
+
+    assert(self->tclobj == NULL);
+    Tcl_Obj *obj = Tcl_ObjGetVar2(self->interp, self->tclvar, NULL, TCL_LEAVE_ERR_MSG);
+    if (obj == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return NULL;
     }
-    return self->tclobj;
+    return obj;
 }
 
 static int
 TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
 {
+    assert(self->tclobj == NULL);
     Tcl_Obj *res = Tcl_ObjSetVar2(self->interp, self->tclvar, NULL, obj, TCL_LEAVE_ERR_MSG);
     if (res == NULL) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return -1;
     }
+    Tcl_IncrRefCount(res);
     return 0;
 }
 
@@ -955,15 +956,14 @@ TohilTclObj_possibly_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
 static int
 TohilTclObj_stuff_objptr(TohilTclObj *self, Tcl_Obj *obj)
 {
-    if (self->tclvar != NULL) {
-        assert(self->tclobj == NULL);
-        return TohilTclObj_stuff_var(self, obj);
-    } else {
+    if (self->tclvar == NULL) {
         Tcl_DecrRefCount(self->tclobj);
         self->tclobj = obj;
         Tcl_IncrRefCount(self->tclobj);
+        return 0;
     }
-    return 0;
+
+    return TohilTclObj_stuff_var(self, obj);
 }
 
 static Tcl_Obj *
