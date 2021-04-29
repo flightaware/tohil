@@ -2615,6 +2615,7 @@ tclobj_nb_inplace_true_divide(PyObject *v, PyObject *w)
 static PyNumberMethods tclobj_as_number = {
     .nb_bool = (inquiry)tclobj_nb_bool,
     .nb_int = tclobj_nb_long,
+    .nb_index = tclobj_nb_long,
     .nb_float = tclobj_nb_float,
     .nb_add = tclobj_nb_add,
     .nb_subtract = tclobj_nb_subtract,
