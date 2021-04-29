@@ -2209,15 +2209,31 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyFloat_FromDouble(doubleV * doubleW);
 
         case Truediv:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             return PyFloat_FromDouble(doubleV / doubleW);
 
         case Floordiv:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             return PyFloat_FromDouble(floor(doubleV / doubleW));
 
         case Remainder:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             return PyFloat_FromDouble(fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
 
         case Divmod:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             quotient = doubleV / doubleW;
             remainder = fmod(doubleV, doubleW);
             return Py_BuildValue("dd", quotient, remainder);
@@ -2252,9 +2268,17 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyLong_FromLong(longV >> longW);
 
         case Truediv:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             return PyFloat_FromDouble((double)longV / (double)longW);
 
         case Floordiv:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             ldiv_res = ldiv(longV, longW);
             if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
                 ldiv_res.quot--;
@@ -2262,9 +2286,17 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyLong_FromLong(ldiv_res.quot);
 
         case Remainder:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             return PyLong_FromLong(((longV % longW) + longW) % longW);
 
         case Divmod:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             ldiv_res = ldiv(longV, longW);
             return Py_BuildValue("ll", ldiv_res.quot, ldiv_res.rem);
 
@@ -2420,14 +2452,26 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             break;
 
         case Remainder:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             Tcl_SetDoubleObj(writeObj, fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
             break;
 
         case Truediv:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             Tcl_SetDoubleObj(writeObj, doubleV / doubleW);
             break;
 
         case Floordiv:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             Tcl_SetDoubleObj(writeObj, floor(doubleV / doubleW));
             break;
 
@@ -2469,10 +2513,18 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             break;
 
         case Truediv:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             Tcl_SetDoubleObj(writeObj, (double)longV / (double)longW);
             break;
 
         case Floordiv:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             ldiv_res = ldiv(longV, longW);
             if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
                 ldiv_res.quot--;
@@ -2481,6 +2533,10 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             break;
 
         case Remainder:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             Tcl_SetLongObj(writeObj, ((longV % longW) + longW) % longW);
             break;
 
