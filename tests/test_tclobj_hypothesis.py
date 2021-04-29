@@ -33,6 +33,7 @@ class TclobjNumberTests(unittest.TestCase):
 
     @given(st.integers(-10000, 10000), st.integers(-10000, 10000))
     def test_tclobj_arithmetic3(self, x, y):
+        """test tclobj *="""
         tx = tohil.tclobj(x)
         ty = tohil.tclobj(y)
         tx *= y
@@ -43,11 +44,18 @@ class TclobjNumberTests(unittest.TestCase):
 
     @given(st.integers(-10000, 10000), st.integers(0, 16))
     def test_tclobj_arithmetic4(self, x, y):
+        """test tclobj <<="""
         tx = tohil.tclobj(x)
         ty = tohil.tclobj(y)
         assert tx << y == x << y
         assert tx << ty == x << y
         assert x << ty == x << y
+
+    @given(st.lists(st.integers(-1000000000, 1000000000)))
+    def test_tclobj_lists1(self, x):
+        """test tclobj list stuff"""
+        tlist = tohil.tclobj(x)
+        assert tlist.as_list() == tlist
 
 if __name__ == "__main__":
     unittest.main()
