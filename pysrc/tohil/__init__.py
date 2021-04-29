@@ -137,7 +137,7 @@ class ShadowDict(MutableMapping):
         try:
             self.default
             return getvar(f"{self.tcl_array}({key})", to=self.to_type, default=self.default)
-        except NameError:
+        except AttributeError:
             return getvar(f"{self.tcl_array}({key})", to=self.to_type)
 
     def __delitem__(self, key):
