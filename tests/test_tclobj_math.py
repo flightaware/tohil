@@ -288,11 +288,11 @@ class TestTclObj(unittest.TestCase):
         tj = tohil.tclobj(j)
 
         ti /= j
-        assert(ti == i / j)
+        assert(abs(ti - i / j) < 0.000000001)
 
         ti = tohil.tclobj(i)
         ti /= tj
-        assert(ti == i / j)
+        assert(abs(ti - i / j) < 0.000000001)
 
     @given(st.integers(-2000000000, 2000000000), st.integers(-2000000000, 2000000000))
     def test_tclobj_math20(self, i, j):
@@ -355,11 +355,11 @@ class TestTclObj(unittest.TestCase):
         tv = tohil.tclobj(v)
 
         tu %= v
-        assert(tu == u % v)
+        assert(abs(tu - u % v) < 0.000001)
 
         tu = tohil.tclobj(u)
         tu %= tv
-        assert(tu == u % v)
+        assert(abs(tu - u % v) < 0.000001)
 
     @given(st.integers(-2000000000, 2000000000), st.floats(-2000000000, 2000000000))
     def test_tclobj_math25(self, i, v):
@@ -369,16 +369,16 @@ class TestTclObj(unittest.TestCase):
         tv = tohil.tclobj(v)
 
         ti %= v
-        assert(ti == i % v)
+        assert(abs(ti - i % v) < 0.000001)
 
         ti = tohil.tclobj(i)
         ti %= tv
-        assert(ti == i % v)
+        assert(abs(ti - i % v) < 0.000001)
 
         assume(i != 0)
         ti = tohil.tclobj(i)
         tv %= i
-        assert(tv == v % i)
+        assert(abs(tv - v % i) < 0.000001)
 
 
 if __name__ == "__main__":
