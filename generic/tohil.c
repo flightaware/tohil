@@ -849,11 +849,11 @@ TohilTclObj_FromTclObj(Tcl_Obj *obj)
 static PyObject *
 TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pFrom = NULL;
+    PyObject *pDefault = NULL;
     PyObject *toType = NULL;
     char *tVar = NULL;
-    static char *kwlist[] = {"source", "to", "var", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O$Os", kwlist, &pFrom, &toType, &tVar)) {
+    static char *kwlist[] = {"default", "to", "var", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O$Os", kwlist, &pDefault, &toType, &tVar)) {
         return NULL;
     }
 
@@ -880,15 +880,19 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             self->tclvar = Tcl_NewStringObj(tVar, -1);
             Tcl_IncrRefCount(self->tclvar);
 
-            // if they specified a from, plug it into the var
-            if (pFrom != NULL) {
-                newObj = pyObjToTcl(self->interp, pFrom);
-                TohilTclObj_stuff_var(self, newObj);
+            // if they specified a default and the var doesn't
+            // exist, stuff the var, but if it does exist,
+            // just leave it alone.
+            if (pDefault != NULL) {
+                if (Tcl_ObjGetVar2(self->interp, self->tclvar, NULL, 0) == NULL) {
+                    newObj = pyObjToTcl(self->interp, pDefault);
+                    TohilTclObj_stuff_var(self, newObj);
+                }
             }
         } else {
             // there isn't a var, fill the tclobj
             // if there's no source, make a new tclobj
-            if (pFrom == NULL) {
+            if (pDefault == NULL) {
                 if (STREQU(type->tp_name, "tohil.tcldict")) {
                     newObj = Tcl_NewDictObj();
                 } else {
@@ -896,7 +900,7 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                 }
             } else {
                 // there's a source=, use that for the new tclobj
-                newObj = pyObjToTcl(self->interp, pFrom);
+                newObj = pyObjToTcl(self->interp, pDefault);
             }
             self->tclobj = newObj;
             Tcl_IncrRefCount(self->tclobj);
