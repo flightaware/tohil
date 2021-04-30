@@ -316,8 +316,8 @@ proc safe_info_default {proc arg} {
 
 _tohil.eval(tcl_init)
 
-def tclvar(tcl_var_name):
-    return tclobj(var=tcl_var_name)
+def tclvar(tcl_var_name, **kwargs):
+    return tclobj(var=tcl_var_name, **kwargs)
 
 
 def info_args(proc):
