@@ -191,7 +191,7 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 
     if (count % 2 != 0) {
         // list doesn't have an even number of elements
-        PyErr_SetString(PyExc_RuntimeError, "list doesn't have an even number of elements");
+        PyErr_SetString(PyExc_TypeError, "list doesn't have an even number of elements");
         return NULL;
     }
 
@@ -859,7 +859,7 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     if (toType != NULL) {
         if (!PyType_Check(toType)) {
-            PyErr_SetString(PyExc_RuntimeError, "to type is not a valid python data type");
+            PyErr_SetString(PyExc_TypeError, "to type is not a valid python data type");
             return NULL;
         }
     }
@@ -3239,7 +3239,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
 
     if (toType != NULL) {
         if (!PyType_Check(toType)) {
-            PyErr_SetString(PyExc_RuntimeError, "to type is not a valid python data type");
+            PyErr_SetString(PyExc_TypeError, "to type is not a valid python data type");
             return NULL;
         }
 
@@ -3271,7 +3271,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         if (Tcl_GetLongFromObj(interp, resultObj, &longValue) == TCL_OK) {
             return PyLong_FromLong(longValue);
         }
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+        PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
 
@@ -3283,7 +3283,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
             Py_INCREF(p);
             return p;
         }
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+        PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
 
@@ -3293,7 +3293,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         if (Tcl_GetDoubleFromObj(interp, resultObj, &doubleValue) == TCL_OK) {
             return PyFloat_FromDouble(doubleValue);
         }
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+        PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
 
@@ -3321,7 +3321,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         return tclListObjToPyTupleObject(interp, resultObj);
     }
 
-    PyErr_SetString(PyExc_RuntimeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, tohil.tclobj or tohil.tcldict");
+    PyErr_SetString(PyExc_TypeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, tohil.tclobj or tohil.tcldict");
     return NULL;
 }
 
