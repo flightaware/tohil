@@ -2033,7 +2033,7 @@ static PyTypeObject PyTohil_TD_IterType = {
 //
 
 static int
-tclobj_bool(TohilTclObj *self)
+tclobj_nb_bool(TohilTclObj *self)
 {
     int intValue = 0;
 
@@ -2049,7 +2049,7 @@ tclobj_bool(TohilTclObj *self)
 }
 
 static PyObject *
-tclobj_long(PyObject *p)
+tclobj_nb_long(PyObject *p)
 {
     long longValue = 0;
 
@@ -2070,7 +2070,7 @@ tclobj_long(PyObject *p)
 }
 
 static PyObject *
-tclobj_float(PyObject *p)
+tclobj_nb_float(PyObject *p)
 {
     double doubleValue = 0;
     TohilTclObj *self = (TohilTclObj *)p;
@@ -2120,7 +2120,7 @@ tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr)
 enum tclobj_unary_op { Abs, Negative, Positive, Invert };
 
 static PyObject *
-tclobj_unaryop(PyObject *v, enum tclobj_unary_op operator)
+tclobj_nb_unaryop(PyObject *v, enum tclobj_unary_op operator)
 {
     double doubleV = 0.0;
     long longV = 0;
@@ -2167,7 +2167,7 @@ tclobj_unaryop(PyObject *v, enum tclobj_unary_op operator)
 enum tclobj_op { Add, Sub, Mul, And, Or, Xor, Lshift, Rshift, Remainder, Divmod, Truediv, Floordiv };
 
 static PyObject *
-tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
+tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 {
     double doubleV = 0.0;
     long longV = 0;
@@ -2209,15 +2209,31 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyFloat_FromDouble(doubleV * doubleW);
 
         case Truediv:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             return PyFloat_FromDouble(doubleV / doubleW);
 
         case Floordiv:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             return PyFloat_FromDouble(floor(doubleV / doubleW));
 
         case Remainder:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             return PyFloat_FromDouble(fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
 
         case Divmod:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             quotient = doubleV / doubleW;
             remainder = fmod(doubleV, doubleW);
             return Py_BuildValue("dd", quotient, remainder);
@@ -2252,9 +2268,17 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyLong_FromLong(longV >> longW);
 
         case Truediv:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             return PyFloat_FromDouble((double)longV / (double)longW);
 
         case Floordiv:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             ldiv_res = ldiv(longV, longW);
             if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
                 ldiv_res.quot--;
@@ -2262,9 +2286,17 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyLong_FromLong(ldiv_res.quot);
 
         case Remainder:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             return PyLong_FromLong(((longV % longW) + longW) % longW);
 
         case Divmod:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             ldiv_res = ldiv(longV, longW);
             return Py_BuildValue("ll", ldiv_res.quot, ldiv_res.rem);
 
@@ -2275,103 +2307,103 @@ tclobj_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 }
 
 static PyObject *
-tclobj_add(PyObject *v, PyObject *w)
+tclobj_nb_add(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Add);
+    return tclobj_nb_binop(v, w, Add);
 }
 
 static PyObject *
-tclobj_subtract(PyObject *v, PyObject *w)
+tclobj_nb_subtract(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Sub);
+    return tclobj_nb_binop(v, w, Sub);
 }
 
 static PyObject *
-tclobj_multiply(PyObject *v, PyObject *w)
+tclobj_nb_multiply(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Mul);
+    return tclobj_nb_binop(v, w, Mul);
 }
 
 static PyObject *
-tclobj_true_divide(PyObject *v, PyObject *w)
+tclobj_nb_true_divide(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Truediv);
+    return tclobj_nb_binop(v, w, Truediv);
 }
 
 static PyObject *
-tclobj_floor_divide(PyObject *v, PyObject *w)
+tclobj_nb_floor_divide(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Floordiv);
+    return tclobj_nb_binop(v, w, Floordiv);
 }
 
 static PyObject *
-tclobj_remainder(PyObject *v, PyObject *w)
+tclobj_nb_remainder(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Remainder);
+    return tclobj_nb_binop(v, w, Remainder);
 }
 
 static PyObject *
-tclobj_divmod(PyObject *v, PyObject *w)
+tclobj_nb_divmod(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Divmod);
+    return tclobj_nb_binop(v, w, Divmod);
 }
 
 static PyObject *
-tclobj_and(PyObject *v, PyObject *w)
+tclobj_nb_and(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, And);
+    return tclobj_nb_binop(v, w, And);
 }
 
 static PyObject *
-tclobj_or(PyObject *v, PyObject *w)
+tclobj_nb_or(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Or);
+    return tclobj_nb_binop(v, w, Or);
 }
 
 static PyObject *
-tclobj_xor(PyObject *v, PyObject *w)
+tclobj_nb_xor(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Xor);
+    return tclobj_nb_binop(v, w, Xor);
 }
 
 static PyObject *
-tclobj_lshift(PyObject *v, PyObject *w)
+tclobj_nb_lshift(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Lshift);
+    return tclobj_nb_binop(v, w, Lshift);
 }
 
 static PyObject *
-tclobj_rshift(PyObject *v, PyObject *w)
+tclobj_nb_rshift(PyObject *v, PyObject *w)
 {
-    return tclobj_binop(v, w, Rshift);
+    return tclobj_nb_binop(v, w, Rshift);
 }
 
 static PyObject *
-tclobj_negative(PyObject *v, enum tclobj_op operator)
+tclobj_nb_negative(PyObject *v, enum tclobj_op operator)
 {
-    return tclobj_unaryop(v, Negative);
+    return tclobj_nb_unaryop(v, Negative);
 }
 
 static PyObject *
-tclobj_positive(PyObject *v, enum tclobj_op operator)
+tclobj_nb_positive(PyObject *v, enum tclobj_op operator)
 {
-    return tclobj_unaryop(v, Positive);
+    return tclobj_nb_unaryop(v, Positive);
 }
 
 static PyObject *
-tclobj_absolute(PyObject *v, enum tclobj_op operator)
+tclobj_nb_absolute(PyObject *v, enum tclobj_op operator)
 {
-    return tclobj_unaryop(v, Abs);
+    return tclobj_nb_unaryop(v, Abs);
 }
 
 static PyObject *
-tclobj_invert(PyObject *v, enum tclobj_op operator)
+tclobj_nb_invert(PyObject *v, enum tclobj_op operator)
 {
-    return tclobj_unaryop(v, Invert);
+    return tclobj_nb_unaryop(v, Invert);
 }
 
 static PyObject *
-tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
+tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 {
     // NB same chunk of code in tclobj_binop
     double doubleV = 0.0;
@@ -2420,14 +2452,26 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             break;
 
         case Remainder:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             Tcl_SetDoubleObj(writeObj, fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
             break;
 
         case Truediv:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             Tcl_SetDoubleObj(writeObj, doubleV / doubleW);
             break;
 
         case Floordiv:
+            if (doubleW == 0.0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                return NULL;
+            }
             Tcl_SetDoubleObj(writeObj, floor(doubleV / doubleW));
             break;
 
@@ -2469,10 +2513,18 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             break;
 
         case Truediv:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             Tcl_SetDoubleObj(writeObj, (double)longV / (double)longW);
             break;
 
         case Floordiv:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             ldiv_res = ldiv(longV, longW);
             if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
                 ldiv_res.quot--;
@@ -2481,6 +2533,10 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             break;
 
         case Remainder:
+            if (longW == 0) {
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+                return NULL;
+            }
             Tcl_SetLongObj(writeObj, ((longV % longW) + longW) % longW);
             break;
 
@@ -2497,96 +2553,97 @@ tclobj_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 }
 
 static PyObject *
-tclobj_inplace_add(PyObject *v, PyObject *w)
+tclobj_nb_inplace_add(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, Add);
+    return tclobj_nb_inplace_binop(v, w, Add);
 }
 
 static PyObject *
-tclobj_inplace_subtract(PyObject *v, PyObject *w)
+tclobj_nb_inplace_subtract(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, Sub);
+    return tclobj_nb_inplace_binop(v, w, Sub);
 }
 
 static PyObject *
-tclobj_inplace_multiply(PyObject *v, PyObject *w)
+tclobj_nb_inplace_multiply(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, Mul);
+    return tclobj_nb_inplace_binop(v, w, Mul);
 }
 
 static PyObject *
-tclobj_inplace_remainder(PyObject *v, PyObject *w)
+tclobj_nb_inplace_remainder(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, Remainder);
+    return tclobj_nb_inplace_binop(v, w, Remainder);
 }
 
 static PyObject *
-tclobj_inplace_and(PyObject *v, PyObject *w)
+tclobj_nb_inplace_and(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, And);
+    return tclobj_nb_inplace_binop(v, w, And);
 }
 
 static PyObject *
-tclobj_inplace_or(PyObject *v, PyObject *w)
+tclobj_nb_inplace_or(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, Or);
+    return tclobj_nb_inplace_binop(v, w, Or);
 }
 
 static PyObject *
-tclobj_inplace_xor(PyObject *v, PyObject *w)
+tclobj_nb_inplace_xor(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, Xor);
+    return tclobj_nb_inplace_binop(v, w, Xor);
 }
 
 static PyObject *
-tclobj_inplace_lshift(PyObject *v, PyObject *w)
+tclobj_nb_inplace_lshift(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, Lshift);
+    return tclobj_nb_inplace_binop(v, w, Lshift);
 }
 
 static PyObject *
-tclobj_inplace_rshift(PyObject *v, PyObject *w)
+tclobj_nb_inplace_rshift(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, Rshift);
+    return tclobj_nb_inplace_binop(v, w, Rshift);
 }
 
 static PyObject *
-tclobj_inplace_true_divide(PyObject *v, PyObject *w)
+tclobj_nb_inplace_true_divide(PyObject *v, PyObject *w)
 {
-    return tclobj_inplace_binop(v, w, Truediv);
+    return tclobj_nb_inplace_binop(v, w, Truediv);
 }
 
 static PyNumberMethods tclobj_as_number = {
-    .nb_bool = (inquiry)tclobj_bool,
-    .nb_int = tclobj_long,
-    .nb_float = tclobj_float,
-    .nb_add = tclobj_add,
-    .nb_subtract = tclobj_subtract,
-    .nb_multiply = tclobj_multiply,
-    .nb_true_divide = tclobj_true_divide,
-    .nb_floor_divide = tclobj_floor_divide,
-    .nb_remainder = tclobj_remainder,
-    .nb_divmod = tclobj_divmod,
-    .nb_and = tclobj_and,
-    .nb_or = tclobj_or,
-    .nb_xor = tclobj_xor,
-    .nb_lshift = tclobj_lshift,
-    .nb_rshift = tclobj_rshift,
-    .nb_negative = (unaryfunc)tclobj_negative,
-    .nb_positive = (unaryfunc)tclobj_positive,
-    .nb_absolute = (unaryfunc)tclobj_absolute,
-    .nb_invert = (unaryfunc)tclobj_invert,
+    .nb_bool = (inquiry)tclobj_nb_bool,
+    .nb_int = tclobj_nb_long,
+    .nb_index = tclobj_nb_long,
+    .nb_float = tclobj_nb_float,
+    .nb_add = tclobj_nb_add,
+    .nb_subtract = tclobj_nb_subtract,
+    .nb_multiply = tclobj_nb_multiply,
+    .nb_true_divide = tclobj_nb_true_divide,
+    .nb_floor_divide = tclobj_nb_floor_divide,
+    .nb_remainder = tclobj_nb_remainder,
+    .nb_divmod = tclobj_nb_divmod,
+    .nb_and = tclobj_nb_and,
+    .nb_or = tclobj_nb_or,
+    .nb_xor = tclobj_nb_xor,
+    .nb_lshift = tclobj_nb_lshift,
+    .nb_rshift = tclobj_nb_rshift,
+    .nb_negative = (unaryfunc)tclobj_nb_negative,
+    .nb_positive = (unaryfunc)tclobj_nb_positive,
+    .nb_absolute = (unaryfunc)tclobj_nb_absolute,
+    .nb_invert = (unaryfunc)tclobj_nb_invert,
 
-    .nb_inplace_add = tclobj_inplace_add,
-    .nb_inplace_subtract = tclobj_inplace_subtract,
-    .nb_inplace_multiply = tclobj_inplace_multiply,
-    .nb_inplace_remainder = tclobj_inplace_remainder,
-    .nb_inplace_lshift = tclobj_inplace_lshift,
-    .nb_inplace_rshift = tclobj_inplace_rshift,
-    .nb_inplace_and = tclobj_inplace_and,
-    .nb_inplace_or = tclobj_inplace_or,
-    .nb_inplace_xor = tclobj_inplace_xor,
-    .nb_inplace_true_divide = tclobj_inplace_true_divide,
+    .nb_inplace_add = tclobj_nb_inplace_add,
+    .nb_inplace_subtract = tclobj_nb_inplace_subtract,
+    .nb_inplace_multiply = tclobj_nb_inplace_multiply,
+    .nb_inplace_remainder = tclobj_nb_inplace_remainder,
+    .nb_inplace_lshift = tclobj_nb_inplace_lshift,
+    .nb_inplace_rshift = tclobj_nb_inplace_rshift,
+    .nb_inplace_and = tclobj_nb_inplace_and,
+    .nb_inplace_or = tclobj_nb_inplace_or,
+    .nb_inplace_xor = tclobj_nb_inplace_xor,
+    .nb_inplace_true_divide = tclobj_nb_inplace_true_divide,
 };
 
 //
