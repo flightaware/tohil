@@ -1,6 +1,7 @@
 
 import hypothesis
 from hypothesis import given, assume, strategies as st
+from string import printable
 import unittest
 
 import tohil
@@ -31,36 +32,31 @@ class TestMethods(unittest.TestCase):
         assert(tohil.convert("0", to=bool) == False)
         assert(tohil.convert(0, to=bool) == False)
 
-    @given(st.lists(st.integers(-1000000000, 1000000000)))
+    @given(st.lists(st.text(printable)))
     def test_convert4(self, ilist):
         """exercise tohil.convert to=list"""
+        assume(ilist != '\x00')
         assert(tohil.convert(ilist, to=list) == ilist)
 
-    def test_convert5(self):
+    @given(st.dictionaries(st.text(printable), st.text(printable)))
+    def test_convert5(self, idict):
         """exercise tohil.convert and to=dict"""
-        assert(
-            tohil.convert("a 1 b 2 c 3 d 4", to=dict),
-            {"a": "1", "b": "2", "c": "3", "d": "4"},
-        )
+        assert(tohil.convert(idict, to=dict) == idict)
 
-    def test_convert6(self):
+    @given(st.tuples(st.text(printable)))
+    def test_convert6(self, ituple):
         """exercise tohil.convert and to=tuple"""
-        assert(
-            tohil.convert("a 1 b 2 c 3 d 4", to=tuple),
-            ("a", "1", "b", "2", "c", "3", "d", "4"),
-        )
+        assert(tohil.convert(ituple, to=tuple) == ituple)
 
-    def test_convert7(self):
+    @given(st.sets(st.text(printable)))
+    def test_convert7(self, iset):
         """exercise tohil.convert and to=set"""
-        assert(
-            sorted(tohil.convert("1 2 3 4 5 6 6", to=set)),
-            ["1", "2", "3", "4", "5", "6"],
-        )
+        assert(sorted(tohil.convert(iset, to=set)) == iset)
 
     def test_convert8(self):
         """exercise tohil.convert and to=tohil.tclobj"""
         assert(
-            repr(tohil.convert("1 2 3", to=tohil.tclobj)), "<tohil.tclobj: '1 2 3'>"
+            repr(tohil.convert("1 2 3", to=tohil.tclobj)) == "<tohil.tclobj: '1 2 3'>"
         )
 
 
