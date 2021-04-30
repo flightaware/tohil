@@ -316,6 +316,9 @@ proc safe_info_default {proc arg} {
 
 _tohil.eval(tcl_init)
 
+def tclvar(tcl_var_name):
+    return tclobj(var=tcl_var_name)
+
 
 def info_args(proc):
     """wrapper for 'info args'"""
@@ -417,7 +420,7 @@ class TclProc:
         return f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}>"
 
     def set_to(to):
-        self.to = to
+        self.to_type = to
 
     def __call__(self, *args, **kwargs):
         """this gets invoked when they call the object as if it is
