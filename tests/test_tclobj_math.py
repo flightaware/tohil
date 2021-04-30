@@ -380,6 +380,47 @@ class TestTclObj(unittest.TestCase):
         tv %= i
         assert(abs(tv - v % i) < 0.000001)
 
+    def test_tclobj_math26(self):
+        """exercise tohil.tclobj division by zero exceptions"""
+        t5 = tohil.tclobj(5)
+        t0 = tohil.tclobj(0)
+
+        with self.assertRaises(ZeroDivisionError):
+            t5 / 0
+
+        with self.assertRaises(ZeroDivisionError):
+            t5 / t0
+
+        with self.assertRaises(ZeroDivisionError):
+            5 / t0
+
+    def test_tclobj_math27(self):
+        """exercise tohil.tclobj integer division by zero exceptions"""
+        t5 = tohil.tclobj(5)
+        t0 = tohil.tclobj(0)
+
+        with self.assertRaises(ZeroDivisionError):
+            t5 // 0
+
+        with self.assertRaises(ZeroDivisionError):
+            t5 // t0
+
+        with self.assertRaises(ZeroDivisionError):
+            5 // t0
+
+    def test_tclobj_math28(self):
+        """exercise tohil.tclobj integer remainder of by zero exceptions"""
+        t5 = tohil.tclobj(5)
+        t0 = tohil.tclobj(0)
+
+        with self.assertRaises(ZeroDivisionError):
+            t5 % 0
+
+        with self.assertRaises(ZeroDivisionError):
+            t5 % t0
+
+        with self.assertRaises(ZeroDivisionError):
+            5 % t0
 
 if __name__ == "__main__":
     unittest.main()
