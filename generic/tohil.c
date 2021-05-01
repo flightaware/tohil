@@ -3635,7 +3635,7 @@ static PyMethodDef TohilMethods[] = {
     {"getvar", (PyCFunction)tohil_getvar, METH_VARARGS | METH_KEYWORDS, "get vars and array elements from the tcl interpreter"},
     {"setvar", (PyCFunction)tohil_setvar, METH_VARARGS | METH_KEYWORDS, "set vars and array elements in the tcl interpreter"},
     {"exists", (PyCFunction)tohil_exists, METH_VARARGS | METH_KEYWORDS, "check whether vars and array elements exist in the tcl interpreter"},
-    {"unset", (PyCFunction)tohil_unset, METH_VARARGS , "unset variables, array elements, or arrays from the tcl interpreter"},
+    {"unset", (PyCFunction)tohil_unset, METH_VARARGS, "unset variables, array elements, or arrays from the tcl interpreter"},
     {"incr", (PyCFunction)tohil_incr, METH_VARARGS | METH_KEYWORDS, "increment vars and array elements in the tcl interpreter"},
     {"subst", (PyCFunction)tohil_subst, METH_VARARGS | METH_KEYWORDS, "perform Tcl command, variable and backslash substitutions on a string"},
     {"expr", (PyCFunction)tohil_expr, METH_VARARGS | METH_KEYWORDS, "evaluate Tcl expression"},
