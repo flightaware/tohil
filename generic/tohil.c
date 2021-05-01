@@ -1778,9 +1778,9 @@ TohilTclObj_concat(TohilTclObj *self, PyObject *item)
 static PyObject *
 TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
 {
-    Tcl_Obj *tItem;
+    Tcl_Obj *tItem = NULL;
     if (TohilTclObj_Check(item)) {
-        Tcl_Obj *tItem = TohilTclObj_objptr((TohilTclObj *)item);
+        tItem = TohilTclObj_objptr((TohilTclObj *)item);
         if (tItem == NULL)
             return NULL;
     } else {
