@@ -1,0 +1,6 @@
+
+
+autoreconf
+./configure --with-python-version=3.7m
+
+# don't forget the "m"
