@@ -3134,6 +3134,7 @@ static PySequenceMethods TohilTclDict_as_sequence = {
 };
 
 static PyMethodDef TohilTclDict_methods[] = {
+    {"__getitem__", (PyCFunction)(void(*)(void))TohilTclDict_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
     {"get", (PyCFunction)TohilTclDict_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
     // NB i don't know if this __len__ thing works -- python might
     // be doing something gross to get the len of the dict, like
