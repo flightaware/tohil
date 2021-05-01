@@ -16,7 +16,7 @@ class TestTclObj(unittest.TestCase):
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
 
         self.assertEqual(x.lindex(0), "1")
-        self.assertEqual(x.llength(), 5)
+        self.assertEqual(len(x), 5)
 
         with self.assertRaises(IndexError):
             x.lindex(-1)

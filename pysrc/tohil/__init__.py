@@ -92,7 +92,7 @@ class TclObjIterator:
 
     def __next__(self):
         self.index += 1
-        if self.index >= self.tclobj.llength():
+        if self.index >= len(self.tclobj):
             raise StopIteration
 
         return self.tclobj.lindex(self.index)

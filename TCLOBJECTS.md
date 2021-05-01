@@ -59,9 +59,9 @@ t.incr(incr=-1)
 
 When a tclobj contains tcl lists, cool stuff comes into play.
 
-You can get the length of the list with obj.llength(), while obj.lindex(i) will return the i'th element.
+You can get the length of the tclobj list with len(obj), while obj.lindex(i) will return the i'th element.
 
-You can also just ask for `len(t)` or `l[i]` to get the i'th element, although lindex supports the
+You can also just use `l[i]` to get the i'th element of l, although lindex supports the
 to=type conversion as well.
 
 obj.lappend() will append python stuff to the list stored in the tclobj.

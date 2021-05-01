@@ -1339,25 +1339,6 @@ pyListToObjv_teardown(int objc, Tcl_Obj **objv)
 }
 
 //
-// llength - return the length of a python tclobj's tcl object
-//   as a list.  exception thrown if tcl object isn't a list
-//
-static PyObject *
-TohilTclObj_llength(TohilTclObj *self, PyObject *pyobj)
-{
-    int length;
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-
-    if (Tcl_ListObjLength(self->interp, selfobj, &length) == TCL_OK) {
-        return PyLong_FromLong(length);
-    }
-    PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
-    return NULL;
-}
-
-//
 // getvar - set python tclobj to contain the value of a tcl var
 //
 static PyObject *
@@ -2712,7 +2693,6 @@ static PyMethodDef TohilTclObj_methods[] = {
     {"as_tcldict", (PyCFunction)TohilTclObj_as_tcldict, METH_NOARGS, "return tclobj as tcldict"},
     {"as_byte_array", (PyCFunction)TohilTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"incr", (PyCFunction)TohilTclObj_incr, METH_VARARGS | METH_KEYWORDS, "increment tclobj as int"},
-    {"llength", (PyCFunction)TohilTclObj_llength, METH_NOARGS, "length of tclobj tcl list"},
     {"getvar", (PyCFunction)TohilTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)TohilTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
     {"set", (PyCFunction)TohilTclObj_set, METH_O, "set tclobj from some python object"},
