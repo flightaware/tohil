@@ -1,5 +1,8 @@
 
 
+# sudo apt install python3-dev python3-pip
+# sudo pip3 install hypothesis
+
 autoreconf
 ./configure --with-python-version=3.7m
 
