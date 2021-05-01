@@ -153,7 +153,7 @@ class TestTclObj(unittest.TestCase):
         assert(ti ^ tj == i ^ j)
         assert(i ^ tj == i ^ j)
 
-    @given(st.integers(0, 2000000000), st.integers(0, 2000000000))
+    @given(st.integers(-1000000000, 1000000000), st.integers(-1000000000, 1000000000))
     def test_tclobj_math12(self, i, j):
         """exercise tohil.tclobj "inplace add" math ops"""
         ti = tohil.tclobj(i)
@@ -170,7 +170,7 @@ class TestTclObj(unittest.TestCase):
         ti += tj
         assert(ti == i + j)
 
-    @given(st.integers(0, 2000000000), st.integers(0, 2000000000))
+    @given(st.integers(-1000000000, 1000000000), st.integers(-1000000000, 1000000000))
     def test_tclobj_math13(self, i, j):
         """exercise tohil.tclobj "inplace subtract" math ops"""
         ti = tohil.tclobj(i)
