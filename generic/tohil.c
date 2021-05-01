@@ -1142,7 +1142,7 @@ TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
 // tclobj.reset() - reset a tclobj or tcldict to an empty tcl object
 //
 static PyObject *
-TohilTclObj_reset(TohilTclObj *self, PyObject *pyobj)
+TohilTclObj_reset(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     if (self->tclvar != NULL) {
         Tcl_DecrRefCount(self->tclvar);
@@ -1164,7 +1164,7 @@ TohilTclObj_reset(TohilTclObj *self, PyObject *pyobj)
 // tclobj.as_list()
 //
 static PyObject *
-TohilTclObj_as_list(TohilTclObj *self, PyObject *pyobj)
+TohilTclObj_as_list(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -1176,7 +1176,7 @@ TohilTclObj_as_list(TohilTclObj *self, PyObject *pyobj)
 // tclobj.as_set()
 //
 static PyObject *
-TohilTclObj_as_set(TohilTclObj *self, PyObject *pyobj)
+TohilTclObj_as_set(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -1188,7 +1188,7 @@ TohilTclObj_as_set(TohilTclObj *self, PyObject *pyobj)
 // tclobj.as_tuple()
 //
 static PyObject *
-TohilTclObj_as_tuple(TohilTclObj *self, PyObject *pyobj)
+TohilTclObj_as_tuple(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -1200,7 +1200,7 @@ TohilTclObj_as_tuple(TohilTclObj *self, PyObject *pyobj)
 // tclobj.as_dict()
 //
 static PyObject *
-TohilTclObj_as_dict(TohilTclObj *self, PyObject *pyobj)
+TohilTclObj_as_dict(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -1212,7 +1212,7 @@ TohilTclObj_as_dict(TohilTclObj *self, PyObject *pyobj)
 // tclobj.as_tclobj()
 //
 static PyObject *
-TohilTclObj_as_tclobj(TohilTclObj *self, PyObject *pyobj)
+TohilTclObj_as_tclobj(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -1224,7 +1224,7 @@ TohilTclObj_as_tclobj(TohilTclObj *self, PyObject *pyobj)
 // tclobj.as_tcldict()
 //
 static PyObject *
-TohilTclObj_as_tcldict(TohilTclObj *self, PyObject *pyobj)
+TohilTclObj_as_tcldict(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -1236,7 +1236,7 @@ TohilTclObj_as_tcldict(TohilTclObj *self, PyObject *pyobj)
 // tclobj.as_byte_array()
 //
 static PyObject *
-TohilTclObj_as_byte_array(TohilTclObj *self, PyObject *pyobj)
+TohilTclObj_as_byte_array(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     int size;
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
@@ -1525,7 +1525,7 @@ TohilTclObj_lappend_list(TohilTclObj *self, PyObject *pObject)
 //   tclobj or tcldict's internal tcl object
 //
 static PyObject *
-TohilTclObj_refcount(TohilTclObj *self, PyObject *dummy)
+TohilTclObj_refcount(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     Tcl_Obj *obj = TohilTclObj_objptr(self);
     if (obj == NULL)
@@ -1538,7 +1538,7 @@ TohilTclObj_refcount(TohilTclObj *self, PyObject *dummy)
 //   tclobj or tcldict object
 //
 static PyObject *
-TohilTclObj_pyrefcount(TohilTclObj *self, PyObject *dummy)
+TohilTclObj_pyrefcount(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     return PyLong_FromLong(Py_REFCNT(self));
 }
@@ -1552,7 +1552,7 @@ TohilTclObj_pyrefcount(TohilTclObj *self, PyObject *dummy)
 //   hasn't been used as a list, dict, etc.
 //
 static PyObject *
-TohilTclObj_type(TohilTclObj *self, PyObject *dummy)
+TohilTclObj_type(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     Tcl_Obj *obj = TohilTclObj_objptr(self);
     if (obj == NULL)
@@ -3063,7 +3063,7 @@ TohilTclDict_length(TohilTclObj *self)
 //   returns null i.e. exception thrown if tcl object isn't a proper tcl dict.
 //
 static PyObject *
-TohilTclDict_size(TohilTclObj *self, PyObject *pyobj)
+TohilTclDict_size(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     int length = TohilTclDict_length(self);
     if (length < 0) {
