@@ -15,8 +15,10 @@ class TclobjVarsyncTests(unittest.TestCase):
         xname = ns_name + "::varsync_x"
         yname = ns_name + "::varsync_y"
 
-        tx = tohil.tclobj(x, var=xname)
-        ty = tohil.tclobj(y, var=yname)
+        tohil.unset(xname, yname)
+
+        tx = tohil.tclvar(xname, default=x)
+        ty = tohil.tclvar(yname, default=y)
 
         # compare the tclobj to tcl via a few different approaches
         assert tx == x
@@ -65,7 +67,8 @@ class TclobjVarsyncTests(unittest.TestCase):
         ns_name = "::tohil_test"
         list_name = ns_name + "::varsync_list"
 
-        tl = tohil.tclobj(source=x, var=list_name)
+        tohil.unset(list_name)
+        tl = tohil.tclobj(default=x, var=list_name)
         assert(str(tl) == tohil.getvar(list_name))
 
         assert(tl.as_list() == tohil.getvar(list_name, to=list))

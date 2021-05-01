@@ -20,14 +20,16 @@ class TestVars(unittest.TestCase):
 
     def test_unset1(self):
         """unset of scalar"""
+        tohil.unset()
         tohil.unset("z")
+        tohil.unset("z", "z", "zz")
         self.assertEqual(tohil.eval("info exists z", to=int), 0)
 
     def test_unset2(self):
         """unset of array element"""
         self.assertEqual(tohil.eval("info exists x(d)", to=int), 1)
         self.assertEqual(tohil.exists("x(d)"), True)
-        tohil.unset("x(d)")
+        tohil.unset("x(c)", "x(d)")
         self.assertEqual(tohil.eval("info exists x(d)", to=int), 0)
         self.assertEqual(tohil.exists("x(d)"), False)
 

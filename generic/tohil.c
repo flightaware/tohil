@@ -3544,13 +3544,16 @@ tohil_incr(PyObject *self, PyObject *args, PyObject *kwargs)
 static PyObject *
 tohil_unset(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    static char *kwlist[] = {"var", NULL};
-    char *var = NULL;
+    Py_ssize_t objc = PyTuple_GET_SIZE(args);
+    int i;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$", kwlist, &var))
-        return NULL;
+    // for each argument convert the python object to a tcl object
+    // and store it in the tcl object vector
+    for (i = 0; i < objc; i++) {
+        char *var = (char *)PyUnicode_1BYTE_DATA(PyTuple_GET_ITEM(args, i));
+        Tcl_UnsetVar(tcl_interp, var, 0);
+    }
 
-    Tcl_UnsetVar(tcl_interp, var, 0);
     Py_RETURN_NONE;
 }
 
@@ -3632,7 +3635,7 @@ static PyMethodDef TohilMethods[] = {
     {"getvar", (PyCFunction)tohil_getvar, METH_VARARGS | METH_KEYWORDS, "get vars and array elements from the tcl interpreter"},
     {"setvar", (PyCFunction)tohil_setvar, METH_VARARGS | METH_KEYWORDS, "set vars and array elements in the tcl interpreter"},
     {"exists", (PyCFunction)tohil_exists, METH_VARARGS | METH_KEYWORDS, "check whether vars and array elements exist in the tcl interpreter"},
-    {"unset", (PyCFunction)tohil_unset, METH_VARARGS | METH_KEYWORDS, "unset variables, array elements, or arrays from the tcl interpreter"},
+    {"unset", (PyCFunction)tohil_unset, METH_VARARGS , "unset variables, array elements, or arrays from the tcl interpreter"},
     {"incr", (PyCFunction)tohil_incr, METH_VARARGS | METH_KEYWORDS, "increment vars and array elements in the tcl interpreter"},
     {"subst", (PyCFunction)tohil_subst, METH_VARARGS | METH_KEYWORDS, "perform Tcl command, variable and backslash substitutions on a string"},
     {"expr", (PyCFunction)tohil_expr, METH_VARARGS | METH_KEYWORDS, "evaluate Tcl expression"},
