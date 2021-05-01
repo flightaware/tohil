@@ -7,10 +7,10 @@ import unittest
 
 tohil.eval("""namespace forget ::tohil_test; namespace eval ::tohil_test {}""")
 
-class TclobjVarsyncTests(unittest.TestCase):
+class TclVarTests(unittest.TestCase):
     @given(st.integers(-1000000000, 1000000000), st.integers(-1000000000, 1000000000))
-    def test_tclobj_varsync1(self, x, y):
-        """test tclobj 'varsync' tcobj shove stuff into tcl and see it from python and vice versa"""
+    def test_tclvar1(self, x, y):
+        """test 'tclvar' tcolbj var sync into tcl and see it from python and vice versa"""
         ns_name = "::tohil_test"
         xname = ns_name + "::varsync_x"
         yname = ns_name + "::varsync_y"
@@ -20,14 +20,14 @@ class TclobjVarsyncTests(unittest.TestCase):
         tx = tohil.tclvar(xname, default=x)
         ty = tohil.tclvar(yname, default=y)
 
-        # compare the tclobj to tcl via a few different approaches
+        # compare the tclvar to tcl via a few different approaches
         assert tx == x
         assert tx == tohil.getvar(xname, to=int)
         assert tx == tohil.eval(f"set {xname}", to=int)
         assert tx == tohil.eval(f"return ${xname}", to=int)
         assert tx == tohil.expr(f"${xname}", to=int)
 
-        # mutate tx tclobj and make sure the variable is changing
+        # mutate tx tclvar and make sure the variable is changing
         # on the tcl side
         tx += ty
         assert tx == tohil.getvar(xname, to=int)
@@ -39,14 +39,14 @@ class TclobjVarsyncTests(unittest.TestCase):
         assert tx == tohil.getvar(xname, to=int)
 
     @given(st.integers(-1000000000, 1000000000), st.integers(-1000000000, 1000000000))
-    def test_tclobj_varsync2(self, x, y):
-        """test tclobj 'varsync' tcobj shove stuff into tcl and see it from python and vice versa"""
+    def test_tclvar2(self, x, y):
+        """test tclvar tcobj shove stuff into tcl and see it from python and vice versa"""
         ns_name = "::tohil_test"
         xname = ns_name + "::varsync_x"
         yname = ns_name + "::varsync_y"
 
-        tx = tohil.tclobj(var=xname)
-        ty = tohil.tclobj(var=yname)
+        tx = tohil.tclvar(xname)
+        ty = tohil.tclvar(yname)
 
         tohil.eval(f"set {xname} {x}")
         tohil.eval(f"set {yname} {y}")
@@ -62,13 +62,13 @@ class TclobjVarsyncTests(unittest.TestCase):
         assert tx == x
 
     @given(st.lists(st.integers(-1000000000, 1000000000)))
-    def test_tclobj_varsync3(self, x):
+    def test_tclvar3(self, x):
         """interoperate python lists back and forth with tcl lists"""
         ns_name = "::tohil_test"
         list_name = ns_name + "::varsync_list"
 
         tohil.unset(list_name)
-        tl = tohil.tclobj(default=x, var=list_name)
+        tl = tohil.tclvar(list_name, default=x)
         assert(str(tl) == tohil.getvar(list_name))
 
         assert(tl.as_list() == tohil.getvar(list_name, to=list))
