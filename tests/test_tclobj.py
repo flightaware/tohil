@@ -35,6 +35,7 @@ class TestTclObj(unittest.TestCase):
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
 
         self.assertEqual(x.as_list(), ["1", "2", "3", "4", "5"])
+        self.assertEqual(list(x), ["1", "2", "3", "4", "5"])
 
     def test_tclobj5(self):
         """exercise tohil.tclobj as_set()"""
@@ -63,10 +64,10 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(str(x), tohil.getvar("foo"))
 
     def test_tclobj9(self):
-        """exercise tohil.tclobj reset()"""
+        """exercise tohil.tclobj clear()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
         self.assertEqual(str(x), "1 2 3 4 5")
-        x.reset()
+        x.clear()
         self.assertEqual(str(x), "")
 
     def test_tclobj10(self):

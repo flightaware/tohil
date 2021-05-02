@@ -1139,10 +1139,10 @@ TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
 }
 
 //
-// tclobj.reset() - reset a tclobj or tcldict to an empty tcl object
+// tclobj.clear() - clear a tclobj or tcldict to an empty tcl object
 //
 static PyObject *
-TohilTclObj_reset(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
+TohilTclObj_clear(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
     if (self->tclvar != NULL) {
         Tcl_DecrRefCount(self->tclvar);
@@ -2875,7 +2875,7 @@ static PySequenceMethods TohilTclObj_as_sequence = {
 
 static PyMethodDef TohilTclObj_methods[] = {
     {"__getitem__", (PyCFunction)TohilTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
-    {"reset", (PyCFunction)TohilTclObj_reset, METH_NOARGS, "reset the tclobj"},
+    {"clear", (PyCFunction)TohilTclObj_clear, METH_NOARGS, "empty the tclobj"},
     {"as_list", (PyCFunction)TohilTclObj_as_list, METH_NOARGS, "return tclobj as list"},
     {"as_set", (PyCFunction)TohilTclObj_as_set, METH_NOARGS, "return tclobj as set"},
     {"as_tuple", (PyCFunction)TohilTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
@@ -3370,6 +3370,7 @@ static PyMethodDef TohilTclDict_methods[] = {
     {"getvar", (PyCFunction)TohilTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)TohilTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
     {"set", (PyCFunction)TohilTclObj_set, METH_O, "set tclobj from some python object"},
+    {"clear", (PyCFunction)TohilTclObj_clear, METH_NOARGS, "remove all items from the tcl dict"},
     {NULL} // sentinel
 };
 
