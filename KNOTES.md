@@ -252,4 +252,22 @@ we already have t.setvar() and t.getvar() to manually sync
 
 
 
+-----
+
+building
+
+for some reason python3 may not run from what which python3 says
+
+make sure that you run python3.9 if you have it built python3.9d in /opt/local or whatever
+
+./configure --prefix=/opt/local --enable-ipv6 --with-pydebug --with-trace-refs --with-pymalloc
+
+configure tohil with like
+
+./configure --with-python-version=3.9d --prefix=/opt/local
+
+when you install, use
+
+python3.9 setup.py install --prefix=/opt/local
+
 
