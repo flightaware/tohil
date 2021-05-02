@@ -75,29 +75,6 @@ def interact():
     call("commandloop", "-prompt1", 'return  " % "', "-prompt2", 'return "> "')
 
 
-### tclobj iterator
-
-
-class TclObjIterator:
-    """tclobj iterator - one of these is returned by tclobj
-    iter function to iterate over a tclobj"""
-
-    def __init__(self, tclobj):
-        self.tclobj = tclobj
-        self.index = -1
-
-    def __iter__(self):
-        self.index = -1
-        return self
-
-    def __next__(self):
-        self.index += 1
-        if self.index >= len(self.tclobj):
-            raise StopIteration
-
-        return self.tclobj.lindex(self.index)
-
-
 ### shadow dictionaries
 
 
