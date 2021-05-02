@@ -937,12 +937,11 @@ TohilTclObj_init(TohilTclObj *self, PyObject *args, PyObject *kwds)
 static Tcl_Obj *
 TohilTclObj_objptr(TohilTclObj *self)
 {
-    if (self->tclvar == NULL) {
-        assert(self->tclobj->refCount > 0);
+    if (self->tclobj != NULL) {
+        assert(self->tclvar == NULL);
         return self->tclobj;
     }
 
-    assert(self->tclobj == NULL);
     Tcl_Obj *obj = Tcl_ObjGetVar2(self->interp, self->tclvar, NULL, TCL_LEAVE_ERR_MSG);
     if (obj == NULL) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
@@ -955,7 +954,6 @@ static int
 TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
 {
     assert(self->tclobj == NULL);
-    assert(self->tclobj->refCount > 0);
     Tcl_Obj *res = Tcl_ObjSetVar2(self->interp, self->tclvar, NULL, obj, TCL_LEAVE_ERR_MSG);
     if (res == NULL) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
@@ -968,7 +966,7 @@ TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
 static int
 TohilTclObj_possibly_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
 {
-    if (self->tclvar == NULL)
+    if (self->tclobj != NULL)
         return 0;
 
     return TohilTclObj_stuff_var(self, obj);
@@ -977,7 +975,7 @@ TohilTclObj_possibly_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
 static int
 TohilTclObj_stuff_objptr(TohilTclObj *self, Tcl_Obj *obj)
 {
-    if (self->tclvar == NULL) {
+    if (self->tclobj != NULL) {
         assert(self->tclobj->refCount > 0);
         Tcl_DecrRefCount(self->tclobj);
         self->tclobj = obj;
@@ -991,8 +989,8 @@ TohilTclObj_stuff_objptr(TohilTclObj *self, Tcl_Obj *obj)
 static Tcl_Obj *
 TohilTclObj_writable_objptr(TohilTclObj *self)
 {
-    if (self->tclvar == NULL) {
-        assert(self->tclobj->refCount > 0);
+    if (self->tclobj != NULL) {
+        // assert(self->tclobj->refCount > 0);
         if (Tcl_IsShared(self->tclobj)) {
             Tcl_DecrRefCount(self->tclobj);
             self->tclobj = Tcl_DuplicateObj(self->tclobj);
@@ -1800,7 +1798,7 @@ TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
 
     Tcl_AppendObjToObj(writeObj, tItem);
 
-    if (self->tclvar == NULL) {
+    if (self->tclobj != NULL) {
         self->tclobj = writeObj;
     } else {
         if (TohilTclObj_stuff_var(self, writeObj) < 0)
