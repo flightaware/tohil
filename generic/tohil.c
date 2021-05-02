@@ -54,8 +54,6 @@ static int TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj);
 
 PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
-static PyObject *Tohil_TD_iter_repr(_PyDictViewObject *dv);
-
 // TCL library begins here
 
 // maintain a pointer to the tcl interp - we need it from our stuff python calls where
@@ -1968,7 +1966,6 @@ static PyTypeObject TohilTclObj_IterType = {
     .tp_dealloc = (destructor)TohilTclObjIter_dealloc,
     .tp_iter = (getiterfunc)TohilTclObjIter,
     .tp_iternext = (iternextfunc)TohilTclObj_iternext,
-    //.tp_repr = (reprfunc)Tohil_TD_iter_repr,
 };
 
 //
