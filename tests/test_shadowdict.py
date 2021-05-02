@@ -45,6 +45,15 @@ class TestShadowDicts(unittest.TestCase):
         self.assertEqual(x.get('nonesuch', 0), 0)
         self.assertEqual(x.get('nonesuch', default=16), 16)
 
+    def test_shadowdict7(self):
+        """pop elements from shadow dict, with and without
+        specified defaults"""
+        tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
+        x = tohil.ShadowDict("x", to=int)
+        self.assertEqual(x.pop('e', 5), 5)
+        self.assertEqual(x.pop('d'), 4)
+        self.assertEqual(x.pop('c', 4), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

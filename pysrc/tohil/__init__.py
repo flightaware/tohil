@@ -145,6 +145,11 @@ class ShadowDict(MutableMapping):
         """remove all items from the shadow dictionary (unset the tcl array)"""
         call("array", "unset", self.tcl_array)
 
+    def keys(self):
+        """return a view of the ShadowDict's keys.  unlike dicts in later 3.x
+        python, there come back in hash traversal i.e. basically random order"""
+        return call("array", "names", self.tcl_array)
+
     def get(self, key, default=None, *, to=None):
         """return the value of an element of the shadow dict, with conversion
         to the specified type, if key is present in the tcl array.  if default
@@ -155,6 +160,27 @@ class ShadowDict(MutableMapping):
         if exists(f"{self.tcl_array}({key})"):
             return getvar(f"{self.tcl_array}({key})", to=to)
         return convert(default, to=to)
+
+    def pop(self, key, *args, to=None):
+        """if key is in the dictionary, remove it and return its value, else
+        return default.  if default is not given and key is not in the dictionary,
+        a KeyError is raised."""
+
+        if len(args) > 1:
+            raise TypeError(f"function takes one or two position arguments")
+        if to is None:
+            to = self.to_type
+
+        var = f"{self.tcl_array}({key})"
+        if exists(var):
+            val = getvar(var, to=to)
+            call("unset", var)
+            return val
+        if len(args) == 0:
+            raise KeyError(key)
+        if args[0] is None:
+            return None
+        return convert(args[0], to=to)
 
 #
 # misc stuff and helpers
