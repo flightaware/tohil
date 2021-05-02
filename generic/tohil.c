@@ -2041,7 +2041,6 @@ Tohil_TD_items_iternext(Tohil_TD_IterObj *self)
     return Tohil_TD_multi_iternext(self, Items);
 }
 
-
 static PyTypeObject Tohil_TD_IterType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_iter",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
@@ -2051,7 +2050,7 @@ static PyTypeObject Tohil_TD_IterType = {
     .tp_iternext = (iternextfunc)Tohil_TD_iternext,
 };
 
-static PyTypeObject Tohil_TD_KeysType = {
+static PyTypeObject Tohil_TD_IterKeysType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_keys",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
@@ -2060,7 +2059,7 @@ static PyTypeObject Tohil_TD_KeysType = {
     .tp_iternext = (iternextfunc)Tohil_TD_keys_iternext,
 };
 
-static PyTypeObject Tohil_TD_ValuesType = {
+static PyTypeObject Tohil_TD_IterValuesType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_values",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
@@ -2069,7 +2068,7 @@ static PyTypeObject Tohil_TD_ValuesType = {
     .tp_iternext = (iternextfunc)Tohil_TD_values_iternext,
 };
 
-static PyTypeObject Tohil_TD_ItemsType = {
+static PyTypeObject Tohil_TD_IterItemsType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_items",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
@@ -3191,19 +3190,19 @@ TohilTclDictIter(TohilTclObj *self)
 static PyObject *
 TohilTclDict_keys_new(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
-    return TohilTclDictIter_new(self, &Tohil_TD_KeysType);
+    return TohilTclDictIter_new(self, &Tohil_TD_IterKeysType);
 }
 
 static PyObject *
 TohilTclDict_values_new(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
-    return TohilTclDictIter_new(self, &Tohil_TD_ValuesType);
+    return TohilTclDictIter_new(self, &Tohil_TD_IterValuesType);
 }
 
 static PyObject *
 TohilTclDict_items_new(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
-    return TohilTclDictIter_new(self, &Tohil_TD_ItemsType);
+    return TohilTclDictIter_new(self, &Tohil_TD_IterItemsType);
 }
 
 //
@@ -3906,15 +3905,15 @@ PyInit__tohil(void)
     }
 
     // turn up the tcldict keys, items and values iterator types
-    if (PyType_Ready(&Tohil_TD_KeysType) < 0) {
+    if (PyType_Ready(&Tohil_TD_IterKeysType) < 0) {
         return NULL;
     }
 
-    if (PyType_Ready(&Tohil_TD_ItemsType) < 0) {
+    if (PyType_Ready(&Tohil_TD_IterItemsType) < 0) {
         return NULL;
     }
 
-    if (PyType_Ready(&Tohil_TD_ValuesType) < 0) {
+    if (PyType_Ready(&Tohil_TD_IterValuesType) < 0) {
         return NULL;
     }
 
