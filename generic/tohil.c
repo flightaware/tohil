@@ -1924,12 +1924,14 @@ Tohil_TD_iter(Tohil_TD_IterObj *self)
     return (PyObject *)self;
 }
 
+enum td_itertype { Iter, Keys, Values, Items };
+
 //
 // td's iternext - we have to do the DictObjFirst here since
 //   tcl's version, first gives you also the first result.
 //
 PyObject *
-Tohil_TD_iternext(Tohil_TD_IterObj *self)
+Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
 {
     // printf("Tohil_TD_iternext\n");
     Tcl_Obj *keyObj = NULL;
@@ -1967,9 +1969,15 @@ Tohil_TD_iternext(Tohil_TD_IterObj *self)
         goto done;
     }
 
-    if (self->to == NULL) {
+    if (itertype == Keys || itertype == Values || (itertype == Iter && self->to == NULL)) {
         int tclStringSize;
-        char *tclString = Tcl_GetStringFromObj(keyObj, &tclStringSize);
+        char *tclString;
+
+        if (itertype != Values) {
+            tclString = Tcl_GetStringFromObj(keyObj, &tclStringSize);
+        } else {
+            tclString = Tcl_GetStringFromObj(valueObj, &tclStringSize);
+        }
 
         if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
             PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
@@ -1993,10 +2001,46 @@ Tohil_TD_iternext(Tohil_TD_IterObj *self)
     PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", utf8string, utf8len));
     ckfree(utf8string);
 
-    PyTuple_SET_ITEM(pRetTuple, 1, tohil_python_return(tcl_interp, TCL_OK, self->to, valueObj));
+    if (self->to == NULL) {
+        // no "to" specified, stuff the value into item 1 of the tuple
+        tclString = Tcl_GetStringFromObj(valueObj, &tclStringSize);
+        if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            return NULL;
+        }
+        PyTuple_SET_ITEM(pRetTuple, 1, Py_BuildValue("s#", utf8string, utf8len));
+        ckfree(utf8string);
+    } else {
+        PyTuple_SET_ITEM(pRetTuple, 1, tohil_python_return(tcl_interp, TCL_OK, self->to, valueObj));
+    }
 
     return pRetTuple;
 }
+
+PyObject *
+Tohil_TD_iternext(Tohil_TD_IterObj *self)
+{
+    return Tohil_TD_multi_iternext(self, Iter);
+}
+
+PyObject *
+Tohil_TD_keys_iternext(Tohil_TD_IterObj *self)
+{
+    return Tohil_TD_multi_iternext(self, Keys);
+}
+
+PyObject *
+Tohil_TD_values_iternext(Tohil_TD_IterObj *self)
+{
+    return Tohil_TD_multi_iternext(self, Values);
+}
+
+PyObject *
+Tohil_TD_items_iternext(Tohil_TD_IterObj *self)
+{
+    return Tohil_TD_multi_iternext(self, Items);
+}
+
 
 static PyTypeObject Tohil_TD_IterType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_iter",
@@ -2013,7 +2057,7 @@ static PyTypeObject Tohil_TD_KeysType = {
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD keys iterator object",
     .tp_iter = (getiterfunc)Tohil_TD_iter,
-    .tp_iternext = (iternextfunc)Tohil_TD_iternext,
+    .tp_iternext = (iternextfunc)Tohil_TD_keys_iternext,
 };
 
 static PyTypeObject Tohil_TD_ValuesType = {
@@ -2022,7 +2066,7 @@ static PyTypeObject Tohil_TD_ValuesType = {
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD values iterator object",
     .tp_iter = (getiterfunc)Tohil_TD_iter,
-    .tp_iternext = (iternextfunc)Tohil_TD_iternext,
+    .tp_iternext = (iternextfunc)Tohil_TD_values_iternext,
 };
 
 static PyTypeObject Tohil_TD_ItemsType = {
@@ -2031,7 +2075,7 @@ static PyTypeObject Tohil_TD_ItemsType = {
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD items iterator object",
     .tp_iter = (getiterfunc)Tohil_TD_iter,
-    .tp_iternext = (iternextfunc)Tohil_TD_iternext,
+    .tp_iternext = (iternextfunc)Tohil_TD_items_iternext,
 };
 
 //
