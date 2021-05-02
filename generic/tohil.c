@@ -1910,12 +1910,12 @@ typedef struct {
     Tcl_Interp *interp;
     Tcl_Obj *dictObj;
     Tcl_DictSearch search;
-} PyTohil_TD_IterObj;
+} Tohil_TD_IterObj;
 
 static PyObject *
-PyTohil_TD_iter(PyTohil_TD_IterObj *self)
+Tohil_TD_iter(Tohil_TD_IterObj *self)
 {
-    // printf("PyTohil_TD_iter\n");
+    // printf("Tohil_TD_iter\n");
     Py_INCREF(self);
 
     self->started = 0;
@@ -1929,9 +1929,9 @@ PyTohil_TD_iter(PyTohil_TD_IterObj *self)
 //   tcl's version, first gives you also the first result.
 //
 PyObject *
-PyTohil_TD_iternext(PyTohil_TD_IterObj *self)
+Tohil_TD_iternext(Tohil_TD_IterObj *self)
 {
-    // printf("PyTohil_TD_iternext\n");
+    // printf("Tohil_TD_iternext\n");
     Tcl_Obj *keyObj = NULL;
     Tcl_Obj *valueObj = NULL;
     int done = 0;
@@ -1998,13 +1998,40 @@ PyTohil_TD_iternext(PyTohil_TD_IterObj *self)
     return pRetTuple;
 }
 
-static PyTypeObject PyTohil_TD_IterType = {
-    .tp_name = "tohil._td_iter",
-    .tp_basicsize = sizeof(PyTohil_TD_IterObj),
+static PyTypeObject Tohil_TD_IterType = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_iter",
+    .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "tohil TD iterator object",
-    .tp_iter = (getiterfunc)PyTohil_TD_iter,
-    .tp_iternext = (iternextfunc)PyTohil_TD_iternext,
+    .tp_doc = "tohil TD iterator type",
+    .tp_iter = (getiterfunc)Tohil_TD_iter,
+    .tp_iternext = (iternextfunc)Tohil_TD_iternext,
+};
+
+static PyTypeObject Tohil_TD_KeysType = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_keys",
+    .tp_basicsize = sizeof(Tohil_TD_IterObj),
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "tohil TD keys iterator object",
+    .tp_iter = (getiterfunc)Tohil_TD_iter,
+    .tp_iternext = (iternextfunc)Tohil_TD_iternext,
+};
+
+static PyTypeObject Tohil_TD_ValuesType = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_values",
+    .tp_basicsize = sizeof(Tohil_TD_IterObj),
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "tohil TD values iterator object",
+    .tp_iter = (getiterfunc)Tohil_TD_iter,
+    .tp_iternext = (iternextfunc)Tohil_TD_iternext,
+};
+
+static PyTypeObject Tohil_TD_ItemsType = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_items",
+    .tp_basicsize = sizeof(Tohil_TD_IterObj),
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "tohil TD items iterator object",
+    .tp_iter = (getiterfunc)Tohil_TD_iter,
+    .tp_iternext = (iternextfunc)Tohil_TD_iternext,
 };
 
 //
@@ -3077,7 +3104,7 @@ TohilTclDict_size(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 //   iterate over a tcldict.
 //
 static PyObject *
-TohilTclDictIter(TohilTclObj *self)
+TohilTclDictIter_new(TohilTclObj *self, PyTypeObject *itertype)
 {
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -3091,7 +3118,7 @@ TohilTclDictIter(TohilTclObj *self)
         return NULL;
     }
 
-    PyTohil_TD_IterObj *pIter = (PyTohil_TD_IterObj *)PyObject_New(PyTohil_TD_IterObj, &PyTohil_TD_IterType);
+    Tohil_TD_IterObj *pIter = (Tohil_TD_IterObj *)PyObject_New(Tohil_TD_IterObj, itertype);
 
     pIter->interp = self->interp;
     pIter->started = 0;
@@ -3105,6 +3132,34 @@ TohilTclDictIter(TohilTclObj *self)
     Tcl_IncrRefCount(pIter->dictObj);
 
     return (PyObject *)pIter;
+}
+
+//
+// TohilTclDictIter() - returns a tcldict iterator object that can
+//   iterate over a tcldict.
+//
+static PyObject *
+TohilTclDictIter(TohilTclObj *self)
+{
+    return TohilTclDictIter_new(self, &Tohil_TD_IterType);
+}
+
+static PyObject *
+TohilTclDict_keys_new(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
+{
+    return TohilTclDictIter_new(self, &Tohil_TD_KeysType);
+}
+
+static PyObject *
+TohilTclDict_values_new(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
+{
+    return TohilTclDictIter_new(self, &Tohil_TD_ValuesType);
+}
+
+static PyObject *
+TohilTclDict_items_new(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
+{
+    return TohilTclDictIter_new(self, &Tohil_TD_ItemsType);
 }
 
 //
@@ -3133,13 +3188,20 @@ static PySequenceMethods TohilTclDict_as_sequence = {
     .sq_contains = TohilTclDict_Contains,
 };
 
+PyDoc_STRVAR(keys__doc__, "D.keys() -> a set-like object providing a view on D's keys");
+PyDoc_STRVAR(items__doc__, "D.items() -> a set-like object providing a view on D's items");
+PyDoc_STRVAR(values__doc__, "D.values() -> an object providing a view on D's values");
+
 static PyMethodDef TohilTclDict_methods[] = {
-    {"__getitem__", (PyCFunction)(void(*)(void))TohilTclDict_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
+    {"__getitem__", (PyCFunction)(void (*)(void))TohilTclDict_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
     {"get", (PyCFunction)TohilTclDict_td_get, METH_VARARGS | METH_KEYWORDS, "get from tcl dict"},
     // NB i don't know if this __len__ thing works -- python might
     // be doing something gross to get the len of the dict, like
     // enumerating the elements
     {"__len__", (PyCFunction)TohilTclDict_size, METH_VARARGS | METH_KEYWORDS, "get length of tcl dict"},
+    {"keys", (PyCFunction)TohilTclDict_keys_new, METH_NOARGS, keys__doc__},
+    {"items", (PyCFunction)TohilTclDict_items_new, METH_NOARGS, items__doc__},
+    {"values", (PyCFunction)TohilTclDict_values_new, METH_NOARGS, values__doc__},
     {"td_set", (PyCFunction)TohilTclDict_td_set, METH_VARARGS | METH_KEYWORDS, "set item in tcl dict"},
     {"getvar", (PyCFunction)TohilTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
     {"setvar", (PyCFunction)TohilTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
@@ -3794,12 +3856,24 @@ PyInit__tohil(void)
         return NULL;
     }
 
-    // turn up the tclobj td iterator type
-    if (PyType_Ready(&PyTohil_TD_IterType) < 0) {
+    // turn up the tcldict iterator type
+    if (PyType_Ready(&Tohil_TD_IterType) < 0) {
         return NULL;
     }
 
-    // turn up the tcldict python type
+    // turn up the tcldict keys, items and values iterator types
+    if (PyType_Ready(&Tohil_TD_KeysType) < 0) {
+        return NULL;
+    }
+
+    if (PyType_Ready(&Tohil_TD_ItemsType) < 0) {
+        return NULL;
+    }
+
+    if (PyType_Ready(&Tohil_TD_ValuesType) < 0) {
+        return NULL;
+    }
+
     if (PyType_Ready(&TohilTclDictType) < 0) {
         return NULL;
     }
