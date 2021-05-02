@@ -2041,6 +2041,29 @@ Tohil_TD_items_iternext(Tohil_TD_IterObj *self)
     return Tohil_TD_multi_iternext(self, Items);
 }
 
+static PyObject *
+Tohil_TD_iter_repr(_PyDictViewObject *dv)
+{
+    PyObject *seq;
+    PyObject *result = NULL;
+    Py_ssize_t rc;
+
+    rc = Py_ReprEnter((PyObject *)dv);
+    if (rc != 0) {
+        return rc > 0 ? PyUnicode_FromString("...") : NULL;
+    }
+    seq = PySequence_List((PyObject *)dv);
+    if (seq == NULL) {
+        goto Done;
+    }
+    result = PyUnicode_FromFormat("%s(%R)", Py_TYPE(dv)->tp_name, seq);
+    Py_DECREF(seq);
+
+Done:
+    Py_ReprLeave((PyObject *)dv);
+    return result;
+}
+
 //
 // deallocate function for python tcldict iter object types
 //
@@ -2062,36 +2085,40 @@ static PyTypeObject Tohil_TD_IterType = {
     .tp_dealloc = (destructor)TohilTclDictIter_dealloc,
     .tp_iter = (getiterfunc)Tohil_TD_iter,
     .tp_iternext = (iternextfunc)Tohil_TD_iternext,
+    .tp_repr = (reprfunc)Tohil_TD_iter_repr,
 };
 
 static PyTypeObject Tohil_TD_IterKeysType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil_td_keys_iter",
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil_td_keys",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD keys iterator object",
     .tp_dealloc = (destructor)TohilTclDictIter_dealloc,
     .tp_iter = (getiterfunc)Tohil_TD_iter,
     .tp_iternext = (iternextfunc)Tohil_TD_keys_iternext,
+    .tp_repr = (reprfunc)Tohil_TD_iter_repr,
 };
 
 static PyTypeObject Tohil_TD_IterValuesType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_values_iter",
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil_td_values",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD values iterator object",
     .tp_dealloc = (destructor)TohilTclDictIter_dealloc,
     .tp_iter = (getiterfunc)Tohil_TD_iter,
     .tp_iternext = (iternextfunc)Tohil_TD_values_iternext,
+    .tp_repr = (reprfunc)Tohil_TD_iter_repr,
 };
 
 static PyTypeObject Tohil_TD_IterItemsType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil._td_items_iter",
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil_td_items",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD items iterator object",
     .tp_dealloc = (destructor)TohilTclDictIter_dealloc,
     .tp_iter = (getiterfunc)Tohil_TD_iter,
     .tp_iternext = (iternextfunc)Tohil_TD_items_iternext,
+    .tp_repr = (reprfunc)Tohil_TD_iter_repr,
 };
 
 //
