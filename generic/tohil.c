@@ -1618,7 +1618,7 @@ TohilTclObj_pop(TohilTclObj *self, PyObject *args, PyObject *kwargs)
     }
     printf("replaced the element\n");
 
-    if (TohilTclObj_possibly_stuff_var(self, resultObj) < 0)
+    if (TohilTclObj_possibly_stuff_var(self, selfobj) < 0)
         return NULL;
 
     if (to == NULL && self->to != NULL)
