@@ -458,7 +458,7 @@ build-python-module:
 	python3 setup.py build
 
 install-python-module:
-	python3 setup.py install
+	python3 setup.py install --prefix=$(prefix)
 
 clean-python-module:
 	rm -rf build/ dist/ pysrc/tohil.egg-info/ tests/__pycache__/
