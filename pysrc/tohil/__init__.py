@@ -75,29 +75,6 @@ def interact():
     call("commandloop", "-prompt1", 'return  " % "', "-prompt2", 'return "> "')
 
 
-### tclobj iterator
-
-
-class TclObjIterator:
-    """tclobj iterator - one of these is returned by tclobj
-    iter function to iterate over a tclobj"""
-
-    def __init__(self, tclobj):
-        self.tclobj = tclobj
-        self.index = -1
-
-    def __iter__(self):
-        self.index = -1
-        return self
-
-    def __next__(self):
-        self.index += 1
-        if self.index >= len(self.tclobj):
-            raise StopIteration
-
-        return self.tclobj.lindex(self.index)
-
-
 ### shadow dictionaries
 
 
@@ -122,15 +99,14 @@ class ShadowDictIterator:
 class ShadowDict(MutableMapping):
     """shadow dicts - python dict-like objects that shadow a tcl array"""
 
-    def __init__(self, tcl_array, **kwargs):
+    def __init__(self, tcl_array, *, default=None, to=None):
         self.tcl_array = tcl_array
-        if "to" in kwargs:
-            self.to_type = kwargs["to"]
-        else:
+        if to is None:
             self.to_type = str
+        else:
+            self.to_type = to
 
-        if "default" in kwargs:
-            self.default = kwargs["default"]
+        self.default = default
 
     def __getitem__(self, key):
         """access element of the shadow dict using the [] notation"""
@@ -165,29 +141,46 @@ class ShadowDict(MutableMapping):
         """return true if the shadow dict has an element named key, else false"""
         return exists(f"{self.tcl_array}({key})")
 
-    def get(self, key, **kwargs):
-        """return the value of an element of the shadow dict, with conversion
-        to the specified type, and with a default value from an argument to
-        get or if not that, a default value from the shadow dict object specified
-        at shadow dict creation time
+    def clear(self):
+        """remove all items from the shadow dictionary (unset the tcl array)"""
+        call("array", "unset", self.tcl_array)
 
-        likewise 'to' conversion can be specified when creating the object or in
-        the call to 'get', with the args to get having the higher priority"""
-        if "to" in kwargs:
-            to = kwargs["to"]
-        else:
+    def keys(self):
+        """return a view of the ShadowDict's keys.  unlike dicts in later 3.x
+        python, there come back in hash traversal i.e. basically random order"""
+        return call("array", "names", self.tcl_array)
+
+    def get(self, key, default=None, *, to=None):
+        """return the value of an element of the shadow dict, with conversion
+        to the specified type, if key is present in the tcl array.  if default
+        is not given, it defaults to None, so this method never raises a KeyError."""
+
+        if to is None:
             to = self.to_type
         if exists(f"{self.tcl_array}({key})"):
             return getvar(f"{self.tcl_array}({key})", to=to)
-        if "default" in kwargs:
-            return convert(kwargs["default"], to=to)
-        try:
-            self.default
-            return convert(self.default, to=to)
-        except NameError:
-            raise TypeError(
-                f"element '{key}' doesn't exist in tcl array '{self.tcl_array}', and no default was specified to 'get' or to ShadowDict()"
-            )
+        return convert(default, to=to)
+
+    def pop(self, key, *args, to=None):
+        """if key is in the dictionary, remove it and return its value, else
+        return default.  if default is not given and key is not in the dictionary,
+        a KeyError is raised."""
+
+        if len(args) > 1:
+            raise TypeError(f"function takes one or two position arguments")
+        if to is None:
+            to = self.to_type
+
+        var = f"{self.tcl_array}({key})"
+        if exists(var):
+            val = getvar(var, to=to)
+            call("unset", var)
+            return val
+        if len(args) == 0:
+            raise KeyError(key)
+        if args[0] is None:
+            return None
+        return convert(args[0], to=to)
 
 #
 # misc stuff and helpers

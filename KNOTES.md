@@ -250,6 +250,26 @@ we already have t.setvar() and t.getvar() to manually sync
 
 
 
+### custom building python on linux
+
+apt install libbz2-dev libgdbm-dev liblzma-dev uuid-dev libffi-dev
+
+sudo apt-get install build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev zlib1g-dev libssl-dev openssl libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libncursesw5-dev libffi-dev uuid-dev
+
+./configure --prefix=/opt --enable-ipv6 --with-pydebug --with-trace-refs --with-pymalloc
+
+make
+sudo make install
+
+
+----
+
+trying to build python debug in /opt and link to it from tohil
+
+setuptools seems to be still referencing /usr
+
+PATH=/opt/bin:$PATH
+./configure --prefix=/opt --with-python-version=3.9d --enable-symbols
 
 
 -----

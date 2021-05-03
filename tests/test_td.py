@@ -17,7 +17,7 @@ class TestTD(unittest.TestCase):
         x.to = str
         self.assertEqual(x.get("z", default="bar"), "bar")
         self.assertEqual(x.get("z", default="bar", to=list), ["bar"])
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ValueError):
             x.get("z", default="bar", to=int)
         self.assertEqual(x.get("z", default="1", to=int), 1)
 
