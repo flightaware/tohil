@@ -1601,30 +1601,30 @@ TohilTclObj_pop(TohilTclObj *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    printf("element %d of size %d\n", i, size);
-
     // get the item
     Tcl_Obj *resultObj = NULL;
     if (Tcl_ListObjIndex(self->interp, selfobj, i, &resultObj) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return NULL;
     }
-    printf("got the item\n");
+    Tcl_IncrRefCount(resultObj);
+
+    if (Tcl_IsShared(selfobj)) {
+        Tcl_DecrRefCount(selfobj);
+        selfobj = Tcl_DuplicateObj(selfobj);
+    }
 
     // remove the item for the list
     if (Tcl_ListObjReplace(self->interp, selfobj, i, 1, 0, NULL) == TCL_ERROR) {
         PyErr_SetString(PyExc_IndexError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return NULL;
     }
-    printf("replaced the element\n");
-
     if (TohilTclObj_possibly_stuff_var(self, selfobj) < 0)
         return NULL;
 
     if (to == NULL && self->to != NULL)
         to = self->to;
 
-    printf("stuffed var and returning\n");
     return tohil_python_return(self->interp, TCL_OK, to, resultObj);
 }
 
