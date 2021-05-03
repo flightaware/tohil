@@ -1562,6 +1562,73 @@ TohilTclObj_type(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
     return Py_BuildValue("s", obj->typePtr->name);
 }
 
+//
+// TohilTclObj_pop - remove the item at the given position in the list, and
+//   return it.  if no index is specified, remove and return the last item
+//   in the list.  raise IndexError: pop from empty list if list is empty.
+//
+//
+static PyObject *
+TohilTclObj_pop(TohilTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"i", "to", NULL};
+    int i = -999;
+    PyTypeObject *to = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i$O", kwlist, &i, &to)) {
+        return NULL;
+    }
+
+    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
+    if (selfobj == NULL)
+        return NULL;
+
+    int size = 0;
+    if (Tcl_ListObjLength(self->interp, selfobj, &size) == TCL_ERROR) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return NULL;
+    }
+
+    if (size == 0) {
+        PyErr_SetString(PyExc_IndexError, "pop from empty list");
+        return NULL;
+    }
+
+    if (i == -999)
+        i = size - 1;
+    else if (i < 0 || i >= size) {
+        PyErr_SetString(PyExc_IndexError, "pop index out of range");
+        return NULL;
+    }
+
+    printf("element %d of size %d\n", i, size);
+
+    // get the item
+    Tcl_Obj *resultObj = NULL;
+    if (Tcl_ListObjIndex(self->interp, selfobj, i, &resultObj) == TCL_ERROR) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return NULL;
+    }
+    printf("got the item\n");
+
+    // remove the item for the list
+    if (Tcl_ListObjReplace(self->interp, selfobj, i, 1, 0, NULL) == TCL_ERROR) {
+        PyErr_SetString(PyExc_IndexError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return NULL;
+    }
+    printf("replaced the element\n");
+
+    if (TohilTclObj_possibly_stuff_var(self, resultObj) < 0)
+        return NULL;
+
+    if (to == NULL && self->to != NULL)
+        to = self->to;
+
+    printf("stuffed var and returning\n");
+    return tohil_python_return(self->interp, TCL_OK, to, resultObj);
+}
+
+
 static PyObject *TohilTclObj_subscript(TohilTclObj *, PyObject *);
 
 //
@@ -2871,6 +2938,8 @@ static PySequenceMethods TohilTclObj_as_sequence = {
     //.sq_inplace_repeat = (ssizeargfunc)list_inplace_repeat,
 };
 
+PyDoc_STRVAR(pop__doc__, "Remove and return item at index (default last).\n\nRaises IndexError if list is empty or index is out of range.");
+
 static PyMethodDef TohilTclObj_methods[] = {
     {"__getitem__", (PyCFunction)TohilTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
     {"clear", (PyCFunction)TohilTclObj_clear, METH_NOARGS, "empty the tclobj"},
@@ -2888,6 +2957,7 @@ static PyMethodDef TohilTclObj_methods[] = {
     {"lindex", (PyCFunction)TohilTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from tclobj as tcl list"},
     {"append", (PyCFunction)TohilTclObj_lappend, METH_O, "lappend (list-append) something to tclobj"},
     {"extend", (PyCFunction)TohilTclObj_lappend_list, METH_O, "lappend another tclobj or a python list of stuff to tclobj"},
+    {"pop", (PyCFunction)TohilTclObj_pop, METH_VARARGS | METH_KEYWORDS, pop__doc__},
     {NULL} // sentinel
 };
 
