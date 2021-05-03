@@ -1563,6 +1563,41 @@ TohilTclObj_type(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 }
 
 //
+// insert something to the tclobj list
+//
+static PyObject *
+TohilTclObj_insert(TohilTclObj *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"i", "x", NULL};
+    int index = 0;
+    PyObject *pyInsertObj = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "iO", kwlist, &index, &pyInsertObj))
+        return NULL;
+
+    Tcl_Obj *newObj = pyObjToTcl(self->interp, pyInsertObj);
+    if (newObj == NULL) {
+        return NULL;
+    }
+
+    Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+    if (writeObj == NULL)
+        return NULL;
+
+    if (Tcl_ListObjReplace(self->interp, writeObj, index, 0, 1, &newObj) == TCL_ERROR) {
+        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        Tcl_DecrRefCount(newObj);
+        return NULL;
+    }
+
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return NULL;
+
+    // it worked
+    Py_RETURN_NONE;
+}
+
+//
 // TohilTclObj_pop - remove the item at the given position in the list, and
 //   return it.  if no index is specified, remove and return the last item
 //   in the list.  raise IndexError: pop from empty list if list is empty.
@@ -1627,7 +1662,6 @@ TohilTclObj_pop(TohilTclObj *self, PyObject *args, PyObject *kwargs)
 
     return tohil_python_return(self->interp, TCL_OK, to, resultObj);
 }
-
 
 static PyObject *TohilTclObj_subscript(TohilTclObj *, PyObject *);
 
@@ -2958,6 +2992,7 @@ static PyMethodDef TohilTclObj_methods[] = {
     {"append", (PyCFunction)TohilTclObj_lappend, METH_O, "lappend (list-append) something to tclobj"},
     {"extend", (PyCFunction)TohilTclObj_lappend_list, METH_O, "lappend another tclobj or a python list of stuff to tclobj"},
     {"pop", (PyCFunction)TohilTclObj_pop, METH_VARARGS | METH_KEYWORDS, pop__doc__},
+    {"insert", (PyCFunction)TohilTclObj_insert, METH_VARARGS | METH_KEYWORDS, "Insert object before index."},
     {NULL} // sentinel
 };
 
