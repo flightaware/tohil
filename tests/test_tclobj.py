@@ -79,17 +79,17 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(repr(x[2]), "<tohil.tclobj: '3'>")
 
     def test_tclobj11(self):
-        """exercise tohil.tclobj lappend()"""
+        """exercise tohil.tclobj append()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
-        x.lappend("6")
-        x.lappend(7)
+        x.append("6")
+        x.append(7)
         self.assertEqual(str(x), "1 2 3 4 5 6 7")
 
     def test_tclobj12(self):
         """exercise tohil.tclobj as_byte_array()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
-        x.lappend("6")
-        x.lappend(7)
+        x.append("6")
+        x.append(7)
         self.assertEqual(x.as_byte_array(), bytearray(b"1 2 3 4 5 6 7"))
 
     def test_tclobj13(self):
@@ -180,16 +180,16 @@ class TestTclObj(unittest.TestCase):
         self.assertFalse(x[2] > 4.0)
 
     def test_tclobj19(self):
-        """tohil.tclobj lappend_list"""
+        """tohil.tclobj extend (lappend ... {*})"""
         x = tohil.eval("list 1 2 3 4 5 6", to=tohil.tclobj)
         y = tohil.eval("list 7 8 9", to=tohil.tclobj)
-        x.lappend(y)
+        x.append(y)
         self.assertEqual(repr(x), "<tohil.tclobj: '1 2 3 4 5 6 {7 8 9}'>")
         x = tohil.eval("list 1 2 3 4 5 6", to=tohil.tclobj)
-        x.lappend_list(y)
+        x.extend(y)
         self.assertEqual(repr(x), "<tohil.tclobj: '1 2 3 4 5 6 7 8 9'>")
         l = [10, 11, 12, 13]
-        x.lappend_list(l)
+        x.extend(l)
         self.assertEqual(repr(x), "<tohil.tclobj: '1 2 3 4 5 6 7 8 9 10 11 12 13'>")
 
     def test_tclobj20(self):

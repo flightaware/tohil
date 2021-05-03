@@ -2886,8 +2886,8 @@ static PyMethodDef TohilTclObj_methods[] = {
     {"setvar", (PyCFunction)TohilTclObj_setvar, METH_O, "set tcl var or array element to tclobj's tcl object"},
     {"set", (PyCFunction)TohilTclObj_set, METH_O, "set tclobj from some python object"},
     {"lindex", (PyCFunction)TohilTclObj_lindex, METH_VARARGS | METH_KEYWORDS, "get value from tclobj as tcl list"},
-    {"lappend", (PyCFunction)TohilTclObj_lappend, METH_O, "lappend (list-append) something to tclobj"},
-    {"lappend_list", (PyCFunction)TohilTclObj_lappend_list, METH_O, "lappend another tclobj or a python list of stuff to tclobj"},
+    {"append", (PyCFunction)TohilTclObj_lappend, METH_O, "lappend (list-append) something to tclobj"},
+    {"extend", (PyCFunction)TohilTclObj_lappend_list, METH_O, "lappend another tclobj or a python list of stuff to tclobj"},
     {NULL} // sentinel
 };
 
