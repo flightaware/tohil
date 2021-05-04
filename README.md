@@ -305,7 +305,7 @@ e
 'a 1 b 2 c 3'
 >>> tohil.eval('return $a')
 'a 1 b 2 c 3'
->>> tohil.eval('return $a' to=list)
+>>> tohil.eval('return $a',to=list)
 ['a', '1', 'b', '2', 'c', '3']
 >>> tohil.eval('return $a',to=dict)
 {'a': '1', 'b': '2', 'c': '3'}
