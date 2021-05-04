@@ -37,7 +37,10 @@ jobs:
 
       - name: make	
         run: |
-          ls -l /usr/include/python3.8m/
+          ls -l /usr/include/python3*
           make
           sudo make install
 
+      - name: test
+        run: |
+          make test
