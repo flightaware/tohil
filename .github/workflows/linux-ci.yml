@@ -28,16 +28,16 @@ jobs:
       - name: Install dependencies	
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y python3-dev python3-pip tcl8.6-dev
+          sudo apt-get install -y python3.7 python3.7-dev python3-pip tcl8.6-dev
 
       - name: configure	
         run: |
           autoreconf
-          ./configure --with-tcl=/usr/lib/tcl8.6 --with-python-include=/usr/include/python3.8m --with-python-lib=/usr/lib --with-python-version=3.8m
+          ./configure --with-tcl=/usr/lib/tcl8.6 --with-python-include=/usr/include/python3.7m --with-python-lib=/usr/lib --with-python-version=3.7m
 
       - name: make	
         run: |
-          ls -l /usr/include/python3*
+          ls -lR /usr/include/python3*
           make
           sudo make install
 
