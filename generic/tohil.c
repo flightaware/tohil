@@ -416,6 +416,22 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
                 return NULL;
             Tcl_ListObjAppendElement(interp, tObj, tVal);
         }
+    } else if (PySet_Check(pObj)) {
+        // NB heavily cribbed from the above
+        // might be useful for other stuff besides sets, if it works
+        PyObject *it = PyObject_GetIter(pObj);
+        if (it == NULL)
+            return NULL;
+        tObj = Tcl_NewListObj(0, NULL);
+        while ((pVal = PyIter_Next(it)) != NULL) {
+            if (pVal == NULL)
+                return NULL;
+            tVal = _pyObjToTcl(interp, pVal);
+            Py_DECREF(pVal);
+            if (tVal == NULL)
+                return NULL;
+            Tcl_ListObjAppendElement(interp, tObj, tVal);
+        }
     } else if (PyMapping_Check(pObj)) {
         tObj = Tcl_NewDictObj();
         len = PyMapping_Length(pObj);
