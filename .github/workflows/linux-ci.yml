@@ -34,8 +34,10 @@ jobs:
       - name: configure	
         run: |
           autoreconf
-          ./configure --with-python-version=3.7m
+          ./configure --with-tcl=/usr/lib --with-python-include=/usr/include/python3.7m --with-python-lib=/usr/lib --with-python-version=3.7m
 
       - name: make	
-        run: make	
+        run: |
+          make
+          sudo make install
 
