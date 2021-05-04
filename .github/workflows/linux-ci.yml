@@ -33,11 +33,11 @@ jobs:
       - name: configure	
         run: |
           autoreconf
-          ./configure --with-tcl=/usr/lib/tcl8.6 --with-python-include=/usr/include/python3.7m --with-python-lib=/usr/lib --with-python-version=3.7m
+          ./configure --with-tcl=/usr/lib/tcl8.6 --with-python-include=/usr/include/python3.8m --with-python-lib=/usr/lib --with-python-version=3.8m
 
       - name: make	
         run: |
-          ls -l /usr/include/python3.7m/
+          ls -l /usr/include/python3.8m/
           make
           sudo make install
 
