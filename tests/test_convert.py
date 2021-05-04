@@ -52,7 +52,7 @@ class TestMethods(unittest.TestCase):
     def test_convert7(self, iset):
         """exercise tohil.convert and to=set"""
         assume(not any('{' in v or '}' in v for v in iset))
-        assert(sorted(tohil.convert(iset, to=set)) == iset)
+        assert(sorted(tohil.convert(iset, to=set)) == sorted(iset))
 
     def test_convert8(self):
         """exercise tohil.convert and to=tohil.tclobj"""
