@@ -2,6 +2,7 @@
 
 from collections.abc import MutableMapping
 from io import StringIO
+import keyword
 import sys
 import traceback
 import types
@@ -558,21 +559,7 @@ class TclNamespace:
 
     """
 
-    proc_excluder = (
-        "break",
-        "continue",
-        "for",
-        "global",
-        "if",
-        "return",
-        "try",
-        "while",
-        "yield",
-        "with",
-        "is",
-        "import",
-        "class",
-    )
+    proc_excluder = keyword.kwlist
 
     def __init__(self, namespace):
         # print(f"{self} importing namespace '{namespace}'")
