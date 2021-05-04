@@ -1,5 +1,7 @@
 # tohil
 
+[![Linux CI](https://github.com/flightaware/tohil/actions/workflows/linux-ci.yml/badge.svg)](https://github.com/flightaware/tohil/actions/workflows/linux-ci.yml)
+
 <img src="https://github.com/flightaware/tohil/blob/main/graphics/237px-Quetzalcoatl_feathered_serpent.png">
 
 Tohil a feathered serpent, aims to provide a delightful integration between python, the serpent, and TCL, the feather.
