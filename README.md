@@ -12,7 +12,7 @@ tohil is based on, and is completely inspired by and exists because of, libtclpy
 
 Tohil is pronounced as, your choice, toe-heel, or toe-hill.
 
-Tohil is currently on version 3 ([release notes](TOHIL-3.md).
+Tohil is currently on version 3 ([release notes](TOHIL-3.md)).
 
 ## Usage
 
