@@ -241,7 +241,7 @@ test: binaries libraries
 	@echo "PYTHON TESTS"
 	cd tests && python3 -m unittest
 	@echo "TCL TESTS"
-	cd tests && tclsh all.tcl
+	cd tests && $(TCLSH) all.tcl
 
 shell: binaries libraries
 	@$(TCLSH) $(SCRIPT)
