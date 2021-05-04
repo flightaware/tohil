@@ -51,6 +51,7 @@ class TestMethods(unittest.TestCase):
     @given(st.sets(st.text(printable)))
     def test_convert7(self, iset):
         """exercise tohil.convert and to=set"""
+        assume(not any('{' in v or '}' in v for v in iset))
         assert(sorted(tohil.convert(iset, to=set)) == iset)
 
     def test_convert8(self):

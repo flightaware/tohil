@@ -12,7 +12,7 @@ tohil is based on, and is completely inspired by and exists because of, libtclpy
 
 Tohil is pronounced as, your choice, toe-heel, or toe-hill.
 
-Tohil is currently on version 3 ([release notes](TOHIL-3.md).
+Tohil is currently on version 3 ([release notes](TOHIL-3.md)).
 
 ## Usage
 
@@ -69,7 +69,7 @@ Note that currently for list, set, dict, and tuple, the values constructed there
 
 #### tohil.call
 
- - `tohil.call(command, arg1 arg2, arg3, to=type)`
+ - `tohil.call(command, arg1, arg2, arg3, to=type)`
    - takes: single Tcl command name plus zero or more arguments, and an optional data type to convert the return to
    - returns: whatever tcl returned
    - side effects: executes code in the Tcl interpreter
