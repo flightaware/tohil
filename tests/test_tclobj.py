@@ -31,26 +31,25 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(str(x), "1 2 3 4 5")
 
     def test_tclobj4(self):
-        """exercise tohil.tclobj as_list()"""
+        """exercise tohil.tclobj list()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
 
-        self.assertEqual(x.as_list(), ["1", "2", "3", "4", "5"])
         self.assertEqual(list(x), ["1", "2", "3", "4", "5"])
 
     def test_tclobj5(self):
-        """exercise tohil.tclobj as_set()"""
+        """exercise tohil.tclobj set()"""
         x = tohil.eval("list 1 2 3 4 5 5", to=tohil.tclobj)
 
-        self.assertEqual(sorted(x.as_set()), ["1", "2", "3", "4", "5"])
+        self.assertEqual(sorted(set(x)), ["1", "2", "3", "4", "5"])
 
     def test_tclobj6(self):
-        """exercise tohil.tclobj as_tuple()"""
+        """exercise tohil.tclobj tuple()"""
         x = tohil.eval("list 1 2 3 4 5 5", to=tohil.tclobj)
 
-        self.assertEqual(sorted(x.as_set()), ["1", "2", "3", "4", "5"])
+        self.assertEqual(tuple(x), ("1", "2", "3", "4", "5", "5"))
 
     def test_tclobj7(self):
-        """exercise tohil.tclobj as_tuple()"""
+        """exercise tohil.tclobj number type (nb_*) methods"""
         x = tohil.expr("5", to=tohil.tclobj)
 
         self.assertEqual(int(x), 5)

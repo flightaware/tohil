@@ -1175,42 +1175,6 @@ TohilTclObj_clear(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 }
 
 //
-// tclobj.as_list()
-//
-static PyObject *
-TohilTclObj_as_list(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return tclListObjToPyListObject(self->interp, selfobj);
-}
-
-//
-// tclobj.as_set()
-//
-static PyObject *
-TohilTclObj_as_set(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return tclListObjToPySetObject(self->interp, selfobj);
-}
-
-//
-// tclobj.as_tuple()
-//
-static PyObject *
-TohilTclObj_as_tuple(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return tclListObjToPyTupleObject(self->interp, selfobj);
-}
-
-//
 // tclobj.as_dict()
 //
 static PyObject *
@@ -1220,30 +1184,6 @@ TohilTclObj_as_dict(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
     if (selfobj == NULL)
         return NULL;
     return tclListObjToPyDictObject(self->interp, selfobj);
-}
-
-//
-// tclobj.as_tclobj()
-//
-static PyObject *
-TohilTclObj_as_tclobj(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return TohilTclObj_FromTclObj(selfobj);
-}
-
-//
-// tclobj.as_tcldict()
-//
-static PyObject *
-TohilTclObj_as_tcldict(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return TohilTclDict_FromTclObj(selfobj);
 }
 
 //
@@ -2993,12 +2933,7 @@ PyDoc_STRVAR(pop__doc__, "Remove and return item at index (default last).\n\nRai
 static PyMethodDef TohilTclObj_methods[] = {
     {"__getitem__", (PyCFunction)TohilTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
     {"clear", (PyCFunction)TohilTclObj_clear, METH_NOARGS, "empty the tclobj"},
-    {"as_list", (PyCFunction)TohilTclObj_as_list, METH_NOARGS, "return tclobj as list"},
-    {"as_set", (PyCFunction)TohilTclObj_as_set, METH_NOARGS, "return tclobj as set"},
-    {"as_tuple", (PyCFunction)TohilTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
     {"as_dict", (PyCFunction)TohilTclObj_as_dict, METH_NOARGS, "return tclobj as dict"},
-    {"as_tclobj", (PyCFunction)TohilTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
-    {"as_tcldict", (PyCFunction)TohilTclObj_as_tcldict, METH_NOARGS, "return tclobj as tcldict"},
     {"as_byte_array", (PyCFunction)TohilTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"incr", (PyCFunction)TohilTclObj_incr, METH_VARARGS | METH_KEYWORDS, "increment tclobj as int"},
     {"getvar", (PyCFunction)TohilTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},

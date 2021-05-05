@@ -29,14 +29,15 @@ Tclobjs have methods to convert the tclobj to python strings, ints, floats, bool
 
 t = tohil.tclobj()
 
-* t.as_bool() - return the contents of the tclobj object as a python bool
+* bool(t) - return the contents of the tclobj object as a python bool
 * t.as_byte_array() - a python byte array
 * t.as_dict() - a python dict
-* t.as_float(), t.as_int() - as a python float and int (long), respectively
-* t.as_list() - as a python list
-* t.as_str() - as a python str
-* t.as_tclobj() - as a new python tclobj object
-* t.as_tuple() - as a python tuple object
+* float(t), int(t) - as a python float and int (long), respectively.
+* list(t) - as a python list
+* str(t) - as a python str
+* tuple(t) - as a python tuple object
+* tohil.tclobj(t) - as a new python tclobj object
+* tohil.tcldict(t) - as a new python tcldict object
 
 ### set() and reset()
 
@@ -64,9 +65,15 @@ You can get the length of the tclobj list with len(obj), while obj.lindex(i) wil
 You can also just use `l[i]` to get the i'th element of l, although lindex supports the
 to=type conversion as well.
 
-obj.lappend() will append python stuff to the list stored in the tclobj.
+obj.append() will append python stuff to the list stored in the tclobj.
 
-obj.lappend_list() will append a tcl object comprising a list, or a python list, to a list, making it flat, i.e. each element of the list is appended to obj's list.
+obj.extend() will append a tcl object comprising a list, or a python list, to a list, making it flat, i.e. each element of the list is appended to obj's list.
+
+obj.pop(x) will pop the xth element from a tcl obj comprising a list.  If no index is specified, obj.pop() removes and returns the liast item in the list.
+
+obj.insert(i, x) will insert item x at position i.  So obj.insert(0, x) inserts at the front of the list, and a.insert(len(a), x) is equivalent to obj.append(x)
+
+obj.clear() removes all items from the list.
 
 Thanks to tohil's increasingly thorough tclobj object implementation and python's excellent support for such things, you can use the indexing syntax to access and even change certain elements.
 
@@ -98,12 +105,16 @@ It seems pretty good, but this is new stuff, so be careful and let us know how i
 
 ### find out the tclobj tcl object's type and reference count
 
-t.tcltype will tell you the tcl object type of the tcl object stored within
+t._tcltype will tell you the tcl object type of the tcl object stored within
 the tclobj.  Note that you may get nothing back even though there is some
 valid thing there, say for instance a dict, but you haven't accessed it as
 a dict, so it's just a string or list or some other data type until you do.
 
-t.refcount will tell you the reference count of the tclobj's tcl object.  This is kind of cool.
+t._refcount will tell you the reference count of the tclobj's tcl object.
+This isn't probably useful for production code but it is kind of cool for poking
+around and trying to understand what objects are shared and how and when and stuff.
+
+t._pyrefcount likewise will return the python reference count of the tclobj.
 
 Note if you're poking around that sometimes you might think the reference
 count is one higher than it should be, but frequently the object you just
@@ -116,7 +127,7 @@ produces a new result, your object's reference count will go down by one.
 tcldicts have the same internal structure as tclobj... a python object pointing to a tcl
 object.  But it is a distinct data type because it has different implementations of
 sequences and maps and whatnot, to provide pythonic feel to tcl dictionaries, which can
-be hierarchies of key-value data.
+also be hierarchies of key-value data.
 
 You can create a tcldict object similarly to creating a tclobj.
 
@@ -179,7 +190,7 @@ and catch the error.
 
 get() offers a second approach, where you invoke get() and specify
 the optional default= argument, where you specify a value that get
-will return if the requested key doesn't exist. 
+will return if the requested key doesn't exist.
 
 If a to=datatype is specified, the default value is coerced to that
 datatype if possible, or an exception is raised if not.

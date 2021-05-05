@@ -70,8 +70,6 @@ class TclVarTests(unittest.TestCase):
         tohil.unset(list_name)
         tl = tohil.tclvar(list_name, default=x)
         assert(str(tl) == tohil.getvar(list_name))
-
-        assert(tl.as_list() == tohil.getvar(list_name, to=list))
         assert(list(tl) == tohil.getvar(list_name, to=list))
 
 

@@ -240,11 +240,22 @@ It's a python-wrapped Tcl object and it's very useful for generating and manipul
 
 Shadow Dictionaries, aka ShadowDicts, create a python dict-like object that shadows a Tcl array.
 
-Tcl arrays are kind of the Tcl equivalent of Python's dicts, by the way.
+Tcl arrays are basically the Tcl equivalent of Python's dicts, by the way.
 
-Anyway, let's assume we have an array "x" in Tcl that we want to shadow as a dictionary "x" in Python, we would write `x = tohil.ShadowDict("x")`
+Anyway, let's assume we have an array "x" in Tcl that we want to shadow as
+a dictionary "x" in Python, we would write `x = tohil.ShadowDict("x")`.
 
-Once created, the shadowdict can be gotten as a string using str() or print(), etc.
+If you just specify a variable name without any namespace qualifiers, the
+array references the current tcl execution frame, like if a tcl proc had
+called python and in our python we did the x equals thing for a shadow dict
+then the "x" array would exist in the proc's frame.
+
+If we're invoking it not from tcl code called from python, just from python
+or the top level or python or whatever, then x is in the global ("::")
+namespace.  You can always provide namespace qualifiers to identify the
+global or some subordinate namespace, like "::cryptolib::x"
+
+Once created, shadowdict elements can be gotten as a string using str() or print(), etc.
 
 Elements can be read form the python side using dictionary notation, for example `x['d']`, set in a standard way (`x['e'] = '5'`), and deleted using del (`del x['e']`).  Also you can iterate on the keys as with dicts.
 
@@ -263,7 +274,7 @@ In the example below we set up a Tcl array, create a ShadowDict of it in python,
 >>> x['e'] = '5'
 >>> x['e']
 5
->>> del x['d']            
+>>> del x['d']
 >>> tohil.eval("parray x")
 x(a) = 1
 x(b) = 2
@@ -278,6 +289,32 @@ b
 c
 e
 ```
+
+ShadowDict support many of the capables of regular python dicts.  For example,
+len(x) will return the length of the shadow dict i.e. the size of the
+shadowed tcl array.
+
+x.keys() return the keys, x.values() returns, and x.items() returns the
+keys and items as a list of two-element tuples.  However, unlike
+regular python dicts, they are not mutable, i.e. if you have captured
+a reference to x.keys() the contents of x.keys() does not change when
+the corresponding dict is changed.
+
+x.get(key) will return the element of the array indexed by key, if it
+exists, else it will raise a KeyError exception.  However if a named
+parameter, "default", is specified with a value, in the event key is
+not found in x, the default value will be returned instead.
+
+Finally the to= named parameter can be used to specify a python return
+type such as list, set, dict, int, float, str, tohil.tclobj, tohil.tcldict,
+etc.
+
+x.pop(key), if key is in the shadow dictionary, removes it and returns
+it.  A default value can be specified as an optional second argument.
+If a default is not specified and the key is not in the dictionary,
+a KeyError exception is raised.  As with so many other functions, the
+to= named parameter can be specified to state what return type you
+want back to python.
 
 #### Examples using tohil from Python
 
