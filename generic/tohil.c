@@ -52,7 +52,7 @@ static PyObject *TohilTclDict_FromTclObj(Tcl_Obj *obj);
 static Tcl_Obj *TohilTclObj_objptr(TohilTclObj *self);
 static int TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj);
 
-PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
+static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
 // TCL library begins here
 
@@ -71,7 +71,7 @@ static PyObject *pTohilTclErrorClass = NULL;
 // tohil_TclObjToUTF8 - convert a Tcl object (string in WTF-8) to real UTF-8
 // for Python.
 //
-char *
+static char *
 tohil_TclObjToUTF8(Tcl_Obj *obj, Tcl_DString *ds)
 {
     static Tcl_Encoding utf8encoding = NULL;
@@ -85,7 +85,7 @@ tohil_TclObjToUTF8(Tcl_Obj *obj, Tcl_DString *ds)
 //
 // tohil_UTF8ToTcl - convert a Python utf-8 string to a Tcl "WTF-8" string.
 //
-char *
+static char *
 tohil_UTF8ToTcl(char *utf8String, int utf8StringLen, Tcl_DString *ds)
 {
     static Tcl_Encoding utf8encoding = NULL;
@@ -101,7 +101,7 @@ tohil_UTF8ToTcl(char *utf8String, int utf8StringLen, Tcl_DString *ds)
 //
 // turn a tcl list into a python list
 //
-PyObject *
+static PyObject *
 tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
@@ -126,7 +126,7 @@ tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 //
 // turn a tcl list into a python set
 //
-PyObject *
+static PyObject *
 tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
@@ -153,7 +153,7 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 //
 // turn a tcl list into a python tuple
 //
-PyObject *
+static PyObject *
 tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
@@ -178,7 +178,7 @@ tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 //
 // turn a tcl list of key-value pairs into a python dict
 //
-PyObject *
+static PyObject *
 tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
@@ -212,7 +212,7 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 //
 // Convert a Python UTF8 string to a Tcl "WTF-8" string.
 //
-int
+static int
 tohil_UTF8toTcl(char *src, int srclen, char **res, int *reslen)
 {
     static Tcl_Encoding utf8encoding = NULL;
@@ -244,7 +244,7 @@ tohil_UTF8toTcl(char *src, int srclen, char **res, int *reslen)
 //
 // Convert a Tcl "WTF-8" string to a Python UTF8 string
 //
-int
+static int
 tohil_TclToUTF8(char *src, int srclen, char **res, int *reslen)
 {
     static Tcl_Encoding utf8encoding = NULL;
@@ -1200,7 +1200,7 @@ TohilTclObj_as_byte_array(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
     return PyByteArray_FromStringAndSize((const char *)byteArray, size);
 }
 
-void
+static void
 TohilTclObj_dup_if_shared(TohilTclObj *self)
 {
     if (!Tcl_IsShared(self->tclobj)) {
@@ -1971,7 +1971,7 @@ TohilTclObjIter(TohilTclObj *self)
 //
 // tclobj's iternext
 //
-PyObject *
+static PyObject *
 TohilTclObj_iternext(TohilTclObj_IterObj *self)
 {
     // printf("TohilTclObj_iternext\n");
@@ -2062,7 +2062,7 @@ enum td_itertype { Iter, Keys, Values, Items };
 // td's iternext - we have to do the DictObjFirst here since
 //   tcl's version, first gives you also the first result.
 //
-PyObject *
+static PyObject *
 Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
 {
     // printf("Tohil_TD_iternext\n");
@@ -2149,25 +2149,25 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
     return pRetTuple;
 }
 
-PyObject *
+static PyObject *
 Tohil_TD_iternext(Tohil_TD_IterObj *self)
 {
     return Tohil_TD_multi_iternext(self, Iter);
 }
 
-PyObject *
+static PyObject *
 Tohil_TD_keys_iternext(Tohil_TD_IterObj *self)
 {
     return Tohil_TD_multi_iternext(self, Keys);
 }
 
-PyObject *
+static PyObject *
 Tohil_TD_values_iternext(Tohil_TD_IterObj *self)
 {
     return Tohil_TD_multi_iternext(self, Values);
 }
 
-PyObject *
+static PyObject *
 Tohil_TD_items_iternext(Tohil_TD_IterObj *self)
 {
     return Tohil_TD_multi_iternext(self, Items);
@@ -3471,7 +3471,7 @@ static PyTypeObject TohilTclDictType = {
 // address comparisons if you grabbed the addresses of the type objects
 // we are insterested in compared to them
 //
-PyObject *
+static PyObject *
 tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj)
 {
     const char *toString = NULL;
