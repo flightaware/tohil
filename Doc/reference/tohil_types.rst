@@ -44,8 +44,8 @@ Truth Value Testing
    pair: Boolean; operations
    single: false
 
-Any tclobj can be tested for truth value, for use in an :keyword:`if` or
-:keyword:`while` condition or as operand of a Boolean operations.
+Any tclobj can be tested for truth value, for use in an `if` or
+`while` condition or as operand of a Boolean operations.
 
 Interpretation of the boolean is according to Tcl rules.  These are very
 close to Python rules, however.
@@ -252,7 +252,7 @@ Tcldicts can be created by the :class:`tcldict` constructor.
    If no positional argument is given, an empty tcldict is created.
    If a positional argument is given and it is a mapping object, a dictionary
    is created with the same key-value pairs as the mapping object.  Otherwise,
-   the positional argument must be an :term:`iterable` object.  Each item in
+   the positional argument must be an `iterable` object.  Each item in
    the iterable must itself be an iterable with exactly two objects.  The
    first object of each item becomes a key in the new dictionary, and the
    second object the corresponding value.  If a key occurs more than once, the

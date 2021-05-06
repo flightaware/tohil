@@ -290,4 +290,14 @@ when you install, use
 
 python3.9 setup.py install --prefix=/opt/local
 
+-----
+
+building docs
+
+pip3 install asdl was needed for docs
+
+pip install python_docs_theme
+
+sphinx-build .  out
+
 

@@ -1,0 +1,7 @@
+****************************
+  What's New In Tohil 3.0
+****************************
+
+Please visit https://github.com/flightaware/tohil/releases/tag/v3.0.0
+and https://github.com/flightaware/tohil/blob/main/TOHIL-3.md
+

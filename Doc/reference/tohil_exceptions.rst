@@ -10,7 +10,7 @@ and throw a TclError exception.
 TclError is an exception class that is, as Python requires, a class
 derived from the :class:`BaseException` class.
 
-In a :keyword:`try` statement with an :keyword:`except`
+In a `try` statement with an `except`
 clause that mentions TclError, that clause will handle the Tcl exception.
 
 What's nice about the TclError class is that it is populated by Tohil
@@ -55,17 +55,18 @@ Tcl's ``catch`` or ``try``, the same as any other TCL error.
 Here is a sample Tcl session catching an uncaught Python exception as a
 Tcl error:
 
-    $ tclsh
-    % package require tohil
-    3.2.0
-    % catch {tohil::eval "no"} catchResult catchDict
-    1
-    % puts $catchResult
-    name 'no' is not defined
-    % puts $catchDict
-    -code 1 -level 0 -errorstack {INNER {invokeStk1 tohil::eval no} UP 1} -errorcode {PYTHON NameError {name 'no' is not defined}} -errorinfo {name 'no' is not defined
-    from python code executed by tohil  File "tohil", line 1, in <module>
-        invoked from within
-    "tohil::eval "no""} -errorline 1
+   >>> tohil.interact()
+   $ tclsh
+   % package require tohil
+   3.2.0
+   % catch {tohil::eval "no"} catchResult catchDict
+   1
+   % puts $catchResult
+   name 'no' is not defined
+   % puts $catchDict
+   -code 1 -level 0 -errorstack {INNER {invokeStk1 tohil::eval no} UP 1} -errorcode {PYTHON NameError {name 'no' is not defined}} -errorinfo {name 'no' is not defined
+   from python code executed by tohil  File "tohil", line 1, in <module>
+       invoked from within
+   "tohil::eval "no""} -errorline 1
 
 
