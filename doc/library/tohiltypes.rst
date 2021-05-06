@@ -147,6 +147,85 @@ list, set, tuple, int, float, etc, or another tclobj, with
 You can clear a tclobj or tcldict using ``s.clear()``, and pop items
 from the list using ``s.pop([i])``.
 
+.. method:: list.append(x)
+   :noindex:
+
+   Add an item to the end of the list.  Equivalent to ``a[len(a):] = [x]``.
+
+
+.. method:: list.extend(iterable)
+   :noindex:
+
+   Extend the list by appending all the items from the iterable.  Equivalent to
+   ``a[len(a):] = iterable``.
+
+
+.. method:: list.insert(i, x)
+   :noindex:
+
+   Insert an item at a given position.  The first argument is the index of the
+   element before which to insert, so ``a.insert(0, x)`` inserts at the front of
+   the list, and ``a.insert(len(a), x)`` is equivalent to ``a.append(x)``.
+
+
+.. method:: list.remove(x)
+   :noindex:
+
+   Remove the first item from the list whose value is equal to *x*.  It raises a
+   :exc:`ValueError` if there is no such item.
+
+
+.. method:: list.pop([i])
+   :noindex:
+
+   Remove the item at the given position in the list, and return it.  If no index
+   is specified, ``a.pop()`` removes and returns the last item in the list.  (The
+   square brackets around the *i* in the method signature denote that the parameter
+   is optional, not that you should type square brackets at that position.  You
+   will see this notation frequently in the Python Library Reference.)
+
+
+.. method:: list.clear()
+   :noindex:
+
+   Remove all items from the list.  Equivalent to ``del a[:]``.
+
+
+.. method:: list.index(x[, start[, end]])
+   :noindex:
+
+   Return zero-based index in the list of the first item whose value is equal to *x*.
+   Raises a :exc:`ValueError` if there is no such item.
+
+   The optional arguments *start* and *end* are interpreted as in the slice
+   notation and are used to limit the search to a particular subsequence of
+   the list.  The returned index is computed relative to the beginning of the full
+   sequence rather than the *start* argument.
+
+
+Some standard Python list methods are not implemented, such as
+``count``, ``reverse``, ``sort``, and ``copy``.
+
+
+An example that uses most of the list methods::
+
+    >>> fruits = tohil.tclobj(['orange', 'apple', 'pear', 'banana', 'kiwi', 'apple', 'banana'])
+    >>> fruits
+    <tohil.tclobj: 'orange apple pear banana kiwi apple banana'>
+    >>> len(fruits)
+    7
+    >>> fruits.append('watermelon')
+    >>> fruits
+    <tohil.tclobj: 'orange apple pear banana kiwi apple banana watermelon'>
+    >>> fruits.insert(1, 'cantaloupe')
+    >>> fruits
+    <tohil.tclobj: 'orange cantaloupe apple pear banana kiwi apple banana watermelon'>
+    >>> fruits.pop()
+    'watermelon'
+    >>> fruits.pop(5)
+    'kiwi'
+
+
 .. _typesmapping:
 
 Mapping Types --- :class:`tcldict`
