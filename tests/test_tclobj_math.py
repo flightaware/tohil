@@ -319,10 +319,10 @@ class TestTclObj(unittest.TestCase):
         ti //= tj
         assert(ti == i // j)
 
-    @given(st.floats(-1000000000, 1000000000), st.floats(-1000000000, 1000000000))
+    @given(st.floats(-100000000, 100000000), st.floats(-100000000, 100000000))
     def test_tclobj_math22(self, u, v):
         """exercise tohil.tclobj "inplace floor divide" float math ops"""
-        assume(v != 0)
+        assume(v < -0.1 or v > 0.1)
         tu = tohil.tclobj(u)
         tv = tohil.tclobj(v)
 

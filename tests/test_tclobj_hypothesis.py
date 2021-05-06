@@ -3,6 +3,7 @@ import tohil
 
 import hypothesis
 from hypothesis import given, strategies as st
+from string import printable
 import unittest
 
 
@@ -51,11 +52,11 @@ class TclobjNumberTests(unittest.TestCase):
         assert tx << ty == x << y
         assert x << ty == x << y
 
-    @given(st.lists(st.integers(-1000000000, 1000000000)))
+    @given(st.lists(st.text(printable)))
     def test_tclobj_lists1(self, x):
         """test tclobj list stuff"""
         tlist = tohil.tclobj(x)
-        assert tlist.as_list() == tlist
+        assert list(tlist) == x
 
 if __name__ == "__main__":
     unittest.main()

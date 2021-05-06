@@ -52,7 +52,7 @@ static PyObject *TohilTclDict_FromTclObj(Tcl_Obj *obj);
 static Tcl_Obj *TohilTclObj_objptr(TohilTclObj *self);
 static int TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj);
 
-PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
+static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
 // TCL library begins here
 
@@ -71,7 +71,7 @@ static PyObject *pTohilTclErrorClass = NULL;
 // tohil_TclObjToUTF8 - convert a Tcl object (string in WTF-8) to real UTF-8
 // for Python.
 //
-char *
+static char *
 tohil_TclObjToUTF8(Tcl_Obj *obj, Tcl_DString *ds)
 {
     static Tcl_Encoding utf8encoding = NULL;
@@ -85,7 +85,7 @@ tohil_TclObjToUTF8(Tcl_Obj *obj, Tcl_DString *ds)
 //
 // tohil_UTF8ToTcl - convert a Python utf-8 string to a Tcl "WTF-8" string.
 //
-char *
+static char *
 tohil_UTF8ToTcl(char *utf8String, int utf8StringLen, Tcl_DString *ds)
 {
     static Tcl_Encoding utf8encoding = NULL;
@@ -101,7 +101,7 @@ tohil_UTF8ToTcl(char *utf8String, int utf8StringLen, Tcl_DString *ds)
 //
 // turn a tcl list into a python list
 //
-PyObject *
+static PyObject *
 tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
@@ -126,7 +126,7 @@ tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 //
 // turn a tcl list into a python set
 //
-PyObject *
+static PyObject *
 tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
@@ -153,7 +153,7 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 //
 // turn a tcl list into a python tuple
 //
-PyObject *
+static PyObject *
 tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
@@ -178,7 +178,7 @@ tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 //
 // turn a tcl list of key-value pairs into a python dict
 //
-PyObject *
+static PyObject *
 tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
@@ -212,7 +212,7 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 //
 // Convert a Python UTF8 string to a Tcl "WTF-8" string.
 //
-int
+static int
 tohil_UTF8toTcl(char *src, int srclen, char **res, int *reslen)
 {
     static Tcl_Encoding utf8encoding = NULL;
@@ -244,7 +244,7 @@ tohil_UTF8toTcl(char *src, int srclen, char **res, int *reslen)
 //
 // Convert a Tcl "WTF-8" string to a Python UTF8 string
 //
-int
+static int
 tohil_TclToUTF8(char *src, int srclen, char **res, int *reslen)
 {
     static Tcl_Encoding utf8encoding = NULL;
@@ -1175,42 +1175,6 @@ TohilTclObj_clear(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 }
 
 //
-// tclobj.as_list()
-//
-static PyObject *
-TohilTclObj_as_list(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return tclListObjToPyListObject(self->interp, selfobj);
-}
-
-//
-// tclobj.as_set()
-//
-static PyObject *
-TohilTclObj_as_set(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return tclListObjToPySetObject(self->interp, selfobj);
-}
-
-//
-// tclobj.as_tuple()
-//
-static PyObject *
-TohilTclObj_as_tuple(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return tclListObjToPyTupleObject(self->interp, selfobj);
-}
-
-//
 // tclobj.as_dict()
 //
 static PyObject *
@@ -1220,30 +1184,6 @@ TohilTclObj_as_dict(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
     if (selfobj == NULL)
         return NULL;
     return tclListObjToPyDictObject(self->interp, selfobj);
-}
-
-//
-// tclobj.as_tclobj()
-//
-static PyObject *
-TohilTclObj_as_tclobj(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return TohilTclObj_FromTclObj(selfobj);
-}
-
-//
-// tclobj.as_tcldict()
-//
-static PyObject *
-TohilTclObj_as_tcldict(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
-{
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
-    if (selfobj == NULL)
-        return NULL;
-    return TohilTclDict_FromTclObj(selfobj);
 }
 
 //
@@ -1260,7 +1200,7 @@ TohilTclObj_as_byte_array(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
     return PyByteArray_FromStringAndSize((const char *)byteArray, size);
 }
 
-void
+static void
 TohilTclObj_dup_if_shared(TohilTclObj *self)
 {
     if (!Tcl_IsShared(self->tclobj)) {
@@ -2031,7 +1971,7 @@ TohilTclObjIter(TohilTclObj *self)
 //
 // tclobj's iternext
 //
-PyObject *
+static PyObject *
 TohilTclObj_iternext(TohilTclObj_IterObj *self)
 {
     // printf("TohilTclObj_iternext\n");
@@ -2122,7 +2062,7 @@ enum td_itertype { Iter, Keys, Values, Items };
 // td's iternext - we have to do the DictObjFirst here since
 //   tcl's version, first gives you also the first result.
 //
-PyObject *
+static PyObject *
 Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
 {
     // printf("Tohil_TD_iternext\n");
@@ -2209,25 +2149,25 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
     return pRetTuple;
 }
 
-PyObject *
+static PyObject *
 Tohil_TD_iternext(Tohil_TD_IterObj *self)
 {
     return Tohil_TD_multi_iternext(self, Iter);
 }
 
-PyObject *
+static PyObject *
 Tohil_TD_keys_iternext(Tohil_TD_IterObj *self)
 {
     return Tohil_TD_multi_iternext(self, Keys);
 }
 
-PyObject *
+static PyObject *
 Tohil_TD_values_iternext(Tohil_TD_IterObj *self)
 {
     return Tohil_TD_multi_iternext(self, Values);
 }
 
-PyObject *
+static PyObject *
 Tohil_TD_items_iternext(Tohil_TD_IterObj *self)
 {
     return Tohil_TD_multi_iternext(self, Items);
@@ -2993,12 +2933,7 @@ PyDoc_STRVAR(pop__doc__, "Remove and return item at index (default last).\n\nRai
 static PyMethodDef TohilTclObj_methods[] = {
     {"__getitem__", (PyCFunction)TohilTclObj_subscript, METH_O | METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
     {"clear", (PyCFunction)TohilTclObj_clear, METH_NOARGS, "empty the tclobj"},
-    {"as_list", (PyCFunction)TohilTclObj_as_list, METH_NOARGS, "return tclobj as list"},
-    {"as_set", (PyCFunction)TohilTclObj_as_set, METH_NOARGS, "return tclobj as set"},
-    {"as_tuple", (PyCFunction)TohilTclObj_as_tuple, METH_NOARGS, "return tclobj as tuple"},
     {"as_dict", (PyCFunction)TohilTclObj_as_dict, METH_NOARGS, "return tclobj as dict"},
-    {"as_tclobj", (PyCFunction)TohilTclObj_as_tclobj, METH_NOARGS, "return tclobj as tclobj"},
-    {"as_tcldict", (PyCFunction)TohilTclObj_as_tcldict, METH_NOARGS, "return tclobj as tcldict"},
     {"as_byte_array", (PyCFunction)TohilTclObj_as_byte_array, METH_NOARGS, "return tclobj as a byte array"},
     {"incr", (PyCFunction)TohilTclObj_incr, METH_VARARGS | METH_KEYWORDS, "increment tclobj as int"},
     {"getvar", (PyCFunction)TohilTclObj_getvar, METH_O, "set tclobj to tcl var or array element"},
@@ -3536,7 +3471,7 @@ static PyTypeObject TohilTclDictType = {
 // address comparisons if you grabbed the addresses of the type objects
 // we are insterested in compared to them
 //
-PyObject *
+static PyObject *
 tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj)
 {
     const char *toString = NULL;

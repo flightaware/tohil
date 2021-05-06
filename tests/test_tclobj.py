@@ -31,26 +31,25 @@ class TestTclObj(unittest.TestCase):
         self.assertEqual(str(x), "1 2 3 4 5")
 
     def test_tclobj4(self):
-        """exercise tohil.tclobj as_list()"""
+        """exercise tohil.tclobj list()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
 
-        self.assertEqual(x.as_list(), ["1", "2", "3", "4", "5"])
         self.assertEqual(list(x), ["1", "2", "3", "4", "5"])
 
     def test_tclobj5(self):
-        """exercise tohil.tclobj as_set()"""
+        """exercise tohil.tclobj set()"""
         x = tohil.eval("list 1 2 3 4 5 5", to=tohil.tclobj)
 
-        self.assertEqual(sorted(x.as_set()), ["1", "2", "3", "4", "5"])
+        self.assertEqual(sorted(set(x)), ["1", "2", "3", "4", "5"])
 
     def test_tclobj6(self):
-        """exercise tohil.tclobj as_tuple()"""
+        """exercise tohil.tclobj tuple()"""
         x = tohil.eval("list 1 2 3 4 5 5", to=tohil.tclobj)
 
-        self.assertEqual(sorted(x.as_set()), ["1", "2", "3", "4", "5"])
+        self.assertEqual(tuple(x), ("1", "2", "3", "4", "5", "5"))
 
     def test_tclobj7(self):
-        """exercise tohil.tclobj as_tuple()"""
+        """exercise tohil.tclobj number type (nb_*) methods"""
         x = tohil.expr("5", to=tohil.tclobj)
 
         self.assertEqual(int(x), 5)
@@ -208,7 +207,7 @@ class TestTclObj(unittest.TestCase):
             t.incr()
 
     def test_tclobj21(self):
-        """tohil.tclobj numer type 'boolean' tests"""
+        """tohil.tclobj number type 'boolean' tests"""
         self.assertEqual(bool(tohil.tclobj('f')), False)
         self.assertEqual(bool(tohil.tclobj('F')), False)
         self.assertEqual(bool(tohil.tclobj('n')), False)
@@ -223,18 +222,33 @@ class TestTclObj(unittest.TestCase):
             bool(tohil.tclobj('foo'))
 
     def test_tclobj22(self):
-        """tohil.tclobj numer type 'int' tests"""
+        """tohil.tclobj number type 'int' tests"""
         self.assertEqual(int(tohil.tclobj('5')), 5)
         self.assertEqual(int(tohil.tclobj(5)), 5)
         self.assertEqual(int(tohil.tclobj('5.0')), 5)
         self.assertEqual(int(tohil.tclobj(5.0)), 5)
 
     def test_tclobj23(self):
-        """tohil.tclobj numer type 'float' tests"""
+        """tohil.tclobj number type 'float' tests"""
         self.assertEqual(float(tohil.tclobj('5')), 5.0)
         self.assertEqual(float(tohil.tclobj(5)), 5.0)
         self.assertEqual(float(tohil.tclobj('5.0')), 5.0)
         self.assertEqual(float(tohil.tclobj(5.0)), 5.0)
+
+    def test_tclobj24(self):
+        """tohil.tclobj list 'pop' tests"""
+        t = tohil.tclobj("a b c d e")
+        with self.assertRaises(IndexError):
+            t.pop(10)
+        with self.assertRaises(IndexError):
+            t.pop(-5)
+        self.assertEqual(t.pop(), 'e')
+        self.assertEqual(t.pop(), 'd')
+        self.assertEqual(t.pop(0), 'a')
+        self.assertEqual(t.pop(1), 'c')
+        self.assertEqual(t.pop(0), 'b')
+        with self.assertRaises(IndexError):
+            t.pop()
 
 if __name__ == "__main__":
     unittest.main()
