@@ -300,4 +300,12 @@ pip install python_docs_theme
 
 sphinx-build .  out
 
+-----
+
+say you are doing 'make html' repeatedly in the Doc dir and want to view,
+you can start a dead simple webserver from the top level of your html dir
+or whatever, using something like:
+
+python3 -m http.server
+
 
