@@ -11,17 +11,19 @@ to the Python interpreter.
 
 .. index:: pair: tohil; types
 
-The principal tohil types are tclobj and tcldict.  There are a few additional
+The principal tohil types are *tclobj* and *tcldict*.  There are a few additional
 types for iterators and exceptions.
 
-Tclobjs and tcldicts are mutable.  The methods that add, subtract, or
-rearrange their members in place, and don't return a specific item, never
-return the collection instance itself but ``None``.
+Tclobjs and tcldicts are mutable.  As with native Python types, methods that add,
+subtract, or rearrange their members in place, and don't return a specific item, type
+return ``None`` rather than the collection instance itself.
 
 Some operations are supported by both object types; in particular,
 they can be compared for equality, tested for truth
-value, and converted to a string (with the :func:`repr` function or the
-slightly different :func:`str` function).  Tclobjs can be used freely as float
+value, and converted to a string with the :func:`str` function, while
+with the :func:`repr` produces a perhaps somewhat developer-friendly string
+representation of the object.
+Tclobjs can be used freely as float
 or integer values in numeric calculations (when the contents of the tclobj are
 numeric), including as a source or target of in-place arithmetic.
 

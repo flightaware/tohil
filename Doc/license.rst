@@ -1,5 +1,7 @@
 .. highlight:: none
 
+.. _copyright-and-license:
+
 *********************
 Copyright and License
 *********************

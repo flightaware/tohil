@@ -1,4 +1,4 @@
-.. _bltin-exceptions:
+.. _tohil-exceptions:
 
 Tohil Exceptions
 ================

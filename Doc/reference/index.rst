@@ -16,4 +16,5 @@ describes the library that is Tohil.
    intro.rst
    tohil_types.rst
    tohil_exceptions.rst
+   _tohil-tcl-errors.rst
 
