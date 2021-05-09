@@ -36,7 +36,8 @@ copyright = '2014, Aidan Hobson Sayers, 2021-%s, FlightAware LLC' % time.strftim
 # We look for the Include/patchlevel.h file in the current Python source tree
 # and replace the values accordingly.
 import tohil
-version = tohil.__version__
+#version = tohil.__version__
+version = ".".join(tohil.__version__.split('.')[0:2])
 release = version
 
 # There are two options for replacing |today|: either, you set today to some
