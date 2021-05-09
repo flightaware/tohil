@@ -300,6 +300,11 @@ pip install python_docs_theme
 
 sphinx-build .  out
 
+we have our own docs theme now
+
+git clone https://github.com/flightaware/tohil-docs-theme.git
+ZZ
+
 -----
 
 say you are doing 'make html' repeatedly in the Doc dir and want to view,

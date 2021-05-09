@@ -5,12 +5,11 @@
 ######################
 
 
-The "What's New in Python" series of essays takes tours through the most
-important changes between major Python versions.  They are a "must read" for
-anyone wishing to stay up-to-date after a new release.
+"What's New in Tohil" describes the big changes between major Tohil versions.
 
 .. toctree::
    :maxdepth: 2
 
+   3.2.rst
    3.0.rst
 

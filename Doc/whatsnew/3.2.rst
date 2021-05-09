@@ -1,0 +1,105 @@
+****************************
+  What's New In Tohil 3.2
+****************************
+
+### tclobjs
+
+Tohil Tcl objects, tclobjs, are a data type Tohil creates in Python.
+Tclobjs have gained considerable new power.  Among them, they now
+implement the number protocol.
+
+This means tclobjs can be used for number in numeric calculations
+without needing to pass through int() or float(). 
+
+Testing of tclobjs for boolean value now provides tcl
+semantics.  'f', 'F', 'n', 'N', 0, substrings case-insentiviely
+matching "false" or "no", evaluate as false; 't', 'T', 'y', 'Y', any
+number of than 0, substrings matching "true" or "yes", evaulate true.
+
+Tclobjs can be used as one or both operands for addition, subtraction,
+multiplication, division, remainder, divmod,
+bitwise or, and, xor, left shift, right shift, etc.  Unary ops invert,
+negative, position, absolute value all work.
+
+Tclobjs can be used for "inplace" number calculations such as +=, /=, <<=, etc.
+
+Tclobj iterator code was rewritten from Python into C.
+
+Removed almost all of the *as_*" methods of tclobjs that convert tclobjs
+into various Python data types.  *tclobj.as_int()* has been replaced by
+*int(tclobj)*, *as_bool* by *bool()*, *as_float* by *float()*,
+*as_str* by *str()*.  *llength()* has been removed; you can use *len()*
+to get the same thing.
+
+Removed tclobj's *as_tuple()* method; use tuple(tclobj) instead.
+Likewise removed *as_tclobj()* method; use tohil.tclobi(tclobj) instead.
+Remove *as_tcldict()* ; use tohil.tcldict(tclobj) instead.
+
+
+What's cool is these functions are provided by the tclobj type
+implementation, so that are real efficient
+in terms of how they interact with the underlying Tcl objects.
+
+The *tclobj.reset()* method has been renamed to *clear()* for consistency
+with Python lists and dicts.  It also works for tcldicts.
+
+Tclobj *lappend* method has been renamed to *append* and *lappend_list*
+renamed to *extend*, for compatibility with Python's lists.
+
+* tclobjs can now ingest python sets (in addition to lists, tuples, etc,
+  which it already could do.)
+
+### Tclobj Shadow Vars
+
+Another new feature, Tclobj shadow vars, `t = tohil.tclvar('t')`, makes *t* a
+tclobj that shadows a variable *t* in the Tcl interpreter.  Any changes to the
+variable from the Tcl side are "seen" from the Python side, and vice versa.
+The variable can also be an array element.
+
+### Tcldicts
+
+* Tcldict objects now provide many methods that standard Python dicts
+  provide, such as keys(), values(), items().  Because of this,
+  dict(tcldict) now works.
+
+* The clear() method is now supported to empty the Tcl dict.
+
+* A new tcldict *pop* method behaves the same as pop for standard Python dicts,
+  popping the last item in the list if no position is specified, else popping
+  the specified position, i.e. removing it from the list and returning it.
+
+* A new *.insert(i, x)* method will insert item x at position i.
+
+### ShadowDicts
+
+ShadowDicts implement many additional methods implemented by standard
+Python dicts.
+
+ShadowDicts now have a *get* method that behaves as standard dicts do.
+A new *clear* method removes all items from the shadow diction, i.e. it
+unsets the shadowed Tcl array.
+
+### Python exception improvements
+
+We now raise more standard Python TypeError, KeyError and ValueError exceptions
+in places where we used to just raise RuntimeError.
+
+### Tohil method improvements and changes
+
+Tohil.unset can now take an arbitrary number of arguments of variable names
+and array elements to unset, include zero.  As before, it is fine to unset
+something that doesn't exist.
+
+### Testing Improvements
+
+* Lots of new tests.
+* Also we're now using the hypothesis testing framework and have found
+  and fixed a number of problems because of it.
+* All tests pass now on 32-bit ARM Linux.
+* Linux CI automated testing using Github Actions
+
+### Build Improvements
+
+* 
+
+
