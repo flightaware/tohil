@@ -68,7 +68,7 @@ Tcl error, where the errorCode is set into the catch options var:
    % puts $catchDict
    -code 1 -level 0 -errorstack {INNER {invokeStk1 tohil::eval no} UP 1} -errorcode {PYTHON NameError {name 'no' is not defined}} -errorinfo {name 'no' is not defined
    from python code executed by tohil  File "tohil", line 1, in <module>
-       invoked from within
+   invoked from within
    "tohil::eval "no""} -errorline 1
 
 

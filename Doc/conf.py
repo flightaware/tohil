@@ -69,7 +69,7 @@ master_doc = 'contents'
 # -----------------------
 
 # Use our custom theme.
-html_theme = 'python_docs_theme'
+html_theme = 'tohil_docs_theme'
 #html_theme = 'alabaster'
 html_theme_path = ['tools']
 html_theme_options = {
