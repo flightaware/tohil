@@ -31,7 +31,7 @@ manpages_url = 'https://manpages.debian.org/{path}'
 
 # General substitutions.
 project = 'Tohil'
-copyright = '2021-%s, FlightAware LLC' % time.strftime('%Y')
+copyright = '2014, Aidan Hobson Sayers, 2021-%s, FlightAware LLC' % time.strftime('%Y')
 
 # We look for the Include/patchlevel.h file in the current Python source tree
 # and replace the values accordingly.
@@ -108,7 +108,8 @@ html_use_opensearch = 'https://docs.python.org/' + version
 html_static_path = ['tools/static']
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'python' + release.replace('.', '')
+#htmlhelp_basename = 'python' + release.replace('.', '')
+htmlhelp_basename = 'tohil' + release.replace('.', '')
 
 # Split the index
 html_split_index = True
