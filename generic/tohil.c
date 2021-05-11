@@ -26,6 +26,9 @@
 
 #define STREQU(a, b) (*(a) == *(b) && strcmp((a), (b)) == 0)
 
+// leave in asserts
+#undef NDEBUG
+
 // forward definitions
 
 // tclobj python data type that consists of a standard python
@@ -142,6 +145,7 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     for (int i = 0; i < count; i++) {
         Tcl_DString ds;
         if (PySet_Add(pset, Py_BuildValue("s", tohil_TclObjToUTF8(list[i], &ds))) < 0) {
+            // no need to set a python error; PySet_Add will do it
             return NULL;
         }
         Tcl_DStringFree(&ds);
@@ -515,14 +519,14 @@ PyReturnTclError(Tcl_Interp *interp, char *string)
 }
 
 //
-// PyReturnException - return a python exception to tcl as a tcl error
+// Tohil_ReturnExceptionToTcl - return a python exception to tcl as a tcl error
 //
 static int
-PyReturnException(Tcl_Interp *interp, char *description)
+Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
 {
     // Shouldn't call this function unless Python has excepted
     if (PyErr_Occurred() == NULL) {
-        return PyReturnTclError(interp, "bug in tohil - PyReturnException called without a python error having occurred");
+        return PyReturnTclError(interp, "bug in tohil - Tohil_ReturnExceptionToTcl called without a python error having occurred");
     }
 
     // break out the exception
@@ -598,7 +602,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
     PyObject *pMainModule = PyImport_AddModule("__main__");
     if (pMainModule == NULL) {
         Tcl_DStringFree(&ds);
-        return PyReturnException(interp, "unable to add module __main__ to python interpreter");
+        return Tohil_ReturnExceptionToTcl(interp, "unable to add module __main__ to python interpreter");
     }
 
     /* So we don't have to special case the decref in the following loop */
@@ -614,7 +618,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
         if (pObjStr == NULL) {
             Py_DECREF(pObjParent);
             Tcl_DStringFree(&ds);
-            return PyReturnException(interp, "failed unicode translation of call function in python interpreter");
+            return Tohil_ReturnExceptionToTcl(interp, "failed unicode translation of call function in python interpreter");
         }
 
         pObj = PyObject_GetAttr(pObjParent, pObjStr);
@@ -622,7 +626,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
         Py_DECREF(pObjParent);
         if (pObj == NULL) {
             Tcl_DStringFree(&ds);
-            return PyReturnException(interp, "failed to find dotted attribute in python interpreter");
+            return Tohil_ReturnExceptionToTcl(interp, "failed to find dotted attribute in python interpreter");
         }
 
         objandfn = dot + 1;
@@ -633,11 +637,11 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
     Py_DECREF(pObj);
     Tcl_DStringFree(&ds);
     if (pFn == NULL)
-        return PyReturnException(interp, "failed to find object/function in python interpreter");
+        return Tohil_ReturnExceptionToTcl(interp, "failed to find object/function in python interpreter");
 
     if (!PyCallable_Check(pFn)) {
         Py_DECREF(pFn);
-        return PyReturnException(interp, "function is not callable");
+        return Tohil_ReturnExceptionToTcl(interp, "function is not callable");
     }
 
     // if there are no positional arguments, we will
@@ -654,7 +658,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
         if (curarg == NULL) {
             Py_DECREF(pArgs);
             Py_DECREF(pFn);
-            return PyReturnException(interp, "unicode string conversion failed");
+            return Tohil_ReturnExceptionToTcl(interp, "unicode string conversion failed");
         }
         /* Steals a reference */
         PyTuple_SET_ITEM(pArgs, i - objStart, curarg);
@@ -666,12 +670,12 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
     if (kwObj != NULL)
         Py_DECREF(kwObj);
     if (pRet == NULL)
-        return PyReturnException(interp, "error in python object call");
+        return Tohil_ReturnExceptionToTcl(interp, "error in python object call");
 
     Tcl_Obj *tRet = pyObjToTcl(interp, pRet);
     Py_DECREF(pRet);
     if (tRet == NULL)
-        return PyReturnException(interp, "error converting python object to tcl object");
+        return Tohil_ReturnExceptionToTcl(interp, "error converting python object to tcl object");
 
     Tcl_SetObjResult(interp, tRet);
     return TCL_OK;
@@ -702,12 +706,12 @@ TohilImport_Cmd(ClientData clientData, /* Not used. */
     /* Borrowed ref, do not decrement */
     pMainModule = PyImport_AddModule("__main__");
     if (pMainModule == NULL)
-        return PyReturnException(interp, "add module __main__ failed");
+        return Tohil_ReturnExceptionToTcl(interp, "add module __main__ failed");
 
     // We don't use PyImport_ImportModule so mod.submod works
     pTopModule = PyImport_ImportModuleEx(modname, NULL, NULL, NULL);
     if (pTopModule == NULL)
-        return PyReturnException(interp, "import module failed");
+        return Tohil_ReturnExceptionToTcl(interp, "import module failed");
 
     topmodname = PyModule_GetName(pTopModule);
     if (topmodname != NULL) {
@@ -716,7 +720,7 @@ TohilImport_Cmd(ClientData clientData, /* Not used. */
     Py_DECREF(pTopModule);
 
     if (ret < 0)
-        return PyReturnException(interp, "while trying to import a module");
+        return Tohil_ReturnExceptionToTcl(interp, "while trying to import a module");
 
     return TCL_OK;
 }
@@ -741,7 +745,7 @@ TohilEval_Cmd(ClientData clientData, /* Not used. */
     Tcl_DStringFree(&ds);
 
     if (code == NULL) {
-        return PyReturnException(interp, "while compiling python eval code");
+        return Tohil_ReturnExceptionToTcl(interp, "while compiling python eval code");
     }
 
     PyObject *main_module = PyImport_AddModule("__main__");
@@ -751,7 +755,7 @@ TohilEval_Cmd(ClientData clientData, /* Not used. */
     Py_XDECREF(code);
 
     if (pyobj == NULL) {
-        return PyReturnException(interp, "while evaluating python code");
+        return Tohil_ReturnExceptionToTcl(interp, "while evaluating python code");
     }
 
     Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
@@ -779,7 +783,7 @@ TohilExec_Cmd(ClientData clientData, /* Not used. */
     Tcl_DStringFree(&ds);
 
     if (code == NULL) {
-        return PyReturnException(interp, "while compiling python exec code");
+        return Tohil_ReturnExceptionToTcl(interp, "while compiling python exec code");
     }
 
     PyObject *main_module = PyImport_AddModule("__main__");
@@ -789,7 +793,7 @@ TohilExec_Cmd(ClientData clientData, /* Not used. */
     Py_XDECREF(code);
 
     if (pyobj == NULL) {
-        return PyReturnException(interp, "while evaluating python code");
+        return Tohil_ReturnExceptionToTcl(interp, "while evaluating python code");
     }
 
     Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
@@ -815,7 +819,7 @@ TohilInteract_Cmd(ClientData clientData, /* Not used. */
 
     int result = PyRun_InteractiveLoop(stdin, "stdin");
     if (result < 0) {
-        return PyReturnException(interp, "interactive loop failure");
+        return Tohil_ReturnExceptionToTcl(interp, "interactive loop failure");
     }
 
     return TCL_OK;
