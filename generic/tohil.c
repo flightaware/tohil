@@ -508,11 +508,11 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
 }
 
 //
-// PyReturnTclError - return a tcl error to the tcl interpreter
+// Tohil_ReturnTclError - return a tcl error to the tcl interpreter
 //   with the specified string as an error message
 //
 static int
-PyReturnTclError(Tcl_Interp *interp, char *string)
+Tohil_ReturnTclError(Tcl_Interp *interp, char *string)
 {
     Tcl_SetObjResult(interp, Tcl_NewStringObj(string, -1));
     return TCL_ERROR;
@@ -526,7 +526,7 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
 {
     // Shouldn't call this function unless Python has excepted
     if (PyErr_Occurred() == NULL) {
-        return PyReturnTclError(interp, "bug in tohil - Tohil_ReturnExceptionToTcl called without a python error having occurred");
+        return Tohil_ReturnTclError(interp, "bug in tohil - Tohil_ReturnExceptionToTcl called without a python error having occurred");
     }
 
     // break out the exception
@@ -551,11 +551,11 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
         PyErr_NormalizeException(&pType, &pVal, &pTrace);
         PyObject_Print(pType, stdout, 0);
         PyObject_Print(pVal, stdout, 0);
-        return PyReturnTclError(interp, "some problem running the tohil python exception handler");
+        return Tohil_ReturnTclError(interp, "some problem running the tohil python exception handler");
     }
 
     if (!PyTuple_Check(pExceptionResult) || PyTuple_GET_SIZE(pExceptionResult) != 2) {
-        return PyReturnTclError(interp, "malfunction in tohil python exception handler, did not return tuple or tuple did not contain 2 elements");
+        return Tohil_ReturnTclError(interp, "malfunction in tohil python exception handler, did not return tuple or tuple did not contain 2 elements");
     }
 
     Tcl_SetObjErrorCode(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 0)));
@@ -4007,21 +4007,21 @@ Tohil_Init(Tcl_Interp *interp)
         PyObject_Print(pType, stdout, 0);
         PyObject_Print(pVal, stdout, 0);
 
-        return PyReturnTclError(interp, "unable to import tohil module to python interpreter");
+        return Tohil_ReturnTclError(interp, "unable to import tohil module to python interpreter");
     }
 
     pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
     if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
         Py_XDECREF(pTohilHandleException);
         Py_DECREF(pTohilMod);
-        return PyReturnTclError(interp, "unable to find tohil.handle_exception function in python interpreter");
+        return Tohil_ReturnTclError(interp, "unable to find tohil.handle_exception function in python interpreter");
     }
 
     pTohilTclErrorClass = PyObject_GetAttrString(pTohilMod, "TclError");
     if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
         Py_XDECREF(pTohilTclErrorClass);
         Py_DECREF(pTohilMod);
-        return PyReturnTclError(interp, "unable to find tohil.TclError class in python interpreter");
+        return Tohil_ReturnTclError(interp, "unable to find tohil.TclError class in python interpreter");
     }
     Py_DECREF(pTohilMod);
 
