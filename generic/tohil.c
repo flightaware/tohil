@@ -535,6 +535,8 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
 
     PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
     PyErr_NormalizeException(&pType, &pVal, &pTrace);
+    PyObject_Print(pType, stdout, 0);
+    PyObject_Print(pVal, stdout, 0);
 
     // set tcl interpreter result
     Tcl_SetObjResult(interp, pyObjToTcl(interp, pVal));
