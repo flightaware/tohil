@@ -4016,6 +4016,13 @@ Tohil_Init(Tcl_Interp *interp)
     }
     // printf("Tohil_Init: imported tohil module\n");
 
+    const char *tohil_modname = PyModule_GetName(pTohilMod);
+    if (tohil_modname != NULL) {
+        int ret = PyObject_SetAttrString(main_module, tohil_modname, pTohilMod);
+        if (ret < 0)
+            return Tohil_ReturnTclError(interp, "unable to setattr tohil module to __main__");
+    }
+
     pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
     if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
         Py_XDECREF(pTohilHandleException);
