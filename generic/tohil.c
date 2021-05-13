@@ -714,6 +714,7 @@ TohilImport_Cmd(ClientData clientData, /* Not used. */
     if (pTopModule == NULL)
         return Tohil_ReturnExceptionToTcl(interp, "import module failed");
 
+    // attach tohil module to __main__
     topmodname = PyModule_GetName(pTopModule);
     if (topmodname != NULL) {
         ret = PyObject_SetAttrString(pMainModule, topmodname, pTopModule);
@@ -4019,6 +4020,7 @@ Tohil_Init(Tcl_Interp *interp)
     }
     // printf("Tohil_Init: imported tohil module\n");
 
+    // attach tohil module to __main__
     const char *tohil_modname = PyModule_GetName(pTohilMod);
     if (tohil_modname != NULL) {
         int ret = PyObject_SetAttrString(main_module, tohil_modname, pTohilMod);
