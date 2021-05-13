@@ -3501,6 +3501,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", tclString, tclStringSize));
         PyTuple_SET_ITEM(pRetTuple, 1, pReturnOptionsObj);
 
+        assert(pTohilTclErrorClass != NULL);
+
         // ...and set the python error object to
         // TclError(interp_result_string, tcldict_object)
         PyErr_SetObject(pTohilTclErrorClass, pRetTuple);
@@ -4037,6 +4039,7 @@ Tohil_Init(Tcl_Interp *interp)
         Py_DECREF(pTohilMod);
         return Tohil_ReturnTclError(interp, "unable to find tohil.TclError class in python interpreter");
     }
+    Py_INCREF(pTohilTclErrorClass);
     Py_DECREF(pTohilMod);
     // printf("got TclError pointer (%lx)\n", pTohilTclErrorClass);
 
@@ -4167,6 +4170,28 @@ PyInit__tohil(void)
         return NULL;
     }
     Py_DECREF(pCap);
+
+    // dig out references to handle_exception and TclError class
+    // NB this is very similar to what happens in Tcl_Init, has to happen
+    // in both places due to we aren't using the same shared library.
+    // our returns are a little different, but this is a candidate for
+    // some kind of simplifying subroutine.
+    pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
+    if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
+        Py_XDECREF(pTohilHandleException);
+        Py_DECREF(pTohilMod);
+        return NULL;
+    }
+
+    pTohilTclErrorClass = PyObject_GetAttrString(pTohilMod, "TclError");
+    if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
+        Py_XDECREF(pTohilTclErrorClass);
+        Py_DECREF(pTohilMod);
+        return NULL;
+    }
+    Py_INCREF(pTohilTclErrorClass);
+    Py_DECREF(pTohilMod);
+    // printf("got TclError pointer (%lx)\n", pTohilTclErrorClass);
 
     return m;
 }
