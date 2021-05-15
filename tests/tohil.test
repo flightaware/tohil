@@ -48,6 +48,13 @@ test tohil_exec-1.4 {incorrect usage of exec} \
 	-returnCodes error \
 	-result {name 'nosuchvar' is not defined}
 
+test tohil_exec-1.5 {exec invoking python invoking tcl} \
+	-body {tohil::exec "tohil.eval('set exec15 test')"}
+
+test tohil_exec-1.6 {exec invoking python invoking tcl} \
+	-body {catch {tohil::exec "tohil.eval('nonesuch')"} catchResult catchDict; return [lindex [dict get $catchDict -errorcode] 1]} \
+	-result TclError
+
 # =========
 # tohil::import
 # =========
