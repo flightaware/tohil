@@ -55,6 +55,8 @@ static PyObject *TohilTclDict_FromTclObj(Tcl_Obj *obj);
 static Tcl_Obj *TohilTclObj_objptr(TohilTclObj *self);
 static int TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj);
 
+static int Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description);
+
 static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
 // TCL library begins here
@@ -508,6 +510,22 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
     return ret;
 }
 
+// tohil_tcl_return - you call this routine when you are returning to
+//   tcl after having done some work.
+//
+//   it checks to make sure
+//
+static int
+tohil_tcl_return(Tcl_Interp *interp, int tcl_result)
+{
+    // check for an unhandled python exception -- that should not happen
+    if (PyErr_Occurred() != NULL) {
+        return Tohil_ReturnExceptionToTcl(interp, "Tohil C code returned to Tcl with an unprocessed Python exception");
+    }
+
+    return tcl_result;
+}
+
 //
 // Tohil_ReturnTclError - return a tcl error to the tcl interpreter
 //   with the specified string as an error message
@@ -516,7 +534,7 @@ static int
 Tohil_ReturnTclError(Tcl_Interp *interp, char *string)
 {
     Tcl_SetObjResult(interp, Tcl_NewStringObj(string, -1));
-    return TCL_ERROR;
+    return tohil_tcl_return(interp, TCL_ERROR);
 }
 
 //
@@ -535,9 +553,13 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
 
     PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
     PyErr_NormalizeException(&pType, &pVal, &pTrace);
+    PyObject_Print(pType, stdout, 0);
+    PyObject_Print(pVal, stdout, 0);
 
     // set tcl interpreter result
     Tcl_SetObjResult(interp, pyObjToTcl(interp, pVal));
+
+    Tcl_AddErrorInfo(interp, description);
 
     // invoke python tohil.handle_exception(type, val, tracebackObject)
     // it returns a tuple consisting of the error code and error info (traceback)
@@ -579,7 +601,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
     if (objc < 2) {
     wrongargs:
         Tcl_WrongNumArgs(interp, 1, objv, "?-kwlist list? func ?arg ...?");
-        return TCL_ERROR;
+        return tohil_tcl_return(interp, TCL_ERROR);
     }
 
     PyObject *kwObj = NULL;
@@ -595,7 +617,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
         objandfn = tohil_TclObjToUTF8DString(objv[3], &ds);
         objStart = 4;
         if (kwObj == NULL) {
-            return TCL_ERROR;
+            return tohil_tcl_return(interp, TCL_ERROR);
         }
     }
 
@@ -679,7 +701,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
         return Tohil_ReturnExceptionToTcl(interp, "error converting python object to tcl object");
 
     Tcl_SetObjResult(interp, tRet);
-    return TCL_OK;
+    return tohil_tcl_return(interp, TCL_OK);
 }
 
 //
@@ -699,7 +721,7 @@ TohilImport_Cmd(ClientData clientData, /* Not used. */
 
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "module");
-        return TCL_ERROR;
+        return tohil_tcl_return(interp, TCL_ERROR);
     }
 
     modname = Tcl_GetString(objv[1]);
@@ -724,7 +746,7 @@ TohilImport_Cmd(ClientData clientData, /* Not used. */
     if (ret < 0)
         return Tohil_ReturnExceptionToTcl(interp, "while trying to import a module");
 
-    return TCL_OK;
+    return tohil_tcl_return(interp, TCL_OK);
 }
 
 static int
@@ -736,7 +758,7 @@ TohilEval_Cmd(ClientData clientData, /* Not used. */
 {
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "evalString");
-        return TCL_ERROR;
+        return tohil_tcl_return(interp, TCL_ERROR);
     }
     Tcl_DString ds;
     const char *cmd = tohil_TclObjToUTF8DString(objv[1], &ds);
@@ -762,7 +784,7 @@ TohilEval_Cmd(ClientData clientData, /* Not used. */
 
     Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
     Py_XDECREF(pyobj);
-    return TCL_OK;
+    return tohil_tcl_return(interp, TCL_OK);
 }
 
 // awfully similar to TohilEval_Cmd above
@@ -776,7 +798,7 @@ TohilExec_Cmd(ClientData clientData, /* Not used. */
 {
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "execString");
-        return TCL_ERROR;
+        return tohil_tcl_return(interp, TCL_ERROR);
     }
     Tcl_DString ds;
     const char *cmd = tohil_TclObjToUTF8DString(objv[1], &ds);
@@ -800,7 +822,7 @@ TohilExec_Cmd(ClientData clientData, /* Not used. */
 
     Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
     Py_XDECREF(pyobj);
-    return TCL_OK;
+    return tohil_tcl_return(interp, TCL_OK);
 }
 
 //
@@ -816,7 +838,7 @@ TohilInteract_Cmd(ClientData clientData, /* Not used. */
 {
     if (objc != 1) {
         Tcl_WrongNumArgs(interp, 1, objv, "");
-        return TCL_ERROR;
+        return tohil_tcl_return(interp, TCL_ERROR);
     }
 
     int result = PyRun_InteractiveLoop(stdin, "stdin");
@@ -824,7 +846,7 @@ TohilInteract_Cmd(ClientData clientData, /* Not used. */
         return Tohil_ReturnExceptionToTcl(interp, "interactive loop failure");
     }
 
-    return TCL_OK;
+    return tohil_tcl_return(interp, TCL_OK);
 }
 
 /* Python library begins here */
@@ -1080,7 +1102,8 @@ TohilTclObj_repr(TohilTclObj *self)
     char *utf8string = tohil_TclObjToUTF8DString(tclobj, &ds);
 
     PyObject *stringRep = PyUnicode_FromFormat("%s", utf8string);
-    char *format = PyUnicode_GET_LENGTH(stringRep) > 100 ? "<%s: %.100R...>" : "<%s: %.100R>";
+    // char *format = PyUnicode_GET_LENGTH(stringRep) > 100 ? "<%s: %.100R...>" : "<%s: %.100R>";
+    char *format = "<%s: %R>";
     Tcl_DStringFree(&ds);
     PyObject *repr = PyUnicode_FromFormat(format, Py_TYPE(self)->tp_name, stringRep);
     Py_DECREF(stringRep);
