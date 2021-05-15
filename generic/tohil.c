@@ -59,6 +59,14 @@ static int Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description);
 
 static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
+
+
+typedef struct {
+    Tcl_Interp *tcl_interp;
+    PyObject *handle_exception_function;
+    PyObject *error_class;
+} TohilModuleState;
+
 // TCL library begins here
 
 // maintain a pointer to the tcl interp - we need it from our stuff python calls where
@@ -3941,14 +3949,11 @@ static PyMethodDef TohilMethods[] = {
 // TODO: there should probably be some tcl deinit in the clear/free code
 static struct PyModuleDef TohilModule = {
     PyModuleDef_HEAD_INIT,
-    "tohil",
-    "A module to permit interop with Tcl",
-    -1,
-    TohilMethods,
-    NULL, // m_slots
-    NULL, // m_traverse
-    NULL, // m_clear
-    NULL, // m_free
+    .m_name = "tohil",
+    .m_doc= "A module to permit interop with Tcl",
+    .m_size = sizeof(TohilModuleState),
+    .m_methods = TohilMethods,
+    .m_slots = NULL,
 };
 
 /* Shared initialisation begins here */
