@@ -1332,7 +1332,7 @@ pyListToTclObjv(Tcl_Interp *interp, PyListObject *pList, int *intPtr, Tcl_Obj **
     // build up a tcl objv of the list elements
     Tcl_Obj **objv = (Tcl_Obj **)ckalloc(sizeof(Tcl_Obj *) * objc);
     for (i = 0; i < objc; i++) {
-        objv[i] = pyObjToTcl(tcl_interp, PyList_GET_ITEM(pList, i));
+        objv[i] = pyObjToTcl(interp, PyList_GET_ITEM(pList, i));
         Tcl_IncrRefCount(objv[i]);
     }
     *objvPtr = objv;
