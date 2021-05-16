@@ -100,7 +100,7 @@ tohil_TclObjToUTF8DString(Tcl_Interp *interp, Tcl_Obj *obj, Tcl_DString *ds)
 //
 // tohil_UTF8ToTclDString - convert a Python utf-8 string to a Tcl "WTF-8" string.
 // Use a DString for buffering.
-// 
+//
 static char *
 tohil_UTF8ToTclDString(Tcl_Interp *interp, char *utf8String, int utf8StringLen, Tcl_DString *ds)
 {
@@ -588,7 +588,8 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
     }
 
     if (!PyTuple_Check(pExceptionResult) || PyTuple_GET_SIZE(pExceptionResult) != 2) {
-        return Tohil_ReturnTclError(interp, "malfunction in tohil python exception handler, did not return tuple or tuple did not contain 2 elements");
+        return Tohil_ReturnTclError(interp,
+                                    "malfunction in tohil python exception handler, did not return tuple or tuple did not contain 2 elements");
     }
 
     Tcl_SetObjErrorCode(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 0)));
@@ -2249,7 +2250,7 @@ TohilTclDictIter_dealloc(Tohil_TD_IterObj *self)
 }
 
 static PyTypeObject Tohil_TD_IterType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil_td_iter",
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil.td_iter",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD iterator type",
@@ -2260,7 +2261,7 @@ static PyTypeObject Tohil_TD_IterType = {
 };
 
 static PyTypeObject Tohil_TD_IterKeysType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil_td_keys",
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil.td_keys",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD keys iterator object",
@@ -2271,7 +2272,7 @@ static PyTypeObject Tohil_TD_IterKeysType = {
 };
 
 static PyTypeObject Tohil_TD_IterValuesType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil_td_values",
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil.td_values",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD values iterator object",
@@ -2282,7 +2283,7 @@ static PyTypeObject Tohil_TD_IterValuesType = {
 };
 
 static PyTypeObject Tohil_TD_IterItemsType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil_td_items",
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "tohil.td_items",
     .tp_basicsize = sizeof(Tohil_TD_IterObj),
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil TD items iterator object",
@@ -3966,15 +3967,15 @@ static struct PyModuleDef_Slot tohil_slots[] = {
 // TODO: there should probably be some tcl deinit in the clear/free code
 static struct PyModuleDef TohilModule = {
     PyModuleDef_HEAD_INIT,
+    // this comment helps clang-format
     .m_name = "tohil",
-    .m_doc= "A module to permit interop with Tcl",
+    .m_doc = "A module to permit interop with Tcl",
     .m_size = sizeof(TohilModuleState),
     .m_methods = TohilMethods,
     .m_slots = tohil_slots,
 };
 
 /* Shared initialisation begins here */
-
 
 //
 // this is the entry point called when the tcl interpreter loads the tohil shared library
@@ -4197,7 +4198,7 @@ tohil_exec(PyObject *m)
 
     return 0;
 
-  fail:
+fail:
     Py_XDECREF(m);
     return -1;
 }
