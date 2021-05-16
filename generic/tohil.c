@@ -50,7 +50,7 @@ static PyTypeObject TohilTclObj_IterType;
 
 int TohilTclDict_Check(PyObject *pyObj);
 static PyTypeObject TohilTclDictType;
-static PyObject *TohilTclDict_FromTclObj(Tcl_Obj *obj);
+static PyObject *TohilTclDict_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj);
 
 static Tcl_Obj *TohilTclObj_objptr(TohilTclObj *self);
 static int TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj);
@@ -300,7 +300,7 @@ tohil_TclToUTF8(Tcl_Interp *interp, char *src, int srclen, char **res, int *resl
 // not sure but not ready to get rid of this; it still seems promising
 //
 static PyObject *
-tclObjToPy(Tcl_Obj *tObj)
+tclObjToPy(Tcl_Interp *interp, Tcl_Obj *tObj)
 {
     int intValue;
     long longValue;
@@ -326,8 +326,8 @@ tclObjToPy(Tcl_Obj *tObj)
 
     int utf8len;
     char *utf8string;
-    if (tohil_TclToUTF8(tcl_interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+    if (tohil_TclToUTF8(interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
+        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
     PyObject *pObj = Py_BuildValue("s#", utf8string, utf8len);
@@ -880,11 +880,11 @@ TohilTclObj_Check(PyObject *pyObj)
 // create a new python tclobj object from a tclobj
 //
 static PyObject *
-TohilTclObj_FromTclObj(Tcl_Obj *obj)
+TohilTclObj_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj)
 {
     TohilTclObj *self = (TohilTclObj *)TohilTclObjType.tp_alloc(&TohilTclObjType, 0);
     if (self != NULL) {
-        self->interp = tcl_interp;
+        self->interp = interp;
         self->tclobj = obj;
         self->to = NULL;
         self->tclvar = NULL;
@@ -3031,11 +3031,11 @@ TohilTclDict_Check(PyObject *pyObj)
 // create a new python tcldict object from any Tcl_Obj
 //
 static PyObject *
-TohilTclDict_FromTclObj(Tcl_Obj *obj)
+TohilTclDict_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj)
 {
     TohilTclObj *self = (TohilTclObj *)TohilTclDictType.tp_alloc(&TohilTclDictType, 0);
     if (self != NULL) {
-        self->interp = tcl_interp;
+        self->interp = interp;
         self->tclobj = obj;
         Tcl_IncrRefCount(obj);
         self->tclvar = NULL;
@@ -3525,7 +3525,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         // dig out tcl error information and create a tohil tcldict containing it
         // (Tcl_GetReturnOptions returns a tcl dict object)
         Tcl_Obj *returnOptionsObj = Tcl_GetReturnOptions(interp, tcl_result);
-        PyObject *pReturnOptionsObj = TohilTclDict_FromTclObj(returnOptionsObj);
+        PyObject *pReturnOptionsObj = TohilTclDict_FromTclObj(interp, returnOptionsObj);
 
         // construct a two-element tuple comprising the interpreter result
         // and the tcldict containing the info grabbed from tcl
@@ -3605,11 +3605,11 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
     }
 
     if (STREQU(toString, "tohil.tclobj")) {
-        return TohilTclObj_FromTclObj(resultObj);
+        return TohilTclObj_FromTclObj(interp, resultObj);
     }
 
     if (STREQU(toString, "tohil.tcldict")) {
-        return TohilTclDict_FromTclObj(resultObj);
+        return TohilTclDict_FromTclObj(interp, resultObj);
     }
 
     if (STREQU(toString, "list")) {
