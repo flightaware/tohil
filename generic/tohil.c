@@ -63,7 +63,6 @@ static int tohil_mod_exec(PyObject *m);
 
 typedef struct {
     Tcl_Interp *interp;
-    PyObject *handle_exception_function;
     PyObject *error_class;
 } TohilModuleState;
 
@@ -74,7 +73,6 @@ typedef struct {
 // maintain pointers to our exception handler and python function that
 // we return as our iterator object
 // NB this could be a problem if either of these functions get redefined
-static PyObject *pTohilHandleException = NULL;
 static PyObject *pTohilTclErrorClass = NULL;
 
 //
@@ -566,9 +564,16 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyObject *m, char *description)
 
     Tcl_AddErrorInfo(interp, description);
 
+    // find tohil.handle_exception python function
+    PyObject *handle_exception = PyObject_GetAttrString(m, "handle_exception");
+    if (handle_exception == NULL || !PyCallable_Check(handle_exception)) {
+        Py_XDECREF(handle_exception);
+        return Tohil_ReturnTclError(interp, m, "unable to find tohil.handle_exception function in python interpreter");
+    }
+
     // invoke python tohil.handle_exception(type, val, tracebackObject)
     // it returns a tuple consisting of the error code and error info (traceback)
-    PyObject *pExceptionResult = PyObject_CallFunctionObjArgs(pTohilHandleException, pType, pVal, pTrace, NULL);
+    PyObject *pExceptionResult = PyObject_CallFunctionObjArgs(handle_exception, pType, pVal, pTrace, NULL);
 
     // call tohil python exception handler function
     // return to me a tuple containing the error string, error code, and traceback
@@ -4101,14 +4106,6 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_CreateObjCommand(interp, "::tohil::interact", (Tcl_ObjCmdProc *)TohilInteract_Cmd, (ClientData)m, (Tcl_CmdDeleteProc *)NULL) == NULL)
         return TCL_ERROR;
 
-    pTohilHandleException = PyObject_GetAttrString(m, "handle_exception");
-    if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
-        Py_XDECREF(pTohilHandleException);
-        Py_DECREF(m);
-        return Tohil_ReturnTclError(interp, m, "unable to find tohil.handle_exception function in python interpreter");
-    }
-    // printf("got exception handle\n");
-
     pTohilTclErrorClass = PyObject_GetAttrString(m, "TclError");
     if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
         Py_XDECREF(pTohilTclErrorClass);
@@ -4213,19 +4210,6 @@ tohil_mod_exec(PyObject *m)
     pTohilMod = PyImport_Import(pTohilModStr);
     Py_DECREF(pTohilModStr);
     if (pTohilMod == NULL) {
-        goto fail;
-    }
-
-    // dig out references to handle_exception and TclError class
-    // NB this is very similar to what happens in Tcl_Init, has to happen
-    // in both places due to we aren't using the same shared library.
-    // our returns are a little different, but this is a candidate for
-    // some kind of simplifying subroutine.
-    pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
-    tohilstate(m)->handle_exception_function = pTohilHandleException;
-    if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
-        Py_XDECREF(pTohilHandleException);
-        Py_DECREF(pTohilMod);
         goto fail;
     }
 
