@@ -63,7 +63,6 @@ static int tohil_mod_exec(PyObject *m);
 
 typedef struct {
     Tcl_Interp *interp;
-    PyObject *error_class;
 } TohilModuleState;
 
 #define tohilstate(o) ((TohilModuleState *)PyModule_GetState(o))
