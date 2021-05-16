@@ -59,13 +59,15 @@ static int Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description);
 
 static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
-
+static int tohil_exec(PyObject *m);
 
 typedef struct {
     Tcl_Interp *tcl_interp;
     PyObject *handle_exception_function;
     PyObject *error_class;
 } TohilModuleState;
+
+#define tohilstate(o) ((TohilModuleState *)PyModule_GetState(o))
 
 // TCL library begins here
 
@@ -3946,6 +3948,11 @@ static PyMethodDef TohilMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
+static struct PyModuleDef_Slot tohil_slots[] = {
+    {Py_mod_exec, tohil_exec},
+    {0, NULL},
+};
+
 // TODO: there should probably be some tcl deinit in the clear/free code
 static struct PyModuleDef TohilModule = {
     PyModuleDef_HEAD_INIT,
@@ -3953,7 +3960,7 @@ static struct PyModuleDef TohilModule = {
     .m_doc= "A module to permit interop with Tcl",
     .m_size = sizeof(TohilModuleState),
     .m_methods = TohilMethods,
-    .m_slots = NULL,
+    .m_slots = tohil_slots,
 };
 
 /* Shared initialisation begins here */
@@ -4077,17 +4084,11 @@ Tohil_Init(Tcl_Interp *interp)
     return TCL_OK;
 }
 
-//
-// this is the entrypoint for when python loads us as a shared library
-// note the double underscore, we are _tohil, not tohil, actually tohil._tohil.
-// that helps us be able to load other tohil python stuff that's needed, like
-// the handle_exception function, before we trigger a load of the shared library,
-// by importing from it, see pysrc/tohil/__init__.py
-//
-PyMODINIT_FUNC
-PyInit__tohil(void)
+static int
+tohil_exec(PyObject *m)
 {
     Tcl_Interp *interp = NULL;
+    PyObject *pTohilModStr, *pTohilMod;
 
     // see if the tcl interpreter already exists by looking
     // for an attribute we stashed in __main__
@@ -4104,18 +4105,16 @@ PyInit__tohil(void)
         PyErr_Clear();
         interp = Tcl_CreateInterp();
 
-        if (Tcl_Init(interp) != TCL_OK) {
-            return NULL;
-        }
+        if (Tcl_Init(interp) != TCL_OK)
+            goto fail;
 
         // invoke Tohil_Init to load us into the tcl interpreter
         // NB uh this probably isn't enough and we need to do a
         // package require tohil as there is tcl code in files in
         // the package now
         // OTOH you know you've got the right shared library
-        if (Tohil_Init(interp) == TCL_ERROR) {
-            return NULL;
-        }
+        if (Tohil_Init(interp) == TCL_ERROR)
+            goto fail;
     } else {
         // python interpreter-containing attribute exists, get the interpreter
         interp = PyCapsule_GetPointer(pCap, "tohil.interp");
@@ -4123,6 +4122,83 @@ PyInit__tohil(void)
     }
     tcl_interp = interp;
 
+    // set the near-standard dunder version for our module (tohil._tohil)
+    // to the package version passed to the compiler command line by
+    // the build tools
+    if (PyObject_SetAttrString(m, "__version__", PyUnicode_FromString(PACKAGE_VERSION)) < 0)
+        goto fail;
+
+    // add our tclobj type to python
+    Py_INCREF(&TohilTclObjType);
+    if (PyModule_AddObject(m, "tclobj", (PyObject *)&TohilTclObjType) < 0) {
+        Py_DECREF(&TohilTclObjType);
+        goto fail;
+    }
+
+    // add our tcldict type to python
+    Py_INCREF(&TohilTclDictType);
+    if (PyModule_AddObject(m, "tcldict", (PyObject *)&TohilTclDictType) < 0) {
+        Py_DECREF(&TohilTclDictType);
+        goto fail;
+    }
+
+    // ..and stash a pointer to the tcl interpreter in a python
+    // capsule so we can find it when we're doing python stuff
+    // and need to talk to tcl
+    pCap = PyCapsule_New(interp, "tohil.interp", NULL);
+    if (PyObject_SetAttrString(m, "interp", pCap) == -1) {
+        Py_DECREF(pCap);
+        goto fail;
+    }
+    Py_DECREF(pCap);
+
+    // import tohil to get at the python parts
+    pTohilModStr = PyUnicode_FromString("tohil");
+    pTohilMod = PyImport_Import(pTohilModStr);
+    Py_DECREF(pTohilModStr);
+    if (pTohilMod == NULL) {
+        goto fail;
+    }
+
+    // dig out references to handle_exception and TclError class
+    // NB this is very similar to what happens in Tcl_Init, has to happen
+    // in both places due to we aren't using the same shared library.
+    // our returns are a little different, but this is a candidate for
+    // some kind of simplifying subroutine.
+    pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
+    if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
+        Py_XDECREF(pTohilHandleException);
+        Py_DECREF(pTohilMod);
+        goto fail;
+    }
+
+    pTohilTclErrorClass = PyObject_GetAttrString(pTohilMod, "TclError");
+    if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
+        Py_XDECREF(pTohilTclErrorClass);
+        Py_DECREF(pTohilMod);
+        goto fail;
+    }
+    Py_INCREF(pTohilTclErrorClass);
+    Py_DECREF(pTohilMod);
+    // printf("got TclError pointer (%lx)\n", pTohilTclErrorClass);
+
+    return 0;
+
+  fail:
+    Py_XDECREF(m);
+    return -1;
+}
+
+//
+// this is the entrypoint for when python loads us as a shared library
+// note the double underscore, we are _tohil, not tohil, actually tohil._tohil.
+// that helps us be able to load other tohil python stuff that's needed, like
+// the handle_exception function, before we trigger a load of the shared library,
+// by importing from it, see pysrc/tohil/__init__.py
+//
+PyMODINIT_FUNC
+PyInit__tohil(void)
+{
     // turn up the tclobj python type
     if (PyType_Ready(&TohilTclObjType) < 0) {
         return NULL;
@@ -4156,73 +4232,11 @@ PyInit__tohil(void)
     }
 
     // create the python module
-    PyObject *m = PyModule_Create(&TohilModule);
+    // PyObject *m = PyModule_Create(&TohilModule);
+    PyObject *m = PyModuleDef_Init(&TohilModule);
     if (m == NULL) {
         return NULL;
     }
-
-    // import tohil to get at the python parts
-    PyObject *pTohilModStr, *pTohilMod;
-    pTohilModStr = PyUnicode_FromString("tohil");
-    pTohilMod = PyImport_Import(pTohilModStr);
-    Py_DECREF(pTohilModStr);
-    if (pTohilMod == NULL) {
-        return NULL;
-    }
-
-    // set the near-standard dunder version for our module (tohil._tohil)
-    // to the package version passed to the compiler command line by
-    // the build tools
-    if (PyObject_SetAttrString(m, "__version__", PyUnicode_FromString(PACKAGE_VERSION)) < 0) {
-        return NULL;
-    }
-
-    // add our tclobj type to python
-    Py_INCREF(&TohilTclObjType);
-    if (PyModule_AddObject(m, "tclobj", (PyObject *)&TohilTclObjType) < 0) {
-        Py_DECREF(&TohilTclObjType);
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    // add our tcldict type to python
-    Py_INCREF(&TohilTclDictType);
-    if (PyModule_AddObject(m, "tcldict", (PyObject *)&TohilTclDictType) < 0) {
-        Py_DECREF(&TohilTclDictType);
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    // ..and stash a pointer to the tcl interpreter in a python
-    // capsule so we can find it when we're doing python stuff
-    // and need to talk to tcl
-    pCap = PyCapsule_New(interp, "tohil.interp", NULL);
-    if (PyObject_SetAttrString(m, "interp", pCap) == -1) {
-        return NULL;
-    }
-    Py_DECREF(pCap);
-
-    // dig out references to handle_exception and TclError class
-    // NB this is very similar to what happens in Tcl_Init, has to happen
-    // in both places due to we aren't using the same shared library.
-    // our returns are a little different, but this is a candidate for
-    // some kind of simplifying subroutine.
-    pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
-    if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
-        Py_XDECREF(pTohilHandleException);
-        Py_DECREF(pTohilMod);
-        return NULL;
-    }
-
-    pTohilTclErrorClass = PyObject_GetAttrString(pTohilMod, "TclError");
-    if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
-        Py_XDECREF(pTohilTclErrorClass);
-        Py_DECREF(pTohilMod);
-        return NULL;
-    }
-    Py_INCREF(pTohilTclErrorClass);
-    Py_DECREF(pTohilMod);
-    // printf("got TclError pointer (%lx)\n", pTohilTclErrorClass);
 
     return m;
 }
