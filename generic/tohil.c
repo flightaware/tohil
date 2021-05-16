@@ -1837,7 +1837,7 @@ TohilTclObj_concat(TohilTclObj *self, PyObject *item)
     if (TohilTclObj_Check(item)) {
         tItem = TohilTclObj_objptr((TohilTclObj *)item);
     } else {
-        tItem = _pyObjToTcl(tcl_interp, item);
+        tItem = _pyObjToTcl(self->interp, item);
         if (tItem == NULL)
             Py_RETURN_NOTIMPLEMENTED;
     }
@@ -1870,7 +1870,7 @@ TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
         if (tItem == NULL)
             return NULL;
     } else {
-        tItem = _pyObjToTcl(tcl_interp, item);
+        tItem = _pyObjToTcl(self->interp, item);
         if (tItem == NULL)
             Py_RETURN_NOTIMPLEMENTED;
     }
@@ -2121,7 +2121,7 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
     if (self->started == 0) {
         self->started = 1;
         // substitute &valueObj for NULL below if you also want the value
-        if (Tcl_DictObjFirst(tcl_interp, self->dictObj, &self->search, &keyObj, &valueObj, &done) == TCL_ERROR) {
+        if (Tcl_DictObjFirst(self->interp, self->dictObj, &self->search, &keyObj, &valueObj, &done) == TCL_ERROR) {
             PyErr_Format(PyExc_TypeError, "tclobj contents cannot be converted into a td");
             return NULL;
         }
@@ -2151,7 +2151,7 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
         }
 
         if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
-            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
             return NULL;
         }
         PyObject *pObj = Py_BuildValue("s#", utf8string, utf8len);
@@ -2166,7 +2166,7 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
     char *tclString = Tcl_GetStringFromObj(keyObj, &tclStringSize);
 
     if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
-        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return NULL;
     }
     PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", utf8string, utf8len));
@@ -2176,13 +2176,13 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
         // no "to" specified, stuff the value into item 1 of the tuple
         tclString = Tcl_GetStringFromObj(valueObj, &tclStringSize);
         if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
-            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
             return NULL;
         }
         PyTuple_SET_ITEM(pRetTuple, 1, Py_BuildValue("s#", utf8string, utf8len));
         ckfree(utf8string);
     } else {
-        PyTuple_SET_ITEM(pRetTuple, 1, tohil_python_return(tcl_interp, TCL_OK, self->to, valueObj));
+        PyTuple_SET_ITEM(pRetTuple, 1, tohil_python_return(self->interp, TCL_OK, self->to, valueObj));
     }
 
     return pRetTuple;
