@@ -598,11 +598,7 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
 //   slamming stuff through eval
 //
 static int
-TohilCall_Cmd(ClientData clientData, /* Not used. */
-              Tcl_Interp *interp,    /* Current interpreter */
-              int objc,              /* Number of arguments */
-              Tcl_Obj *const objv[]  /* Argument strings */
-)
+TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     if (objc < 2) {
     wrongargs:
@@ -715,11 +711,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
 //   into the python interpreter.
 //
 static int
-TohilImport_Cmd(ClientData clientData, /* Not used. */
-                Tcl_Interp *interp,    /* Current interpreter */
-                int objc,              /* Number of arguments */
-                Tcl_Obj *const objv[]  /* Argument strings */
-)
+TohilImport_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     const char *modname, *topmodname;
     PyObject *pMainModule, *pTopModule;
@@ -756,11 +748,7 @@ TohilImport_Cmd(ClientData clientData, /* Not used. */
 }
 
 static int
-TohilEval_Cmd(ClientData clientData, /* Not used. */
-              Tcl_Interp *interp,    /* Current interpreter */
-              int objc,              /* Number of arguments */
-              Tcl_Obj *const objv[]  /* Argument strings */
-)
+TohilEval_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "evalString");
@@ -796,11 +784,7 @@ TohilEval_Cmd(ClientData clientData, /* Not used. */
 // awfully similar to TohilEval_Cmd above
 // but expecting to do more like capture stdout
 static int
-TohilExec_Cmd(ClientData clientData, /* Not used. */
-              Tcl_Interp *interp,    /* Current interpreter */
-              int objc,              /* Number of arguments */
-              Tcl_Obj *const objv[]  /* Argument strings */
-)
+TohilExec_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "execString");
@@ -836,11 +820,7 @@ TohilExec_Cmd(ClientData clientData, /* Not used. */
 //   interpreter's interactive loop
 //
 static int
-TohilInteract_Cmd(ClientData clientData, /* Not used. */
-                  Tcl_Interp *interp,    /* Current interpreter */
-                  int objc,              /* Number of arguments */
-                  Tcl_Obj *const objv[]  /* Argument strings */
-)
+TohilInteract_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     if (objc != 1) {
         Tcl_WrongNumArgs(interp, 1, objv, "");
