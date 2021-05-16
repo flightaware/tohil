@@ -3636,11 +3636,12 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
 // tohil.eval command for python to eval code in the tcl interpreter
 //
 static PyObject *
-tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_eval(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"tcl_code", "to", NULL};
     PyTypeObject *to = NULL;
     char *utf8Code = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &utf8Code, &to))
         return NULL;
@@ -3648,22 +3649,23 @@ tohil_eval(PyObject *self, PyObject *args, PyObject *kwargs)
     // TODO modify the above PyArg_ParseTupleAndKeywords to return a length?
     Tcl_DString ds;
     char *tclCode = tohil_UTF8ToTclDString(utf8Code, -1, &ds);
-    int result = Tcl_Eval(tcl_interp, tclCode);
+    int result = Tcl_Eval(interp, tclCode);
     Tcl_DStringFree(&ds);
-    Tcl_Obj *resultObj = Tcl_GetObjResult(tcl_interp);
+    Tcl_Obj *resultObj = Tcl_GetObjResult(interp);
 
-    return tohil_python_return(tcl_interp, result, to, resultObj);
+    return tohil_python_return(interp, result, to, resultObj);
 }
 
 //
 // tohil.expr command for python to evaluate expressions using the tcl interpreter
 //
 static PyObject *
-tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_expr(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"expression", "to", NULL};
     char *utf8expression = NULL;
     PyTypeObject *to = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &utf8expression, &to))
         return NULL;
@@ -3672,13 +3674,13 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
     char *expression = tohil_UTF8ToTclDString(utf8expression, -1, &ds);
 
     Tcl_Obj *resultObj = NULL;
-    if (Tcl_ExprObj(tcl_interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
-        char *errMsg = Tcl_GetString(Tcl_GetObjResult(tcl_interp));
+    if (Tcl_ExprObj(interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
+        char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
         PyErr_SetString(PyExc_RuntimeError, errMsg);
         return NULL;
     }
 
-    return tohil_python_return(tcl_interp, TCL_OK, to, resultObj);
+    return tohil_python_return(interp, TCL_OK, to, resultObj);
 }
 
 //
@@ -3686,34 +3688,36 @@ tohil_expr(PyObject *self, PyObject *args, PyObject *kwargs)
 // to a tcl object and then convert it to a to= destination type
 //
 static PyObject *
-tohil_convert(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_convert(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"pyobject", "to", NULL};
     PyObject *pyInputObject = NULL;
     PyTypeObject *to = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$O", kwlist, &pyInputObject, &to))
         return NULL;
 
-    Tcl_Obj *interimObj = pyObjToTcl(tcl_interp, pyInputObject);
+    Tcl_Obj *interimObj = pyObjToTcl(interp, pyInputObject);
     if (interimObj == NULL) {
         return NULL;
     }
 
-    return tohil_python_return(tcl_interp, TCL_OK, to, interimObj);
+    return tohil_python_return(interp, TCL_OK, to, interimObj);
 }
 
 //
 // tohil.getvar - from python get the contents of a variable
 //
 static PyObject *
-tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_getvar(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"var", "to", "default", NULL};
     char *var = NULL;
     PyTypeObject *to = NULL;
     PyObject *defaultPyObj = NULL;
     Tcl_Obj *obj = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$OO", kwlist, &var, &to, &defaultPyObj)) {
         return NULL;
@@ -3722,16 +3726,16 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
     if (defaultPyObj == NULL) {
         // a default wasn't specified, it's an error if the var or array
         // element doesn't exist
-        obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, (TCL_LEAVE_ERR_MSG));
+        obj = Tcl_GetVar2Ex(interp, var, NULL, (TCL_LEAVE_ERR_MSG));
 
         if (obj == NULL) {
-            PyErr_SetString(PyExc_NameError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            PyErr_SetString(PyExc_NameError, Tcl_GetString(Tcl_GetObjResult(interp)));
             return NULL;
         }
     } else {
         // a default was specified, it's not an error if the var or array
         // element doesn't exist, we simply return the default value
-        obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, 0);
+        obj = Tcl_GetVar2Ex(interp, var, NULL, 0);
         if (obj == NULL) {
             // not there but they provided a default
             if (to == NULL) {
@@ -3742,29 +3746,30 @@ tohil_getvar(PyObject *self, PyObject *args, PyObject *kwargs)
             } else {
                 // they provided a to= conversion, run
                 // their python through that and return it.
-                obj = pyObjToTcl(tcl_interp, defaultPyObj);
+                obj = pyObjToTcl(interp, defaultPyObj);
             }
         }
     }
 
     // the var or array element exists in tcl, return the value to python,
     // possibly to a specific datatype
-    return tohil_python_return(tcl_interp, TCL_OK, to, obj);
+    return tohil_python_return(interp, TCL_OK, to, obj);
 }
 
 //
 // tohil.exists - from python see if a variable or array element exists in tcl
 //
 static PyObject *
-tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_exists(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"var", NULL};
     char *var = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$", kwlist, &var))
         return NULL;
 
-    Tcl_Obj *obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, 0);
+    Tcl_Obj *obj = Tcl_GetVar2Ex(interp, var, NULL, 0);
 
     PyObject *p = (obj == NULL ? Py_False : Py_True);
     Py_INCREF(p);
@@ -3775,21 +3780,22 @@ tohil_exists(PyObject *self, PyObject *args, PyObject *kwargs)
 // tohil.setvar - set a variable or array element in tcl from python
 //
 static PyObject *
-tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_setvar(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"var", "value", NULL};
     char *var = NULL;
     PyObject *pyValue = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO", kwlist, &var, &pyValue))
         return NULL;
 
-    Tcl_Obj *tclValue = pyObjToTcl(tcl_interp, pyValue);
+    Tcl_Obj *tclValue = pyObjToTcl(interp, pyValue);
 
-    Tcl_Obj *obj = Tcl_SetVar2Ex(tcl_interp, var, NULL, tclValue, (TCL_LEAVE_ERR_MSG));
+    Tcl_Obj *obj = Tcl_SetVar2Ex(interp, var, NULL, tclValue, (TCL_LEAVE_ERR_MSG));
 
     if (obj == NULL) {
-        char *errMsg = Tcl_GetString(Tcl_GetObjResult(tcl_interp));
+        char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
         PyErr_SetString(PyExc_RuntimeError, errMsg);
         return NULL;
     }
@@ -3800,27 +3806,28 @@ tohil_setvar(PyObject *self, PyObject *args, PyObject *kwargs)
 // tohil.incr - incr a variable or array element in tcl from python
 //
 static PyObject *
-tohil_incr(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_incr(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"var", "incr", NULL};
     char *var = NULL;
     long longValue = 0;
     long increment = 1;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|l", kwlist, &var, &increment))
         return NULL;
 
-    Tcl_Obj *obj = Tcl_GetVar2Ex(tcl_interp, var, NULL, 0);
+    Tcl_Obj *obj = Tcl_GetVar2Ex(interp, var, NULL, 0);
     if (obj == NULL) {
         longValue = increment;
         obj = Tcl_NewLongObj(longValue);
-        if (Tcl_SetVar2Ex(tcl_interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
+        if (Tcl_SetVar2Ex(interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
             goto type_error;
         }
     } else {
-        if (Tcl_GetLongFromObj(tcl_interp, obj, &longValue) == TCL_ERROR) {
+        if (Tcl_GetLongFromObj(interp, obj, &longValue) == TCL_ERROR) {
         type_error:
-            PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+            PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
             return NULL;
         }
 
@@ -3830,7 +3837,7 @@ tohil_incr(PyObject *self, PyObject *args, PyObject *kwargs)
             Tcl_DecrRefCount(obj);
             obj = Tcl_DuplicateObj(obj);
             Tcl_SetLongObj(obj, longValue);
-            if (Tcl_SetVar2Ex(tcl_interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
+            if (Tcl_SetVar2Ex(interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
                 goto type_error;
             }
         } else {
@@ -3845,16 +3852,17 @@ tohil_incr(PyObject *self, PyObject *args, PyObject *kwargs)
 //   exist.  if passed the name of an array with no subscripted element,
 //   the entire array is deleted
 static PyObject *
-tohil_unset(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_unset(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     Py_ssize_t objc = PyTuple_GET_SIZE(args);
     int i;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     // for each argument convert the python object to a tcl object
     // and store it in the tcl object vector
     for (i = 0; i < objc; i++) {
         char *var = (char *)PyUnicode_1BYTE_DATA(PyTuple_GET_ITEM(args, i));
-        Tcl_UnsetVar(tcl_interp, var, 0);
+        Tcl_UnsetVar(interp, var, 0);
     }
 
     Py_RETURN_NONE;
@@ -3866,23 +3874,24 @@ tohil_unset(PyObject *self, PyObject *args, PyObject *kwargs)
 // without evaluating the ultimate result, like eval would
 //
 static PyObject *
-tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_subst(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"string", "to", NULL};
     char *string = NULL;
     PyTypeObject *to = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &string, &to)) {
         return NULL;
     }
-    Tcl_Obj *obj = Tcl_SubstObj(tcl_interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
+    Tcl_Obj *obj = Tcl_SubstObj(interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
     if (obj == NULL) {
-        char *errMsg = Tcl_GetString(Tcl_GetObjResult(tcl_interp));
+        char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
         PyErr_SetString(PyExc_RuntimeError, errMsg);
         return NULL;
     }
 
-    return tohil_python_return(tcl_interp, TCL_OK, to, obj);
+    return tohil_python_return(interp, TCL_OK, to, obj);
 }
 
 //
@@ -3891,11 +3900,12 @@ tohil_subst(PyObject *self, PyObject *args, PyObject *kwargs)
 // you avoid passing everything through eval.  here it is.
 //
 static PyObject *
-tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
+tohil_call(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     Py_ssize_t objc = PyTuple_GET_SIZE(args);
     int i;
     PyTypeObject *to = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
 
     //
     // allocate an array of Tcl object pointers the same size
@@ -3912,12 +3922,12 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
     // for each argument convert the python object to a tcl object
     // and store it in the tcl object vector
     for (i = 0; i < objc; i++) {
-        objv[i] = pyObjToTcl(tcl_interp, PyTuple_GET_ITEM(args, i));
+        objv[i] = pyObjToTcl(interp, PyTuple_GET_ITEM(args, i));
         Tcl_IncrRefCount(objv[i]);
     }
 
     // invoke tcl using the objv array we just constructed
-    int tcl_result = Tcl_EvalObjv(tcl_interp, objc, objv, 0);
+    int tcl_result = Tcl_EvalObjv(interp, objc, objv, 0);
 
     // cleanup and free the objv
     for (i = 0; i < objc; i++) {
@@ -3925,7 +3935,7 @@ tohil_call(PyObject *self, PyObject *args, PyObject *kwargs)
     }
     ckfree(objv);
 
-    return tohil_python_return(tcl_interp, tcl_result, to, Tcl_GetObjResult(tcl_interp));
+    return tohil_python_return(interp, tcl_result, to, Tcl_GetObjResult(interp));
 }
 
 //
