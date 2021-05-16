@@ -62,7 +62,7 @@ static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject 
 static int tohil_exec(PyObject *m);
 
 typedef struct {
-    Tcl_Interp *tcl_interp;
+    Tcl_Interp *interp;
     PyObject *handle_exception_function;
     PyObject *error_class;
 } TohilModuleState;
@@ -4121,6 +4121,7 @@ tohil_exec(PyObject *m)
         Py_DECREF(pCap);
     }
     tcl_interp = interp;
+    tohilstate(m)->interp = interp;
 
     // set the near-standard dunder version for our module (tohil._tohil)
     // to the package version passed to the compiler command line by
@@ -4166,6 +4167,7 @@ tohil_exec(PyObject *m)
     // our returns are a little different, but this is a candidate for
     // some kind of simplifying subroutine.
     pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
+    tohilstate(m)->handle_exception_function = pTohilHandleException;
     if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
         Py_XDECREF(pTohilHandleException);
         Py_DECREF(pTohilMod);
@@ -4173,6 +4175,7 @@ tohil_exec(PyObject *m)
     }
 
     pTohilTclErrorClass = PyObject_GetAttrString(pTohilMod, "TclError");
+    tohilstate(m)->error_class = pTohilTclErrorClass;
     if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
         Py_XDECREF(pTohilTclErrorClass);
         Py_DECREF(pTohilMod);
