@@ -71,11 +71,6 @@ typedef struct {
 
 // TCL library begins here
 
-// maintain a pointer to the tcl interp - we need it from our stuff python calls where
-// we don't get passed an interpreter
-
-static Tcl_Interp *tcl_interp = NULL;
-
 // maintain pointers to our exception handler and python function that
 // we return as our iterator object
 // NB this could be a problem if either of these functions get redefined
@@ -906,9 +901,9 @@ tohil_mod_test(PyTypeObject *pt)
 }
 
 static void
-tohil_dict_dump(PyTypeObject *pt)
+tohil_dict_dump(PyObject *pt)
 {
-    PyObject *repr = PyObject_Repr(pt->tp_dict);
+    PyObject *repr = PyObject_Repr(pt);
     PyObject *str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
     const char *bytes = PyBytes_AS_STRING(str);
     printf("dict_dump: %s\n", bytes);
@@ -941,9 +936,14 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         }
     }
 
+    // grab pointer to tcl interp out of tclobj type's dictionary
+    PyObject *pCap = PyDict_GetItemString(type->tp_dict, "_interp");
+    assert(pCap != NULL);
+    Tcl_Interp *interp = PyCapsule_GetPointer(pCap, "tohil.interp");
+
     TohilTclObj *self = (TohilTclObj *)type->tp_alloc(type, 0);
     if (self != NULL) {
-        self->interp = tcl_interp;
+        self->interp = interp;
         self->tclvar = NULL;
         self->tclobj = NULL;
 
@@ -2379,7 +2379,7 @@ tclobj_nb_float(PyObject *p)
 }
 
 static int
-tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr)
+tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr, Tcl_Interp **interpPtr)
 {
     if (PyLong_Check(v)) {
         *longPtr = PyLong_AsLong(v);
@@ -2393,6 +2393,13 @@ tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr)
 
     if (TohilTclObj_Check(v)) {
         TohilTclObj *self = (TohilTclObj *)v;
+
+        // if the passed in pointer to an interpreter pointer isn't null,
+        // store the interpreter pointer
+        if (interpPtr != NULL)
+            *interpPtr = self->interp;
+
+        // get the tclobj pointer or the tcl object referenced by the tclvar
         Tcl_Obj *selfobj = TohilTclObj_objptr(self);
         if (selfobj == NULL)
             return -1;
@@ -2415,11 +2422,13 @@ enum tclobj_unary_op { Abs, Negative, Positive, Invert };
 static PyObject *
 tclobj_nb_unaryop(PyObject *v, enum tclobj_unary_op operator)
 {
+    Tcl_Interp *interp = NULL;
     double doubleV = 0.0;
     long longV = 0;
-    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV, &interp);
     if (vFloat < 0) {
-        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        assert(interp != NULL);
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
 
@@ -2464,11 +2473,13 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 {
     double doubleV = 0.0;
     long longV = 0;
-    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+    Tcl_Interp *vInterp = NULL;
+    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV, &vInterp);
 
     double doubleW = 0.0;
     long longW = 0;
-    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW);
+    Tcl_Interp *wInterp = NULL;
+    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW, &wInterp);
 
     ldiv_t ldiv_res;
     double quotient;
@@ -2478,7 +2489,8 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         if (operator== Add) {
             Py_RETURN_NOTIMPLEMENTED;
         }
-        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        Tcl_Interp *interp = (vInterp != NULL) ? vInterp : wInterp;
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     } else if ((vFloat == 2) || (wFloat == 2)) {
         Py_RETURN_NOTIMPLEMENTED;
@@ -2701,11 +2713,13 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     // NB same chunk of code in tclobj_binop
     double doubleV = 0.0;
     long longV = 0;
-    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV);
+    Tcl_Interp *vInterp = NULL;
+    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV, &vInterp);
 
     double doubleW = 0.0;
     long longW = 0;
-    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW);
+    Tcl_Interp *wInterp = NULL;
+    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW, &wInterp);
 
     ldiv_t ldiv_res;
 
@@ -2713,7 +2727,8 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         if (operator== Add) {
             Py_RETURN_NOTIMPLEMENTED;
         }
-        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
+        Tcl_Interp *interp = (vInterp != NULL) ? vInterp : wInterp;
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     } else if ((vFloat == 2) || (wFloat == 2)) {
         Py_RETURN_NOTIMPLEMENTED;
@@ -4017,21 +4032,6 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_CreateNamespace(interp, "::tohil", NULL, NULL) == NULL)
         return TCL_ERROR;
 
-    if (Tcl_CreateObjCommand(interp, "::tohil::eval", (Tcl_ObjCmdProc *)TohilEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
-        return TCL_ERROR;
-
-    if (Tcl_CreateObjCommand(interp, "::tohil::exec", (Tcl_ObjCmdProc *)TohilExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
-        return TCL_ERROR;
-
-    if (Tcl_CreateObjCommand(interp, "::tohil::call", (Tcl_ObjCmdProc *)TohilCall_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
-        return TCL_ERROR;
-
-    if (Tcl_CreateObjCommand(interp, "::tohil::import", (Tcl_ObjCmdProc *)TohilImport_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
-        return TCL_ERROR;
-
-    if (Tcl_CreateObjCommand(interp, "::tohil::interact", (Tcl_ObjCmdProc *)TohilInteract_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
-        return TCL_ERROR;
-
     // if i haven't been told python is up, tcl is the parent,
     // and we need to initialize the python interpreter and
     // our python module
@@ -4073,10 +4073,10 @@ Tohil_Init(Tcl_Interp *interp)
     // import tohil to get at the python parts
     // and grab a reference to tohil's exception handler
     PyObject *pTohilModStr = PyUnicode_FromString("tohil");
-    PyObject *pTohilMod = PyImport_Import(pTohilModStr);
+    PyObject *m = PyImport_Import(pTohilModStr);
     Py_DECREF(pTohilModStr);
 
-    if (pTohilMod == NULL) {
+    if (m == NULL) {
         // NB debug break out the exception
         PyObject *pType = NULL, *pVal = NULL, *pTrace = NULL;
         PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
@@ -4089,29 +4089,44 @@ Tohil_Init(Tcl_Interp *interp)
     // printf("Tohil_Init: imported tohil module\n");
 
     // attach tohil module to __main__
-    const char *tohil_modname = PyModule_GetName(pTohilMod);
+    const char *tohil_modname = PyModule_GetName(m);
     if (tohil_modname != NULL) {
-        int ret = PyObject_SetAttrString(main_module, tohil_modname, pTohilMod);
+        int ret = PyObject_SetAttrString(main_module, tohil_modname, m);
         if (ret < 0)
             return Tohil_ReturnTclError(interp, "unable to setattr tohil module to __main__");
     }
 
-    pTohilHandleException = PyObject_GetAttrString(pTohilMod, "handle_exception");
+    if (Tcl_CreateObjCommand(interp, "::tohil::eval", (Tcl_ObjCmdProc *)TohilEval_Cmd, (ClientData)m, (Tcl_CmdDeleteProc *)NULL) == NULL)
+        return TCL_ERROR;
+
+    if (Tcl_CreateObjCommand(interp, "::tohil::exec", (Tcl_ObjCmdProc *)TohilExec_Cmd, (ClientData)m, (Tcl_CmdDeleteProc *)NULL) == NULL)
+        return TCL_ERROR;
+
+    if (Tcl_CreateObjCommand(interp, "::tohil::call", (Tcl_ObjCmdProc *)TohilCall_Cmd, (ClientData)m, (Tcl_CmdDeleteProc *)NULL) == NULL)
+        return TCL_ERROR;
+
+    if (Tcl_CreateObjCommand(interp, "::tohil::import", (Tcl_ObjCmdProc *)TohilImport_Cmd, (ClientData)m, (Tcl_CmdDeleteProc *)NULL) == NULL)
+        return TCL_ERROR;
+
+    if (Tcl_CreateObjCommand(interp, "::tohil::interact", (Tcl_ObjCmdProc *)TohilInteract_Cmd, (ClientData)m, (Tcl_CmdDeleteProc *)NULL) == NULL)
+        return TCL_ERROR;
+
+    pTohilHandleException = PyObject_GetAttrString(m, "handle_exception");
     if (pTohilHandleException == NULL || !PyCallable_Check(pTohilHandleException)) {
         Py_XDECREF(pTohilHandleException);
-        Py_DECREF(pTohilMod);
+        Py_DECREF(m);
         return Tohil_ReturnTclError(interp, "unable to find tohil.handle_exception function in python interpreter");
     }
     // printf("got exception handle\n");
 
-    pTohilTclErrorClass = PyObject_GetAttrString(pTohilMod, "TclError");
+    pTohilTclErrorClass = PyObject_GetAttrString(m, "TclError");
     if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
         Py_XDECREF(pTohilTclErrorClass);
-        Py_DECREF(pTohilMod);
+        Py_DECREF(m);
         return Tohil_ReturnTclError(interp, "unable to find tohil.TclError class in python interpreter");
     }
     Py_INCREF(pTohilTclErrorClass);
-    Py_DECREF(pTohilMod);
+    Py_DECREF(m);
     // printf("got TclError pointer (%lx)\n", pTohilTclErrorClass);
 
     return TCL_OK;
@@ -4160,7 +4175,6 @@ tohil_mod_exec(PyObject *m)
         interp = PyCapsule_GetPointer(pCap, "tohil.interp");
         Py_DECREF(pCap);
     }
-    tcl_interp = interp;
     tohilstate(m)->interp = interp;
 
     // set the near-standard dunder version for our module (tohil._tohil)
@@ -4191,7 +4205,18 @@ tohil_mod_exec(PyObject *m)
         Py_DECREF(pCap);
         goto fail;
     }
+    // stash capsule in the tclobj datatype's dictionary
+    if (PyDict_SetItemString(TohilTclObjType.tp_dict, "_interp", pCap) == -1) {
+        Py_DECREF(pCap);
+        goto fail;
+    }
+    // stash capsule in the tcldict datatype's dictionary
+    if (PyDict_SetItemString(TohilTclDictType.tp_dict, "_interp", pCap) == -1) {
+        Py_DECREF(pCap);
+        goto fail;
+    }
     Py_DECREF(pCap);
+    // tohil_dict_dump(TohilTclObjType.tp_dict);
 
     // import tohil to get at the python parts
     pTohilModStr = PyUnicode_FromString("tohil");
