@@ -1,0 +1,38 @@
+if {[lsearch [namespace children] ::tcltest] == -1} {
+	package require tcltest
+	namespace import ::tcltest::*
+}
+
+package require tohil
+
+# =========
+# tohil and python subinterpreters
+# =========
+test tohil_subinterp-1.1 {start proving that two python interpreters are different} \
+	-body {
+		tohil::eval "tohil.setvar('foo', 'bar')"
+		return $foo} \
+	-result {bar}
+
+test tohil_subinterp-1.2 {continue proving that two python interpreters are different} \
+	-body {
+		set interp [interp create]
+		$interp eval "package require tohil"
+		$interp eval {tohil::eval "tohil.setvar('foo','frammistan')"}
+		return $foo} \
+	-result {bar}
+
+test tohil_subinterp-1.3 {continue proving that two python interpreters are different} \
+	-body {
+		set interp [interp create]
+		$interp eval "package require tohil"
+		$interp eval {tohil::eval "tohil.setvar('foo','frammistan')"}
+		$interp eval {return $foo} 
+		} \
+	-result {frammistan}
+
+
+# =========
+# cleanup
+# =========
+::tcltest::cleanupTests
