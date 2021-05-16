@@ -1317,13 +1317,13 @@ TohilTclObj_incr(TohilTclObj *self, PyObject *args, PyObject *kwargs)
 //
 // convert a python list into a tcl c-level objv and objc
 //
-// pyListToTclObjv(pList, &objc, &objv);
+// pyListToTclObjv(interp, pList, &objc, &objv);
 //
 // you must call pyListToObjv_teardown when done or you'll
 // leak memory
 //
 static void
-pyListToTclObjv(PyListObject *pList, int *intPtr, Tcl_Obj ***objvPtr)
+pyListToTclObjv(Tcl_Interp *interp, PyListObject *pList, int *intPtr, Tcl_Obj ***objvPtr)
 {
     int i;
 
@@ -1515,7 +1515,7 @@ TohilTclObj_lappend_list(TohilTclObj *self, PyObject *pObject)
         int objc;
         Tcl_Obj **objv = NULL;
 
-        pyListToTclObjv((PyListObject *)pObject, &objc, &objv);
+        pyListToTclObjv(self->interp, (PyListObject *)pObject, &objc, &objv);
         Tcl_Obj *appendListObj = Tcl_NewListObj(objc, objv);
         pyListToObjv_teardown(objc, objv);
 
@@ -3202,7 +3202,7 @@ TohilTclDict_delitem(TohilTclObj *self, PyObject *keys)
         Tcl_Obj **objv = NULL;
 
         // build up a tcl objv of the keys
-        pyListToTclObjv((PyListObject *)keys, &objc, &objv);
+        pyListToTclObjv(self->interp, (PyListObject *)keys, &objc, &objv);
 
         // we are about to try to modify the object, so if it's shared we need to copy
         writeObj = TohilTclObj_writable_objptr(self);
@@ -3266,7 +3266,7 @@ TohilTclDict_setitem(TohilTclObj *self, PyObject *keys, PyObject *pValue)
         Tcl_Obj **objv;
 
         // build up a tcl objv of the keys
-        pyListToTclObjv((PyListObject *)keys, &objc, &objv);
+        pyListToTclObjv(self->interp, (PyListObject *)keys, &objc, &objv);
 
         int status = (Tcl_DictObjPutKeyList(self->interp, writeObj, objc, objv, valueObj));
 
@@ -4129,11 +4129,12 @@ tohil_mod_exec(PyObject *m)
     Tcl_Interp *interp = NULL;
     PyObject *pTohilModStr, *pTohilMod;
 
-    // see if the tcl interpreter already exists by looking
-    // for an attribute we stashed in __main__
-    // NB i'm sure there's a better place to put this, but
-    // it is opaque to python -- need expert help from
-    // a python C API maven
+    // if Tcl is the parent, it will have stashed an opaque
+    // pointer to the Tcl interpreter in __main__'s dictionary.
+    //
+    // if there isn't such a pointer there, Python is the parent,
+    // and we'll need to create initialize the Tcl interpreter.
+    //
     PyObject *main_module = PyImport_AddModule("__main__");
     PyObject *pCap = PyObject_GetAttrString(main_module, "interp");
     if (pCap == NULL) {
