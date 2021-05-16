@@ -59,7 +59,7 @@ static int Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description);
 
 static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyTypeObject *toType, Tcl_Obj *resultObj);
 
-static int tohil_exec(PyObject *m);
+static int tohil_mod_exec(PyObject *m);
 
 typedef struct {
     Tcl_Interp *interp;
@@ -894,6 +894,26 @@ TohilTclObj_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj)
     return (PyObject *)self;
 }
 
+static void
+tohil_mod_test(PyTypeObject *pt)
+{
+    PyObject *modobj = PyDict_GetItemString(pt->tp_dict, "__module__");
+    if (modobj == NULL) {
+        printf("failed to get modobj\n");
+    } else {
+        printf("got modobj\n");
+    }
+}
+
+static void
+tohil_dict_dump(PyTypeObject *pt)
+{
+    PyObject *repr = PyObject_Repr(pt->tp_dict);
+    PyObject *str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
+    const char *bytes = PyBytes_AS_STRING(str);
+    printf("dict_dump: %s\n", bytes);
+}
+
 //
 // create a new python tclobj object
 //
@@ -911,6 +931,8 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O$Os", kwlist, &pDefault, &toType, &tVar)) {
         return NULL;
     }
+
+    // tohil_dict_dump(type);
 
     if (toType != NULL) {
         if (!PyType_Check(toType)) {
@@ -3960,7 +3982,7 @@ static PyMethodDef TohilMethods[] = {
 };
 
 static struct PyModuleDef_Slot tohil_slots[] = {
-    {Py_mod_exec, tohil_exec},
+    {Py_mod_exec, tohil_mod_exec},
     {0, NULL},
 };
 
@@ -4095,8 +4117,14 @@ Tohil_Init(Tcl_Interp *interp)
     return TCL_OK;
 }
 
+//
+// populate the tohil module (multiphase-init)
+//
+// PyInit__tohil creates the python module.  once a python interpreter
+// or subinterpreter imports it, this gets called to populate it.
+//
 static int
-tohil_exec(PyObject *m)
+tohil_mod_exec(PyObject *m)
 {
     Tcl_Interp *interp = NULL;
     PyObject *pTohilModStr, *pTohilMod;
@@ -4246,7 +4274,6 @@ PyInit__tohil(void)
     }
 
     // create the python module
-    // PyObject *m = PyModule_Create(&TohilModule);
     PyObject *m = PyModuleDef_Init(&TohilModule);
     if (m == NULL) {
         return NULL;
