@@ -582,8 +582,7 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyObject *m, char *description)
     }
 
     if (!PyTuple_Check(pExceptionResult) || PyTuple_GET_SIZE(pExceptionResult) != 2) {
-        return Tohil_ReturnTclError(interp,
-                                    m,
+        return Tohil_ReturnTclError(interp, m,
                                     "malfunction in tohil python exception handler, did not return tuple or tuple did not contain 2 elements");
     }
 
