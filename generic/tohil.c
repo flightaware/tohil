@@ -70,11 +70,6 @@ typedef struct {
 
 // TCL library begins here
 
-// maintain pointers to our exception handler and python function that
-// we return as our iterator object
-// NB this could be a problem if either of these functions get redefined
-static PyObject *pTohilTclErrorClass = NULL;
-
 //
 // tohil_TclObjToUTF8DString - convert a Tcl object (string in WTF-8) to real UTF-8
 // for Python. Use a DString for buffering.
@@ -3569,11 +3564,19 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", tclString, tclStringSize));
         PyTuple_SET_ITEM(pRetTuple, 1, pReturnOptionsObj);
 
-        assert(pTohilTclErrorClass != NULL);
+        // borrowed ref, do not decrement
+        PyObject *m = PyImport_AddModule("tohil");
+        assert(m != NULL);
+        PyObject *error_class = PyObject_GetAttrString(m, "TclError");
+        if (error_class == NULL || !PyCallable_Check(error_class)) {
+            Py_XDECREF(error_class);
+            Py_DECREF(m);
+            return NULL;
+        }
 
         // ...and set the python error object to
         // TclError(interp_result_string, tcldict_object)
-        PyErr_SetObject(pTohilTclErrorClass, pRetTuple);
+        PyErr_SetObject(error_class, pRetTuple);
         return NULL;
     }
 
@@ -4106,16 +4109,6 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_CreateObjCommand(interp, "::tohil::interact", (Tcl_ObjCmdProc *)TohilInteract_Cmd, (ClientData)m, (Tcl_CmdDeleteProc *)NULL) == NULL)
         return TCL_ERROR;
 
-    pTohilTclErrorClass = PyObject_GetAttrString(m, "TclError");
-    if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
-        Py_XDECREF(pTohilTclErrorClass);
-        Py_DECREF(m);
-        return Tohil_ReturnTclError(interp, m, "unable to find tohil.TclError class in python interpreter");
-    }
-    Py_INCREF(pTohilTclErrorClass);
-    Py_DECREF(m);
-    // printf("got TclError pointer (%lx)\n", pTohilTclErrorClass);
-
     return TCL_OK;
 }
 
@@ -4212,17 +4205,6 @@ tohil_mod_exec(PyObject *m)
     if (pTohilMod == NULL) {
         goto fail;
     }
-
-    pTohilTclErrorClass = PyObject_GetAttrString(pTohilMod, "TclError");
-    tohilstate(m)->error_class = pTohilTclErrorClass;
-    if (pTohilTclErrorClass == NULL || !PyCallable_Check(pTohilTclErrorClass)) {
-        Py_XDECREF(pTohilTclErrorClass);
-        Py_DECREF(pTohilMod);
-        goto fail;
-    }
-    Py_INCREF(pTohilTclErrorClass);
-    Py_DECREF(pTohilMod);
-    // printf("got TclError pointer (%lx)\n", pTohilTclErrorClass);
 
     return 0;
 
