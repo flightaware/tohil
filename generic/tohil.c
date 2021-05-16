@@ -87,11 +87,11 @@ static PyObject *pTohilTclErrorClass = NULL;
 // for Python. Use a DString for buffering.
 //
 static char *
-tohil_TclObjToUTF8DString(Tcl_Obj *obj, Tcl_DString *ds)
+tohil_TclObjToUTF8DString(Tcl_Interp *interp, Tcl_Obj *obj, Tcl_DString *ds)
 {
     static Tcl_Encoding utf8encoding = NULL;
     if (!utf8encoding)
-        utf8encoding = Tcl_GetEncoding(tcl_interp, "utf-8");
+        utf8encoding = Tcl_GetEncoding(interp, "utf-8");
     int tclStringLen;
     char *tclString = Tcl_GetStringFromObj(obj, &tclStringLen);
     return Tcl_UtfToExternalDString(utf8encoding, tclString, tclStringLen, ds);
@@ -102,11 +102,11 @@ tohil_TclObjToUTF8DString(Tcl_Obj *obj, Tcl_DString *ds)
 // Use a DString for buffering.
 // 
 static char *
-tohil_UTF8ToTclDString(char *utf8String, int utf8StringLen, Tcl_DString *ds)
+tohil_UTF8ToTclDString(Tcl_Interp *interp, char *utf8String, int utf8StringLen, Tcl_DString *ds)
 {
     static Tcl_Encoding utf8encoding = NULL;
     if (!utf8encoding)
-        utf8encoding = Tcl_GetEncoding(tcl_interp, "utf-8");
+        utf8encoding = Tcl_GetEncoding(interp, "utf-8");
     // Accepts -1 for string length but try to avoid it.
     if (utf8StringLen == -1) {
         utf8StringLen = strlen(utf8String);
@@ -132,7 +132,7 @@ tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 
     for (int i = 0; i < count; i++) {
         Tcl_DString ds;
-        PyList_SET_ITEM(plist, i, Py_BuildValue("s", tohil_TclObjToUTF8DString(list[i], &ds)));
+        PyList_SET_ITEM(plist, i, Py_BuildValue("s", tohil_TclObjToUTF8DString(interp, list[i], &ds)));
         Tcl_DStringFree(&ds);
     }
 
@@ -157,7 +157,7 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 
     for (int i = 0; i < count; i++) {
         Tcl_DString ds;
-        if (PySet_Add(pset, Py_BuildValue("s", tohil_TclObjToUTF8DString(list[i], &ds))) < 0) {
+        if (PySet_Add(pset, Py_BuildValue("s", tohil_TclObjToUTF8DString(interp, list[i], &ds))) < 0) {
             // no need to set a python error; PySet_Add will do it
             return NULL;
         }
@@ -185,7 +185,7 @@ tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 
     for (int i = 0; i < count; i++) {
         Tcl_DString ds;
-        PyTuple_SET_ITEM(ptuple, i, Py_BuildValue("s", tohil_TclObjToUTF8DString(list[i], &ds)));
+        PyTuple_SET_ITEM(ptuple, i, Py_BuildValue("s", tohil_TclObjToUTF8DString(interp, list[i], &ds)));
         Tcl_DStringFree(&ds);
     }
 
@@ -216,8 +216,8 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 
     for (int i = 0; i < count; i += 2) {
         Tcl_DString kds, vds;
-        char *key = tohil_TclObjToUTF8DString(list[i], &kds);
-        char *val = tohil_TclObjToUTF8DString(list[i + 1], &vds);
+        char *key = tohil_TclObjToUTF8DString(interp, list[i], &kds);
+        char *val = tohil_TclObjToUTF8DString(interp, list[i + 1], &vds);
         PyDict_SetItem(pdict, Py_BuildValue("s", key), Py_BuildValue("s", val));
         Tcl_DStringFree(&kds);
         Tcl_DStringFree(&vds);
@@ -230,7 +230,7 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 // Convert a Python UTF8 string to a Tcl "WTF-8" string.
 //
 static int
-tohil_UTF8ToTcl(char *src, int srclen, char **res, int *reslen)
+tohil_UTF8ToTcl(Tcl_Interp *interp, char *src, int srclen, char **res, int *reslen)
 {
     static Tcl_Encoding utf8encoding = NULL;
     int buflen = srclen;
@@ -238,10 +238,10 @@ tohil_UTF8ToTcl(char *src, int srclen, char **res, int *reslen)
     int written;
     int result;
     if (!utf8encoding)
-        utf8encoding = Tcl_GetEncoding(tcl_interp, "utf-8");
+        utf8encoding = Tcl_GetEncoding(interp, "utf-8");
 
     while (1) {
-        result = Tcl_ExternalToUtf(tcl_interp, utf8encoding, src, srclen, 0, NULL, buf, buflen + 4, NULL, &written, NULL);
+        result = Tcl_ExternalToUtf(interp, utf8encoding, src, srclen, 0, NULL, buf, buflen + 4, NULL, &written, NULL);
         if (result == TCL_OK) {
             *res = buf;
             *reslen = written;
@@ -262,18 +262,18 @@ tohil_UTF8ToTcl(char *src, int srclen, char **res, int *reslen)
 // Convert a Tcl "WTF-8" string to a Python UTF8 string
 //
 static int
-tohil_TclToUTF8(char *src, int srclen, char **res, int *reslen)
+tohil_TclToUTF8(Tcl_Interp *interp, char *src, int srclen, char **res, int *reslen)
 {
     static Tcl_Encoding utf8encoding = NULL;
     int buflen = srclen;
     char *buf = ckalloc(buflen + 4);
     int written;
     if (!utf8encoding)
-        utf8encoding = Tcl_GetEncoding(tcl_interp, "utf-8");
+        utf8encoding = Tcl_GetEncoding(interp, "utf-8");
     int result;
 
     while (1) {
-        result = Tcl_UtfToExternal(tcl_interp, utf8encoding, src, srclen, 0, NULL, buf, buflen + 4, NULL, &written, NULL);
+        result = Tcl_UtfToExternal(interp, utf8encoding, src, srclen, 0, NULL, buf, buflen + 4, NULL, &written, NULL);
         if (result == TCL_OK) {
             *res = buf;
             *reslen = written;
@@ -326,7 +326,7 @@ tclObjToPy(Tcl_Obj *tObj)
 
     int utf8len;
     char *utf8string;
-    if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
+    if (tohil_TclToUTF8(tcl_interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(tcl_interp)));
         return NULL;
     }
@@ -389,7 +389,7 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         pBytesObj = PyUnicode_AsUTF8String(pObj);
         if (pBytesObj == NULL)
             return NULL;
-        if (tohil_UTF8ToTcl(PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
+        if (tohil_UTF8ToTcl(interp, PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
             Py_DECREF(pBytesObj);
             return NULL;
         }
@@ -410,7 +410,7 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         Py_DECREF(pStrObj);
         if (pBytesObj == NULL)
             return NULL;
-        if (tohil_UTF8ToTcl(PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
+        if (tohil_UTF8ToTcl(interp, PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
             Py_DECREF(pBytesObj);
             return NULL;
         }
@@ -493,7 +493,7 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         Py_DECREF(pStrObj);
         if (pBytesObj == NULL)
             return NULL;
-        if (tohil_UTF8ToTcl(PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
+        if (tohil_UTF8ToTcl(interp, PyBytes_AS_STRING(pBytesObj), PyBytes_GET_SIZE(pBytesObj), &utf8string, &utf8len) != TCL_OK) {
             Py_DECREF(pBytesObj);
             return NULL;
         }
@@ -616,7 +616,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
 
     PyObject *kwObj = NULL;
     Tcl_DString ds;
-    const char *objandfn = tohil_TclObjToUTF8DString(objv[1], &ds);
+    const char *objandfn = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
     int objStart = 2;
 
     if (*objandfn == '-' && STREQU(objandfn, "-kwlist")) {
@@ -624,7 +624,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
             goto wrongargs;
         kwObj = tclListObjToPyDictObject(interp, objv[2]);
         Tcl_DStringFree(&ds);
-        objandfn = tohil_TclObjToUTF8DString(objv[3], &ds);
+        objandfn = tohil_TclObjToUTF8DString(interp, objv[3], &ds);
         objStart = 4;
         if (kwObj == NULL) {
             return tohil_tcl_return(interp, TCL_ERROR);
@@ -686,7 +686,7 @@ TohilCall_Cmd(ClientData clientData, /* Not used. */
     PyObject *pArgs = PyTuple_New(objc - objStart);
     PyObject *curarg = NULL;
     for (i = objStart; i < objc; i++) {
-        curarg = PyUnicode_FromString(tohil_TclObjToUTF8DString(objv[i], &ds));
+        curarg = PyUnicode_FromString(tohil_TclObjToUTF8DString(interp, objv[i], &ds));
         Tcl_DStringFree(&ds);
         if (curarg == NULL) {
             Py_DECREF(pArgs);
@@ -771,7 +771,7 @@ TohilEval_Cmd(ClientData clientData, /* Not used. */
         return tohil_tcl_return(interp, TCL_ERROR);
     }
     Tcl_DString ds;
-    const char *cmd = tohil_TclObjToUTF8DString(objv[1], &ds);
+    const char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
 
     // PyCompilerFlags flags = _PyCompilerFlags_INIT;
     // PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, &flags, -1);
@@ -811,7 +811,7 @@ TohilExec_Cmd(ClientData clientData, /* Not used. */
         return tohil_tcl_return(interp, TCL_ERROR);
     }
     Tcl_DString ds;
-    const char *cmd = tohil_TclObjToUTF8DString(objv[1], &ds);
+    const char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
 
     PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_file_input, NULL, -1);
     Tcl_DStringFree(&ds);
@@ -1090,7 +1090,7 @@ TohilTclObj_str(TohilTclObj *self)
 
     int utf8len;
     char *utf8string;
-    if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
+    if (tohil_TclToUTF8(self->interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return NULL;
     }
@@ -1109,7 +1109,7 @@ TohilTclObj_repr(TohilTclObj *self)
     Tcl_Obj *tclobj = TohilTclObj_objptr(self);
     if (tclobj == NULL)
         return NULL;
-    char *utf8string = tohil_TclObjToUTF8DString(tclobj, &ds);
+    char *utf8string = tohil_TclObjToUTF8DString(self->interp, tclobj, &ds);
 
     PyObject *stringRep = PyUnicode_FromFormat("%s", utf8string);
     // char *format = PyUnicode_GET_LENGTH(stringRep) > 100 ? "<%s: %.100R...>" : "<%s: %.100R>";
@@ -1849,7 +1849,7 @@ TohilTclObj_concat(TohilTclObj *self, PyObject *item)
     Tcl_Obj *returnObj = Tcl_DuplicateObj(selfobj);
     Tcl_AppendObjToObj(returnObj, tItem);
     Tcl_DString ds;
-    PyObject *pRet = Py_BuildValue("s", tohil_TclObjToUTF8DString(returnObj, &ds));
+    PyObject *pRet = Py_BuildValue("s", tohil_TclObjToUTF8DString(self->interp, returnObj, &ds));
     Tcl_DecrRefCount(returnObj);
     return pRet;
 }
@@ -2150,7 +2150,7 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
             tclString = Tcl_GetStringFromObj(valueObj, &tclStringSize);
         }
 
-        if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
+        if (tohil_TclToUTF8(self->interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
             PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
             return NULL;
         }
@@ -2165,7 +2165,7 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
     int tclStringSize;
     char *tclString = Tcl_GetStringFromObj(keyObj, &tclStringSize);
 
-    if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
+    if (tohil_TclToUTF8(self->interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return NULL;
     }
@@ -2175,7 +2175,7 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
     if (self->to == NULL) {
         // no "to" specified, stuff the value into item 1 of the tuple
         tclString = Tcl_GetStringFromObj(valueObj, &tclStringSize);
-        if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
+        if (tohil_TclToUTF8(self->interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
             PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
             return NULL;
         }
@@ -3563,7 +3563,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyTypeObject *toType, Tc
         char *utf8string;
 
         tclString = Tcl_GetStringFromObj(resultObj, &tclStringSize);
-        if (tohil_TclToUTF8(tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
+        if (tohil_TclToUTF8(interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
             PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
             return NULL;
         }
@@ -3648,7 +3648,7 @@ tohil_eval(PyObject *m, PyObject *args, PyObject *kwargs)
 
     // TODO modify the above PyArg_ParseTupleAndKeywords to return a length?
     Tcl_DString ds;
-    char *tclCode = tohil_UTF8ToTclDString(utf8Code, -1, &ds);
+    char *tclCode = tohil_UTF8ToTclDString(interp, utf8Code, -1, &ds);
     int result = Tcl_Eval(interp, tclCode);
     Tcl_DStringFree(&ds);
     Tcl_Obj *resultObj = Tcl_GetObjResult(interp);
@@ -3671,7 +3671,7 @@ tohil_expr(PyObject *m, PyObject *args, PyObject *kwargs)
         return NULL;
 
     Tcl_DString ds;
-    char *expression = tohil_UTF8ToTclDString(utf8expression, -1, &ds);
+    char *expression = tohil_UTF8ToTclDString(interp, utf8expression, -1, &ds);
 
     Tcl_Obj *resultObj = NULL;
     if (Tcl_ExprObj(interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
