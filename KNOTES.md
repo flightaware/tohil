@@ -147,7 +147,7 @@ this solves the sort of surprising behavior of tclobjs that when you get from a 
 
 ### templates?
 
-possibly inspect tcl procs using "info args" and "info default" to figure out what arguments they expect and generate a python trampoline that lets you invoke with python style named arguments, etc, 
+possibly inspect tcl procs using "info args" and "info default" to figure out what arguments they expect and generate a python trampoline that lets you invoke with python style named arguments, etc,
 
 ### trampoline stuff
 
@@ -157,7 +157,7 @@ tohil.procster.package_require("Tclx")
 defs = procster.procs.probe_procs()
 exec(defs)
 
-make the wrappers import into a namespace? 
+make the wrappers import into a namespace?
 
 make them define methods in a class?
 
@@ -366,4 +366,16 @@ get subinterpreters like you expect.
 
 check python source for how cool python is for switching a thread state
 to whatever it already is, should just return.
+
+experiments seem promising however we are creating them when we don't
+need them and it is breaking tests.
+
+i think ideally you want to create your first subinterpreter for your
+second tcl interpreter that package requires tohil within a process,
+and keep creating subinterpreters from there on.
+
+so you need a mechanism to spot that second tcl interpreter
+
+you'd need to store it somewhere reliable but not off of a global
+
 

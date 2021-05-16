@@ -550,13 +550,15 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyObject *m, char *description)
 
     PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
     PyErr_NormalizeException(&pType, &pVal, &pTrace);
-    PyObject_Print(pType, stdout, 0);
-    PyObject_Print(pVal, stdout, 0);
+    // PyObject_Print(pType, stdout, 0);
+    // PyObject_Print(pVal, stdout, 0);
 
     // set tcl interpreter result
     Tcl_SetObjResult(interp, pyObjToTcl(interp, pVal));
 
+    Tcl_AddErrorInfo(interp, " (");
     Tcl_AddErrorInfo(interp, description);
+    Tcl_AddErrorInfo(interp, ")");
 
     // find tohil.handle_exception python function
     PyObject *handle_exception = PyObject_GetAttrString(m, "handle_exception");
@@ -576,8 +578,8 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyObject *m, char *description)
         PyObject *pType = NULL, *pVal = NULL, *pTrace = NULL;
         PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
         PyErr_NormalizeException(&pType, &pVal, &pTrace);
-        PyObject_Print(pType, stdout, 0);
-        PyObject_Print(pVal, stdout, 0);
+        // PyObject_Print(pType, stdout, 0);
+        // PyObject_Print(pVal, stdout, 0);
         return Tohil_ReturnTclError(interp, m, "some problem running the tohil python exception handler");
     }
 
@@ -592,6 +594,31 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyObject *m, char *description)
     return TCL_ERROR;
 }
 
+static void
+tohil_set_subinterp(Tcl_Interp *interp, PyThreadState *pyterp)
+{
+    Tcl_SetAssocData(interp, "tohil_pyterp", NULL, (ClientData)pyterp);
+    // printf("tcl interpreter %p set assoc pyterp thread state %p\n", interp, pyterp);
+}
+
+static int
+tohil_subinterp_is_set(Tcl_Interp *interp)
+{
+    return (PyThreadState *)Tcl_GetAssocData(interp, "tohil_pyterp", NULL) != NULL;
+}
+
+//
+// swap to the python subinterpreter associated with this tcl interpreter
+//
+static void
+tohil_swap_subinterp(Tcl_Interp *interp)
+{
+    PyThreadState *pyterp = (PyThreadState *)Tcl_GetAssocData(interp, "tohil_pyterp", NULL);
+    assert(pyterp != NULL);
+    PyThreadState_Swap(pyterp);
+    // printf("tohil_swap_subinterp %p, subinterpreter is now %p\n", interp, pyterp);
+}
+
 //
 // call python from tcl with very explicit arguments versus
 //   slamming stuff through eval
@@ -600,6 +627,7 @@ static int
 TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     PyObject *m = (PyObject *)clientData;
+    tohil_swap_subinterp(interp);
 
     if (objc < 2) {
     wrongargs:
@@ -718,6 +746,7 @@ TohilImport_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *co
     const char *modname, *topmodname;
     PyObject *pMainModule, *pTopModule;
     int ret = -1;
+    tohil_swap_subinterp(interp);
 
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "module");
@@ -753,6 +782,7 @@ static int
 TohilEval_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     PyObject *m = (PyObject *)clientData;
+    tohil_swap_subinterp(interp);
 
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "evalString");
@@ -791,6 +821,7 @@ static int
 TohilExec_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     PyObject *m = (PyObject *)clientData;
+    tohil_swap_subinterp(interp);
 
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "execString");
@@ -829,6 +860,7 @@ static int
 TohilInteract_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     PyObject *m = (PyObject *)clientData;
+    tohil_swap_subinterp(interp);
 
     if (objc != 1) {
         Tcl_WrongNumArgs(interp, 1, objv, "");
@@ -875,17 +907,6 @@ TohilTclObj_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj)
         Tcl_IncrRefCount(obj);
     }
     return (PyObject *)self;
-}
-
-static void
-tohil_mod_test(PyTypeObject *pt)
-{
-    PyObject *modobj = PyDict_GetItemString(pt->tp_dict, "__module__");
-    if (modobj == NULL) {
-        printf("failed to get modobj\n");
-    } else {
-        printf("got modobj\n");
-    }
 }
 
 static void
@@ -4013,9 +4034,15 @@ static struct PyModuleDef TohilModule = {
 //
 // this is the entry point called when the tcl interpreter loads the tohil shared library
 //
+// tcl will only call it once per interpreter
+//
+// NB BUG after package forget, package require doesn't work
+//
 int
 Tohil_Init(Tcl_Interp *interp)
 {
+    // printf("Tohil_Init\n");
+
     if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
         return TCL_ERROR;
 
@@ -4049,13 +4076,21 @@ Tohil_Init(Tcl_Interp *interp)
         // python stuff
         char *python_lib = "libpython" PYTHON_VERSION ".so";
         if (dlopen(python_lib, RTLD_GLOBAL | RTLD_LAZY) == NULL) {
-            fprintf(stderr, "load %s failed\n", python_lib);
+            // fprintf(stderr, "load %s failed\n", python_lib);
         }
 
         // initialize python but since tcl is the parent,
         // pass 0 for initsigs, so python will not register
         // signal handlers
         Py_InitializeEx(0);
+
+        // printf("Tohil_Init: initialized python from scratch, setting subinterp to main thread state\n");
+        tohil_set_subinterp(interp, PyThreadState_Get());
+    } else {
+        if (!tohil_subinterp_is_set(interp)) {
+            // printf("Tohil_Init: python is there already and tcl interpreter %p doesn't have a subinterp set, making a subinterpreter\n");
+            tohil_set_subinterp(interp, Py_NewInterpreter());
+        }
     }
 
     // stash the Tcl interpreter pointer so the python side can find it later
@@ -4077,8 +4112,8 @@ Tohil_Init(Tcl_Interp *interp)
         PyObject *pType = NULL, *pVal = NULL, *pTrace = NULL;
         PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
         PyErr_NormalizeException(&pType, &pVal, &pTrace);
-        PyObject_Print(pType, stdout, 0);
-        PyObject_Print(pVal, stdout, 0);
+        // PyObject_Print(pType, stdout, 0);
+        // PyObject_Print(pVal, stdout, 0);
 
         return Tohil_ReturnTclError(interp, m, "unable to import tohil module to python interpreter");
     }
@@ -4140,6 +4175,11 @@ tohil_mod_exec(PyObject *m)
 
         if (Tcl_Init(interp) != TCL_OK)
             goto fail;
+
+        // since python is the parent, the python subinterpreter
+        // isn't really a subinterpreter
+        // printf("tohil_mod_exec: i created tcl interp %p, setting subinterp to main thread i hope %p\n", interp, PyThreadState_Get());
+        tohil_set_subinterp(interp, PyThreadState_Get());
 
         // invoke Tohil_Init to load us into the tcl interpreter
         // NB uh this probably isn't enough and we need to do a

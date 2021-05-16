@@ -94,7 +94,7 @@ test tohil_import-1.6 {non-existent import with full trace} \
 
 		list [catch {aaa} err] $err $::errorInfo
 	} \
-	-result {1 {No module named 'aosidas'} {No module named 'aosidas'
+	-result {1 {No module named 'aosidas'} {No module named 'aosidas' (import module failed)
 from python code executed by tohil
     invoked from within
 "tohil::import aosidas"
