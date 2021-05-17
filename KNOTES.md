@@ -147,7 +147,7 @@ this solves the sort of surprising behavior of tclobjs that when you get from a 
 
 ### templates?
 
-possibly inspect tcl procs using "info args" and "info default" to figure out what arguments they expect and generate a python trampoline that lets you invoke with python style named arguments, etc, 
+possibly inspect tcl procs using "info args" and "info default" to figure out what arguments they expect and generate a python trampoline that lets you invoke with python style named arguments, etc,
 
 ### trampoline stuff
 
@@ -157,7 +157,7 @@ tohil.procster.package_require("Tclx")
 defs = procster.procs.probe_procs()
 exec(defs)
 
-make the wrappers import into a namespace? 
+make the wrappers import into a namespace?
 
 make them define methods in a class?
 
@@ -312,5 +312,70 @@ you can start a dead simple webserver from the top level of your html dir
 or whatever, using something like:
 
 python3 -m http.server
+
+-----
+
+subinterpreter support
+
+tohil should now (5/16/21) support subinterpreters insofar as it should
+be doing multiphase init properly.
+
+the question now is how do we put it to work
+
+and in particular solve the problem when running rivet with separate
+virtual (tcl) interpreter
+
+the rivet problem is that when running separate virtual interpreters there
+are multiple tcl interpreters.
+
+if one does a package require tohil, it gets pretty hooked into python,
+some other one comes along and does a package require tohil, the stuff it
+tries to do with python is shared and the stuff python does with tcl is
+done with the original tcl interpreter, which is not what we want, and often
+will be an error because the other interpreter is not being used to generating
+a webpage, while the one using python is.  and that's how you'll get errors
+like that you invoked something while not generating a page.
+
+when running separate virtual interpreters, each tcl interpreter that tries
+to use python should get its own python subinterpreter.  this will allow
+the devs to have their own variant python code and to prevent weird crosstalk
+between the interpreters.
+
+how python hooks into tcl is by importing tohil.  how tohil finds the tcl
+interpreter to hook into is it either creates it if python is the parent
+or accesses it if tcl is the parent.
+
+for rivet, tcl is always the parent.  at least currently unless we start
+running mod_python or something.
+
+so if under separate virtual interpreters a tcl interpreter does a package
+require tohil, i think we would need to create a python subinterpreter,
+at least for the second tcl interpreter requiring tohil within a single
+httpd process, and somehow whenever that tcl interpreter tried to do
+anything with python, it would PyThreadState_Swap() to switch to its
+subinterpreter, if it wasn't already on it.
+
+one approach might be to use Tcl_SetAssocData to store the thread state
+returned by Py_NewInterpreter() in the Tcl interpreter.
+
+then when our tcl functions are called, we can do a PyThreadState_Swap()
+
+you could test and practice with interpreters returned by interp create,
+run interp eval on them and do package require tohil and see if you
+get subinterpreters like you expect.
+
+check python source for how cool python is for switching a thread state
+to whatever it already is, should just return.
+
+experiments seem promising however we are creating them when we don't
+need them and it is breaking tests.
+
+i think ideally you want to create your first subinterpreter for your
+second tcl interpreter that package requires tohil within a process,
+and keep creating subinterpreters from there on.
+
+so you need a mechanism to spot that second tcl interpreter
+
+you'd need to store it somewhere reliable but not off of a global
 
 
