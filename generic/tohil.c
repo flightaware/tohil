@@ -26,6 +26,10 @@
 
 #define STREQU(a, b) (*(a) == *(b) && strcmp((a), (b)) == 0)
 
+// name we use for keeping track of python interpreter from tcl
+// using tcl's Tcl_GetAssocData and friends
+#define ASSOC_DATA_NAME "tohil_pyterp"
+
 // leave in asserts
 #undef NDEBUG
 
@@ -595,17 +599,35 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
     return TCL_ERROR;
 }
 
+//
+// subinterpreter support
+//
+
+//
+// this is called when a tcl interpreter is deleted
+//
+static void
+tohil_delete_subinterp(ClientData clientData, Tcl_Interp *interp)
+{
+    PyThreadState *subinterp = (PyThreadState *)clientData;
+    // printf("tcl interpreter %p being deleted, deleting subinterp %p\n", interp, subinterp);
+    PyThreadState_Swap(subinterp);
+    Py_EndInterpreter(subinterp);
+}
+
+// this is called to associate a subinterpreter with a tcl interpreter
 static void
 tohil_set_subinterp(Tcl_Interp *interp, PyThreadState *pyterp)
 {
-    Tcl_SetAssocData(interp, "tohil_pyterp", NULL, (ClientData)pyterp);
+    Tcl_SetAssocData(interp, ASSOC_DATA_NAME, tohil_delete_subinterp, (ClientData)pyterp);
     // printf("tcl interpreter %p set assoc pyterp thread state %p\n", interp, pyterp);
 }
 
+// this is called to see if there's a subinterpreter associated with a tcl interpreter
 static int
 tohil_subinterp_is_set(Tcl_Interp *interp)
 {
-    return (PyThreadState *)Tcl_GetAssocData(interp, "tohil_pyterp", NULL) != NULL;
+    return (PyThreadState *)Tcl_GetAssocData(interp, ASSOC_DATA_NAME, NULL) != NULL;
 }
 
 //
@@ -614,10 +636,12 @@ tohil_subinterp_is_set(Tcl_Interp *interp)
 static void
 tohil_swap_subinterp(Tcl_Interp *interp)
 {
-    PyThreadState *pyterp = (PyThreadState *)Tcl_GetAssocData(interp, "tohil_pyterp", NULL);
+    PyThreadState *pyterp = (PyThreadState *)Tcl_GetAssocData(interp, ASSOC_DATA_NAME, NULL);
     assert(pyterp != NULL);
-    PyThreadState_Swap(pyterp);
-    // printf("tohil_swap_subinterp %p, subinterpreter is now %p\n", interp, pyterp);
+    if (pyterp != PyThreadState_Get()) {
+        // printf("tohil_swap_subinterp %p, swapping subinterpreter to %p\n", interp, pyterp);
+        PyThreadState_Swap(pyterp);
+    }
 }
 
 //
@@ -4084,7 +4108,7 @@ Tohil_Init(Tcl_Interp *interp)
         tohil_set_subinterp(interp, PyThreadState_Get());
     } else {
         if (!tohil_subinterp_is_set(interp)) {
-            // printf("Tohil_Init: python is there already and tcl interpreter %p doesn't have a subinterp set, making a subinterpreter\n");
+            // printf("Tohil_Init: python is there already and tcl interpreter %p doesn't have a subinterp set, making a subinterpreter\n", interp);
             tohil_set_subinterp(interp, Py_NewInterpreter());
         }
     }
@@ -4097,8 +4121,7 @@ Tohil_Init(Tcl_Interp *interp)
     }
     Py_DECREF(pCap);
 
-    // import tohil to get at the python parts
-    // and grab a reference to tohil's exception handler
+    // import tohil module
     PyObject *pTohilModStr = PyUnicode_FromString("tohil");
     PyObject *m = PyImport_Import(pTohilModStr);
     Py_DECREF(pTohilModStr);
@@ -4123,6 +4146,7 @@ Tohil_Init(Tcl_Interp *interp)
             return Tohil_ReturnTclError(interp, "unable to setattr tohil module to __main__");
     }
 
+    // define tohil C commands that extend the Tcl interpreter
     if (Tcl_CreateObjCommand(interp, "::tohil::eval", (Tcl_ObjCmdProc *)TohilEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
         return TCL_ERROR;
 
@@ -4258,42 +4282,34 @@ PyMODINIT_FUNC
 PyInit__tohil(void)
 {
     // turn up the tclobj python type
-    if (PyType_Ready(&TohilTclObjType) < 0) {
+    if (PyType_Ready(&TohilTclObjType) < 0)
         return NULL;
-    }
 
     // turn up the tcldict iterator type
-    if (PyType_Ready(&TohilTclObj_IterType) < 0) {
+    if (PyType_Ready(&TohilTclObj_IterType) < 0)
         return NULL;
-    }
 
     // turn up the tcldict iterator type
-    if (PyType_Ready(&Tohil_TD_IterType) < 0) {
+    if (PyType_Ready(&Tohil_TD_IterType) < 0)
         return NULL;
-    }
 
     // turn up the tcldict keys, items and values iterator types
-    if (PyType_Ready(&Tohil_TD_IterKeysType) < 0) {
+    if (PyType_Ready(&Tohil_TD_IterKeysType) < 0)
         return NULL;
-    }
 
-    if (PyType_Ready(&Tohil_TD_IterItemsType) < 0) {
+    if (PyType_Ready(&Tohil_TD_IterItemsType) < 0)
         return NULL;
-    }
 
-    if (PyType_Ready(&Tohil_TD_IterValuesType) < 0) {
+    if (PyType_Ready(&Tohil_TD_IterValuesType) < 0)
         return NULL;
-    }
 
-    if (PyType_Ready(&TohilTclDictType) < 0) {
+    if (PyType_Ready(&TohilTclDictType) < 0)
         return NULL;
-    }
 
     // create the python module
     PyObject *m = PyModuleDef_Init(&TohilModule);
-    if (m == NULL) {
+    if (m == NULL)
         return NULL;
-    }
 
     return m;
 }
