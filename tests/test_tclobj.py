@@ -40,7 +40,10 @@ class TestTclObj(unittest.TestCase):
         """exercise tohil.tclobj set()"""
         x = tohil.eval("list 1 2 3 4 5 5", to=tohil.tclobj)
 
-        self.assertEqual(sorted(set(x)), ["1", "2", "3", "4", "5"])
+        #NB we made tohil.tclobj unhashable because it's mutable
+        #NB is that right?  if we implement a hash function for it,
+        # this will work
+        #self.assertEqual(sorted(set(x)), ["1", "2", "3", "4", "5"])
 
     def test_tclobj6(self):
         """exercise tohil.tclobj tuple()"""
@@ -73,8 +76,6 @@ class TestTclObj(unittest.TestCase):
         """exercise tohil.tclobj subscripting, str(), and repr()"""
         x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
         self.assertEqual(str(x[2]), "3")
-        self.assertEqual(repr(x[2]), "'3'")
-        x.to = tohil.tclobj
         self.assertEqual(repr(x[2]), "<tohil.tclobj: '3'>")
 
     def test_tclobj11(self):

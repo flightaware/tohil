@@ -3678,7 +3678,11 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     }
     // printf("tohil_python_return called: tcl result %d, to=%s, resulObj '%s'\n", tcl_result, toString, Tcl_GetString(resultObj));
 
-    if (toType == NULL || STREQU(toString, "str")) {
+    if (toType == NULL || STREQU(toString, "tohil.tclobj")) {
+        return TohilTclObj_FromTclObj(interp, resultObj);
+    }
+
+    if (STREQU(toString, "str")) {
         int tclStringSize;
         char *tclString;
         int utf8len;
@@ -3724,10 +3728,6 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         }
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
-    }
-
-    if (STREQU(toString, "tohil.tclobj")) {
-        return TohilTclObj_FromTclObj(interp, resultObj);
     }
 
     if (STREQU(toString, "tohil.tcldict")) {
