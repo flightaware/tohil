@@ -1,4 +1,4 @@
-.. _tutorial-index:
+.. _tutorial-intro:
 
 ######################
   The Tohil Tutorial

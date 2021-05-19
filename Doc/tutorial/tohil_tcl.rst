@@ -1,4 +1,4 @@
-.. _tutorial-index:
+.. _tutorial-python-from-tcl:
 
 ======================
 Using Python From Tcl
