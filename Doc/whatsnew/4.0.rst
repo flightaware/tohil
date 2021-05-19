@@ -1,0 +1,77 @@
+
+.. 4.0.rst:
+
+****************************
+  What's New In Tohil 4.0
+****************************
+
+==================================
+Python Subinterpreter Support
+==================================
+
+Full Python subinterpreter support!
+
+First, starting with version 4, Tohil properly supports multi-phase init,
+meaning that multiple Python interpreters (the Python interpreter and
+any subinterpreters) can import tohil and they will get their own instance
+of Tohil, so there is no "crosstalk" between the interpreters.
+
+Second, Tohil recognizes when a second Tcl interpreter within the same
+process has done a ``package require tohil`` and will create and exclusively
+interact with a separate, distinct Python subinterpreter for each
+corresponding Tcl interpreter.
+
+Say for instance you create a new Tcl interpreter from Tcl, using
+something like ``set interp [interp create]`` and then do
+``$interp eval "package require tohil"``, that second interpreter
+doing the package require causes a new Python subinterpreter to be
+created and initialized.
+
+And it works great.
+
+When any of the Tcl interpreters exercises their Python interpreter,
+Tohil will automatically switch Python's executing interpreter to
+that interpreter (swap its thread state), if needed.
+
+This was pretty tricky, because we previously had global variables,
+in particular one pointing to the Tcl interpreter.  We had to figure
+out ways to stash the pointer to the Tcl interpreter in Python using
+C such that we could find it later when we didn't have control over
+how we were called, for example we are being called from Python with
+to do some Python thing, you only get what it calls you with.  So we
+stashed the interpreter pointer in a capsule in Tohil's Python data types'
+dictionaries and in __main__'s dictionary.  It turned out really nice.
+
+==================================================
+Support for Separate Virtual Interpreters in Rivet
+==================================================
+
+A nice bit of fallout from the above, if you're running the Apache
+webserver with the
+Apache Rivet module installed and running in the mode where different
+virtual hosts run in separate Tcl interpreters, known as separate virtual
+interpreters, each vhost that does a ``package require tohil`` will get its
+own Python subinterpreter, isolating Python between the vhosts just as
+Tcl is.
+
+=========================
+Additional Improvements
+=========================
+
+* When Tcl is the parent and Tohil initializes Python from scratch,
+  we use ``PyInitializeEx(0)`` instead of ``Py_Initialize`` to
+  prevent Python from registering signal handlers.  (That seems like
+  Tcl's business under this circumstance.)
+* When Tcl is the parent, ``package require tohil`` will, in addition to
+  initializing Python, automatically import tohil on the Python side.
+
+
+* Internal code refactoring and cleanup.
+
+================================
+Documentation Improvements
+================================
+
+* Greatly improved documentation in Python-standard format.
+* Makefile and docs for building the docs.
+
