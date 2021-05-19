@@ -1,4 +1,8 @@
+.. _tutorial-python-from-tcl:
 
+======================
+Using Python From Tcl
+======================
 
 In this section we'll introduce using Python from Tcl.
 
@@ -17,7 +21,9 @@ If the package-require failed then please visit
 the installation instructions and get tohil built and installed
 on your computer.
 
+***************
 tohil::eval
+***************
 
 ::
 
@@ -34,7 +40,9 @@ and returned the result back to tcl.
   % puts $answer
   42
 
-tohil::eval
+***************
+tohil::exec
+***************
 
 In Python, *eval* evaluates a single expression and returns the
 result, so even trying to eval something like ``answer = 42`` is
@@ -74,7 +82,9 @@ two integers yielded an integer result while Python, a float?  Then
 we used Python's integer division *//* to get integer division, while
 trying that with Tcl was an error because Tcl doesn't have that operator.
 
+***************
 tohil::import
+***************
 
 OK, we can start doing Python stuff from Tcl, like import a module.
 
@@ -89,7 +99,9 @@ We do this often enough that Tohil provides a shortcut:
    % tohil::import numpy
 
 
+****************
 notes about exec
+****************
 
 One thing that can trip people up is it can be surprising that
 tohil::exec never returns anything.
@@ -110,13 +122,17 @@ be a surprise that Tohil is using Python's
 eval and exec mechanisms at the C level to provide these capabilities
 to Tcl.
 
+***************
 tohil::run
+***************
 
 tohil::run is a special version of tohil::exec that grabs anything
 Python emits to stdout while the exec is running, and returns it
 to the caller.
 
+***************
 tohil::call
+***************
 
 If you start creating from Tcl, Python to be executed with
 eval and exec, you may notice there's a risk that if you use
@@ -139,7 +155,9 @@ tohil::import provides a way to import Python modules, although it's not much
 different from doing a tohil::exec "import module"
 
 
-#### tohil::interact
+***************
+tohil::interact
+***************
 
 Take tohil to eleven.  You're on ten here... all the way up... You're
 on ten on your guitar... where can you go from there?  Where?  Nowhere.
@@ -161,8 +179,9 @@ return to the Tcl one.
     bar
 
 
-
+**********************
 Using tohil from Rivet
+**********************
 
 Rivet is an Apache webserver module that provides among other things
 a way for webpages to be made from HTML files with embedded Tcl code
