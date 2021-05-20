@@ -298,3 +298,5 @@ back by sending an end-of-file.
 tcldict
 tclobj
 tclvar
+=======
+>>>>>>> e7333ccf4bcd0c70073e5b93170683cd3d9560f6

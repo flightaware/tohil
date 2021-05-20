@@ -5,7 +5,9 @@
   What's New In Tohil 3.2
 ****************************
 
-### tclobjs
+========
+tclobjs
+========
 
 Tohil Tcl objects, tclobjs, are a data type Tohil creates in Python.
 Tclobjs have gained considerable new power.  Among them, they now
@@ -52,14 +54,18 @@ renamed to *extend*, for compatibility with Python's lists.
 * tclobjs can now ingest python sets (in addition to lists, tuples, etc,
   which it already could do.)
 
-### Tclobj Shadow Vars
+======================
+Tclobj Shadow Vars
+======================
 
 Another new feature, Tclobj shadow vars, `t = tohil.tclvar('t')`, makes *t* a
 tclobj that shadows a variable *t* in the Tcl interpreter.  Any changes to the
 variable from the Tcl side are "seen" from the Python side, and vice versa.
 The variable can also be an array element.
 
-### Tcldicts
+======================
+Tcldicts
+======================
 
 * Tcldict objects now provide many methods that standard Python dicts
   provide, such as keys(), values(), items().  Because of this,
@@ -73,7 +79,9 @@ The variable can also be an array element.
 
 * A new *.insert(i, x)* method will insert item x at position i.
 
-### ShadowDicts
+======================
+ShadowDicts
+======================
 
 ShadowDicts implement many additional methods implemented by standard
 Python dicts.
@@ -82,18 +90,24 @@ ShadowDicts now have a *get* method that behaves as standard dicts do.
 A new *clear* method removes all items from the shadow diction, i.e. it
 unsets the shadowed Tcl array.
 
-### Python exception improvements
+=============================
+Python exception improvements
+=============================
 
 We now raise more standard Python TypeError, KeyError and ValueError exceptions
 in places where we used to just raise RuntimeError.
 
-### Tohil method improvements and changes
+======================================
+Tohil method improvements and changes
+======================================
 
 Tohil.unset can now take an arbitrary number of arguments of variable names
 and array elements to unset, include zero.  As before, it is fine to unset
 something that doesn't exist.
 
-### Testing Improvements
+======================================
+Testing Improvements
+======================================
 
 * Lots of new tests.
 * Also we're now using the hypothesis testing framework and have found
@@ -101,8 +115,8 @@ something that doesn't exist.
 * All tests pass now on 32-bit ARM Linux.
 * Linux CI automated testing using Github Actions
 
-### Build Improvements
-
-* 
+======================================
+Build Improvements
+======================================
 
 
