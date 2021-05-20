@@ -201,9 +201,9 @@ def source(file_name, encoding=""):
 def package_require(package, version=""):
     """try to load the specified package."""
     if version == "":
-        return _tohil.call("package", "require", package)
+        return _tohil.call("package", "require", package, to=str)
     else:
-        return _tohil.call("package", "require", package, version)
+        return _tohil.call("package", "require", package, version, to=str)
 
 
 def use_vhost(vhost=""):
