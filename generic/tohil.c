@@ -3678,6 +3678,14 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     }
     // printf("tohil_python_return called: tcl result %d, to=%s, resulObj '%s'\n", tcl_result, toString, Tcl_GetString(resultObj));
 
+    // if there's no "to" specified and the result object is empty,
+    // just return None.  This is experimental.  Not sure about it.
+    if (0 && toType == NULL) {
+        if (resultObj->bytes != NULL && resultObj->length == 0) {
+            Py_RETURN_NONE;
+        }
+    }
+
     if (toType == NULL || STREQU(toString, "tohil.tclobj")) {
         return TohilTclObj_FromTclObj(interp, resultObj);
     }
