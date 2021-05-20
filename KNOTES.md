@@ -290,4 +290,17 @@ when you install, use
 
 python3.9 setup.py install --prefix=/opt/local
 
+-----
 
+uploading for pip
+
+python setup.py sdist
+python setup.py bdist_wheel
+twine upload --verbose dist/*
+
+https://packaging.python.org/guides/using-testpypi/
+twine upload --repository testpypi dist/*
+
+$HOME/.pypirc
+[testpypi]
+username = <your TestPyPI username>
