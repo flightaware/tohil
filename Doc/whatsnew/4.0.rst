@@ -48,22 +48,28 @@ Support for Separate Virtual Interpreters in Rivet
 
 A nice bit of fallout from the above, if you're running the Apache
 webserver with the
-Apache Rivet module installed and running in the mode where different
+`Apache Rivet https://tcl.apache.org/rivet/`_ module installed and running
+in the mode where different
 virtual hosts run in separate Tcl interpreters, known as separate virtual
 interpreters, each vhost that does a ``package require tohil`` will get its
 own Python subinterpreter, isolating Python between the vhosts just as
 Tcl is.
 
+============================
+User-Facing Behavior Changes
+============================
+
+* When Tcl is the parent, ``package require tohil`` will, in addition to
+  initializing Python, automatically import tohil on the Python side.
+
 =========================
-Additional Improvements
+Internal Changes
 =========================
 
 * When Tcl is the parent and Tohil initializes Python from scratch,
   we use ``PyInitializeEx(0)`` instead of ``Py_Initialize`` to
-  prevent Python from registering signal handlers.  (That seems like
-  Tcl's business under this circumstance.)
-* When Tcl is the parent, ``package require tohil`` will, in addition to
-  initializing Python, automatically import tohil on the Python side.
+  prevent Python from registering signal handlers.  (Signal handling probably
+  ought to be Tcl's business under this circumstance.)
 
 
 * Internal code refactoring and cleanup.
@@ -74,4 +80,4 @@ Documentation Improvements
 
 * Greatly improved documentation in Python-standard format.
 * Makefile and docs for building the docs.
-
+* ``make serve`` target to serve the docs via http (for devs)
