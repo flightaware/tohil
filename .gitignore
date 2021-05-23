@@ -1,4 +1,5 @@
 *.swp
+.hypothesis
 
 # Intermediate build files
 tohil.o

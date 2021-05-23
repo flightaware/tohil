@@ -2,6 +2,11 @@ import unittest
 
 import tohil
 
+def filter_minus_1(val):
+    return val - 1
+
+def filter_too_many_args(val1, val2):
+    return val1 + 1
 
 class TestEval(unittest.TestCase):
     def test_eval1(self):
@@ -48,6 +53,20 @@ class TestEval(unittest.TestCase):
         """exercise tohil.eval and to=someting_wrong"""
         with self.assertRaises(NameError):
             tohil.eval("list 1 2 3", to=no_such_type)
+
+    def test_eval8(self):
+        """exercise tohil.eval and to=function"""
+        self.assertEqual(tohil.eval("return 10", to=filter_minus_1), 9)
+
+    def test_eval9(self):
+        """exercise tohil.eval and an incorrect to=function"""
+        with self.assertRaises(TypeError):
+            tohil.eval("list 1 2 3", to=filter_too_many_args)
+
+    def test_eval10(self):
+        """exercise tohil.eval and to=function"""
+        with self.assertRaises(TypeError):
+            tohil.eval("list 1 2 3", to=filter_minus_1)
 
 
 if __name__ == "__main__":

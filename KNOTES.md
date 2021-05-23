@@ -378,4 +378,20 @@ so you need a mechanism to spot that second tcl interpreter
 
 you'd need to store it somewhere reliable but not off of a global
 
+ok, this led to an acceptable answer.  when python is the parent,
+it sets the tcl interpreter that it creates, it sets its python interpreter
+using the set assoc data thing in tcl to be the associated python
+interpreter to this tcl interpreter.
+
+if tcl is the parent and the python interpreter hasn't already been
+initialized, tohil initializes it and sets the main python interpreter
+using the set assoc data thing.
+
+if tcl is the parent and the python interpreter has already been initialized
+and the current tcl interpreter doesn't have a python interpreter set,
+tohil uses Py_NewInterpreter() to create a ne3w interpreter and associate
+it with the current tcl interpreter.
+
+-----
+
 
