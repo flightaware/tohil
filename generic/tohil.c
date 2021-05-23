@@ -2085,6 +2085,7 @@ typedef struct {
     PyObject_HEAD;
     TohilTclObj *tohilObj;
     int i;
+    int done;
 } TohilTclObj_IterObj;
 
 //
@@ -2104,6 +2105,7 @@ TohilTclObjIter(TohilTclObj *self)
     }
     Py_INCREF(self);
     pIter->i = 0;
+    pIter->done = 0;
     Py_INCREF(pIter);
     return (PyObject *)pIter;
 }
@@ -2124,7 +2126,17 @@ TohilTclObj_iternext(TohilTclObj_IterObj *self)
         return NULL;
     }
 
+    // the iterator is outside the range.  by python docs,
+    // return a stop-iteration exception, even multiple times.
     if (self->i >= length) {
+        // but only once, decrement the reference count to
+        // the tcl object we've been iterating, if it exists.
+        if (!self->done) {
+            self->done = 1;
+            if (self->tohilObj->tclobj != NULL) {
+                Tcl_DecrRefCount(self->tohilObj->tclobj);
+            }
+        }
         PyErr_SetNone(PyExc_StopIteration);
         return NULL;
     }
@@ -4078,6 +4090,26 @@ tohil_call(PyObject *m, PyObject *args, PyObject *kwargs)
 }
 
 //
+// tohil.result - return the tcl interpreter result object
+//
+static PyObject *
+tohil_result(PyObject *m, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"to", NULL};
+    PyObject *to = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|$O", kwlist, &to)) {
+        return NULL;
+    }
+    Tcl_Obj *obj = Tcl_GetObjResult(interp);
+    assert(obj != NULL); // i don't think this can ever be null
+
+    return tohil_python_return(interp, TCL_OK, to, obj);
+}
+
+
+//
 // python C extension structure defining functions
 //
 // these are the tohil.* ones like tohil.eval, tohil.call, etc
@@ -4094,6 +4126,7 @@ static PyMethodDef TohilMethods[] = {
     {"convert", (PyCFunction)tohil_convert, METH_VARARGS | METH_KEYWORDS,
      "convert python to tcl object then to whatever to= says or string and return"},
     {"call", (PyCFunction)tohil_call, METH_VARARGS | METH_KEYWORDS, "invoke a tcl command with arguments"},
+    {"result", (PyCFunction)tohil_result, METH_VARARGS | METH_KEYWORDS, "return the tcl interpreter result object"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 

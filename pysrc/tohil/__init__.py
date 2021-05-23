@@ -292,6 +292,7 @@ from tohil._tohil import (
     tcldict,
     convert,
     incr,
+    result,
     __version__,
 )
 
