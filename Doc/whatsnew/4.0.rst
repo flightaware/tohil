@@ -102,7 +102,7 @@ A function can now be specified in a to= arg
 =============================================
 
 The *to=* argument to a Tohil function such as *tohil.eval*,
-*tohil.call*, etc, has until been required to be a support
+*tohil.call*, etc, has until now been required to specify a
 Python data type such as *int*, *float*, *str*, *tohil.tclobj*,
 etc, it can now also be specified as a callable function.
 
@@ -131,7 +131,6 @@ Internal Changes
   we use ``PyInitializeEx(0)`` instead of ``Py_Initialize`` to
   prevent Python from registering signal handlers.  (Signal handling probably
   ought to be Tcl's business under this circumstance.)
-
 
 * Internal code refactoring and cleanup.
 
