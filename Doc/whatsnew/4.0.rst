@@ -5,6 +5,44 @@
   What's New In Tohil 4.0
 ****************************
 
+==========================
+tclobj default return
+==========================
+
+This is a biggie.  Many Tohil functions accept a *to=* argument
+where you can specify a Python data type to convert the return
+of the call to.  In the past, and going forward, you could
+set a return type of *str*, *int*, *bool*, *float*, *list*, *set*,
+*dict*, *tuple*, *tohil.tclobj* or *tohil.tcldict*.
+
+Prior to Tohil 4, if you didn't set a *to=* return type, the default
+return type was string, *str*.  This seemed perfectly reasonable.
+After all, in Tcl, despite it having internal objects and maintaining
+in them a cache of a conversion to a data type such as integer, list,
+etc, everything is a string.
+
+However, as we have enhanced and extended our tclobj type, it has become
+easier and easier to use it from Python with no funny business.
+You can get a tclobj's string representation with *str()*, integer
+with *int()*, float with *float()*, list with *list()*, and others.
+You can use Python list notation to access and manipulate elements
+of tclobjs when they contain lists, can iterate over them, etc.
+
+Since our tclobj type implements Python's number protocol, if tclobjs
+contain numbers, they can be used in calculations without
+any conversion required.
+
+Consequently starting in Tohil 4, the default *to* return is now
+*tohil.tclobj*.  In our experience, and a little bit to our surprise,
+most Python code that uses Tohil will "just work", without modifications.
+
+If, though, for instance, you didn't specify a default return and then
+knowing you would get a str invoked string methods on the str, you'll
+get an error if the tclobj doesn't implement those methods.  In this
+case, adding a *to=str* to the Tohil call will be sufficient to get
+your code working under Tohil 4.
+
+
 ==================================
 Python Subinterpreter Support
 ==================================
@@ -33,7 +71,11 @@ When any of the Tcl interpreters exercises their Python interpreter,
 Tohil will automatically switch Python's executing interpreter to
 that interpreter (swap its thread state), if needed.
 
-This was pretty tricky, because we previously had global variables,
+Upon deletion of a Tcl interpreter, if there is an attached
+Python subinterpreter, it is deleted as well.
+
+Implementation Note:  This was pretty tricky, because we previously
+had global variables,
 in particular one pointing to the Tcl interpreter.  We had to figure
 out ways to stash the pointer to the Tcl interpreter in Python using
 C such that we could find it later when we didn't have control over
@@ -54,6 +96,25 @@ virtual hosts run in separate Tcl interpreters, known as separate virtual
 interpreters, each vhost that does a ``package require tohil`` will get its
 own Python subinterpreter, isolating Python between the vhosts just as
 Tcl is.
+
+=============================================
+A function can now be specified in a to= arg
+=============================================
+
+The *to=* argument to a Tohil function such as *tohil.eval*,
+*tohil.call*, etc, has until been required to be a support
+Python data type such as *int*, *float*, *str*, *tohil.tclobj*,
+etc, it can now also be specified as a callable function.
+
+If the *to* argument is a callable function, Tohil will call it
+with one argument, a tclobj object containing the object
+to be returned, and it is up to the function to manipulate the
+object in some way.  Whatever the function returns is what the
+relevant tohil function will return.
+
+This provides an additional way for a Tohil developer to customize
+the return of some Tcl activity in order to make it more standard
+and readily useful to the Python caller.
 
 ============================
 User-Facing Behavior Changes
