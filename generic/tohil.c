@@ -1946,6 +1946,7 @@ typedef struct {
     PyObject_HEAD;
     TohilTclObj *tohilObj;
     int i;
+    int done;
 } TohilTclObj_IterObj;
 
 //
@@ -1965,6 +1966,7 @@ TohilTclObjIter(TohilTclObj *self)
     }
     Py_INCREF(self);
     pIter->i = 0;
+    pIter->done = 0;
     Py_INCREF(pIter);
     return (PyObject *)pIter;
 }
@@ -1986,6 +1988,12 @@ TohilTclObj_iternext(TohilTclObj_IterObj *self)
     }
 
     if (self->i >= length) {
+        if (!self->done) {
+            self->done = 1;
+            if (self->tohilObj->tclobj != NULL) {
+                Tcl_DecrRefCount(self->tohilObj->tclobj);
+            }
+        }
         PyErr_SetNone(PyExc_StopIteration);
         return NULL;
     }
