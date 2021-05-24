@@ -3653,6 +3653,13 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         // dig out tcl error information and create a tohil tcldict containing it
         // (Tcl_GetReturnOptions returns a tcl dict object)
         Tcl_Obj *returnOptionsObj = Tcl_GetReturnOptions(interp, tcl_result);
+
+        // the tcl errorstack is big and replicates a lot of stuff,
+        // just get rid of it.  if you want it, put this back in.
+        Tcl_Obj *keyObj = Tcl_NewStringObj("-errorstack", -1);
+        Tcl_DictObjRemove(NULL, returnOptionsObj, keyObj);
+        Tcl_DecrRefCount(keyObj);
+
         PyObject *pReturnOptionsObj = TohilTclDict_FromTclObj(interp, returnOptionsObj);
 
         // construct a two-element tuple comprising the interpreter result
