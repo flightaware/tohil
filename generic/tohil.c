@@ -669,18 +669,18 @@ static void
 tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
 {
     switch (subtype) {
-        case PythonParent:
-            tohil_set_subinterp(interp, PyThreadState_Get());
-            Tcl_SetAssocData(interp, ASSOC_PYPARENT_NAME, NULL, (ClientData)1);
-            break;
+    case PythonParent:
+        tohil_set_subinterp(interp, PyThreadState_Get());
+        Tcl_SetAssocData(interp, ASSOC_PYPARENT_NAME, NULL, (ClientData)1);
+        break;
 
-        case TclParent:
-            tohil_set_subinterp(interp, PyThreadState_Get());
-            break;
+    case TclParent:
+        tohil_set_subinterp(interp, PyThreadState_Get());
+        break;
 
-        case TclChild:
-            tohil_set_subinterp(interp, Py_NewInterpreter());
-            break;
+    case TclChild:
+        tohil_set_subinterp(interp, Py_NewInterpreter());
+        break;
     }
 }
 
@@ -3749,7 +3749,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         return callResult;
     }
 
-    PyErr_SetString(PyExc_TypeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, tohil.tclobj, tohil.tcldict, or a callble python function taking a tclobj argument and returning something");
+    PyErr_SetString(PyExc_TypeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, tohil.tclobj, tohil.tcldict, or a "
+                                     "callble python function taking a tclobj argument and returning something");
     return NULL;
 }
 
@@ -4078,7 +4079,6 @@ tohil_result(PyObject *m, PyObject *args, PyObject *kwargs)
     return tohil_python_return(interp, TCL_OK, to, obj);
 }
 
-
 //
 // python C extension structure defining functions
 //
@@ -4217,7 +4217,7 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_CreateObjCommand(interp, "::tohil::eval", (Tcl_ObjCmdProc *)TohilEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
         return TCL_ERROR;
 
-    if (Tcl_CreateObjCommand(interp, "::tohil::exec", (Tcl_ObjCmdProc *) TohilExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
+    if (Tcl_CreateObjCommand(interp, "::tohil::exec", (Tcl_ObjCmdProc *)TohilExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
         return TCL_ERROR;
 
     if (Tcl_CreateObjCommand(interp, "::tohil::call", (Tcl_ObjCmdProc *)TohilCall_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
