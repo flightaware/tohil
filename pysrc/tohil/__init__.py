@@ -43,10 +43,10 @@ def handle_exception(exception_type, val, traceback_object=None):
     error_code = ["PYTHON", exception_type.__name__, val]
 
     if traceback_object is None:
-        tb_list = list()
+        error_info = "\nfrom python code executed by tohil"
     else:
         tb_list = traceback.format_tb(traceback_object)
-    error_info = "\nfrom python code executed by tohil" + " ".join(tb_list).rstrip()
+        error_info = "\nfrom python code executed by tohil\n" + " ".join(tb_list).rstrip()
     return error_code, error_info
 
 
