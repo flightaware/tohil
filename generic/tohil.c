@@ -841,21 +841,21 @@ TohilImport_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *co
     return tohil_tcl_return(interp, TCL_OK);
 }
 
+// common routine for evaluating isolated expressions or sequences of statements
+// from python
 static int
-TohilEval_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+TohilExecEvalPython(int startSymbol, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     tohil_swap_subinterp(interp);
 
     if (objc != 2) {
-        Tcl_WrongNumArgs(interp, 1, objv, "evalString");
+        Tcl_WrongNumArgs(interp, 1, objv, startSymbol == Py_eval_input ? "evalString" : "execString");
         return tohil_tcl_return(interp, TCL_ERROR);
     }
     Tcl_DString ds;
     const char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
 
-    // PyCompilerFlags flags = _PyCompilerFlags_INIT;
-    // PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, &flags, -1);
-    PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, NULL, -1);
+    PyObject *code = Py_CompileStringExFlags(cmd, "tohil", startSymbol, NULL, -1);
     Tcl_DStringFree(&ds);
 
     if (code == NULL) {
@@ -877,40 +877,18 @@ TohilEval_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     return tohil_tcl_return(interp, TCL_OK);
 }
 
-// awfully similar to TohilEval_Cmd above
-// but expecting to do more like capture stdout
+// evaluate using the Python grammar for isolated expressions
+static int
+TohilEval_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+{
+    return TohilExecEvalPython(Py_eval_input, interp, objc, objv);
+}
+
+// evaluate using the Python grammar for sequences of statements
 static int
 TohilExec_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    tohil_swap_subinterp(interp);
-
-    if (objc != 2) {
-        Tcl_WrongNumArgs(interp, 1, objv, "execString");
-        return tohil_tcl_return(interp, TCL_ERROR);
-    }
-    Tcl_DString ds;
-    const char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
-
-    PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_file_input, NULL, -1);
-    Tcl_DStringFree(&ds);
-
-    if (code == NULL) {
-        return Tohil_ReturnExceptionToTcl(interp, "while compiling python exec code");
-    }
-
-    PyObject *main_module = PyImport_AddModule("__main__");
-    PyObject *global_dict = PyModule_GetDict(main_module);
-    PyObject *pyobj = PyEval_EvalCode(code, global_dict, global_dict);
-
-    Py_XDECREF(code);
-
-    if (pyobj == NULL) {
-        return Tohil_ReturnExceptionToTcl(interp, "while evaluating python code");
-    }
-
-    Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
-    Py_XDECREF(pyobj);
-    return tohil_tcl_return(interp, TCL_OK);
+    return TohilExecEvalPython(Py_file_input, interp, objc, objv);
 }
 
 //
