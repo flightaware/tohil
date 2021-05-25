@@ -855,18 +855,11 @@ TohilExecEvalPython(int startSymbol, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     Tcl_DString ds;
     const char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
 
-    PyObject *code = Py_CompileStringExFlags(cmd, "tohil", startSymbol, NULL, -1);
-    Tcl_DStringFree(&ds);
-
-    if (code == NULL) {
-        return Tohil_ReturnExceptionToTcl(interp, "while compiling python eval code");
-    }
-
+    // evaluate the command according to the start symbol
     PyObject *main_module = PyImport_AddModule("__main__");
     PyObject *global_dict = PyModule_GetDict(main_module);
-    PyObject *pyobj = PyEval_EvalCode(code, global_dict, global_dict);
-
-    Py_XDECREF(code);
+    PyObject *pyobj = PyRun_StringFlags(cmd, startSymbol, global_dict, global_dict, 0);
+    Tcl_DStringFree(&ds);
 
     if (pyobj == NULL) {
         return Tohil_ReturnExceptionToTcl(interp, "while evaluating python code");
