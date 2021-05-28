@@ -10,8 +10,9 @@ tclobj default return
 ==========================
 
 This is a biggie.  Many Tohil functions accept a *to=* argument
-where you can specify a Python data type to convert the return
-of the call to.  In the past, and going forward, you could
+where you can specify a Python data type to convert a tcl
+object returned from doing a call or accessing tcl data.
+In the past, and going forward, you could
 set a return type of *str*, *int*, *bool*, *float*, *list*, *set*,
 *dict*, *tuple*, *tohil.tclobj* or *tohil.tcldict*.
 
@@ -19,10 +20,11 @@ Prior to Tohil 4, if you didn't set a *to=* return type, the default
 return type was string, *str*.  This seemed perfectly reasonable.
 After all, in Tcl, despite it having internal objects and maintaining
 in them a cache of a conversion to a data type such as integer, list,
-etc, everything is a string.
+etc, in Tcl "every value is a string."
 
-However, as we have enhanced and extended our tclobj type, it has become
-easier and easier to use it from Python with no funny business.
+However, as we have enhanced and extended Tohil's tclobj type,
+it has become ever easier to use tclobjs directly from Python
+with no funny business.
 You can get a tclobj's string representation with *str()*, integer
 with *int()*, float with *float()*, list with *list()*, and others.
 You can use Python list notation to access and manipulate elements
