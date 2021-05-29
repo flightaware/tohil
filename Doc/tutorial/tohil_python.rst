@@ -66,7 +66,7 @@ are equivalent:
    >>> tohil.package_require('Tclx', '8.6')
    >>> tohil.package_require('Tclx',version='8.6')
 
-Experienced Python users without a lot of Tcl experience may be surprised
+Experienced Python developers without a lot of Tcl experience may be surprised
 by Tcl's leniency when it comes to data types.
 
 Here we request a Tcl package with the version number specified as
@@ -77,7 +77,11 @@ floating point.  It works fine.
    >>> tohil.package_require('Tclx', 8.6)
 
 Another one you'd end up doing a lot is ``tohil.eval("source file.tcl")``.  For that
-we provide the slightly less paper-cutty ``tohil.source("file.tcl")``.
+we provide the slightly less paper-cutty...
+
+::
+
+   >>> tohil.source("file.tcl")
 
 
 **************
@@ -144,8 +148,8 @@ specific Python datatype.
 tohil.getvar and tohil.setvar
 ******************************
 
-Python has direct access to Tcl variables and arrays using *tohil.getvar*.
-Likewise, *tohil.setvar* can set them.
+Python has direct access to Tcl variables and array elements
+using *tohil.getvar*.  Likewise, *tohil.setvar* can set them.
 
 ::
 
@@ -168,12 +172,12 @@ Likewise, *tohil.setvar* can set them.
    >>> tohil.getvar("x(e)")
    Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
-   RuntimeError: can't read "x(e)": no such element in array
+   NameError: can't read "x(e)": no such element in array
 
 As you can see, it's an error to try to get a variable or array element
-that isn't there.  You can use tohil.exists to see if the variable is there,
-or trap the Python exception, or make use of *tohil.getvar*'s handy
-*default* keyword-only argument.
+that doesn't exist.  You can use *tohil.exists* to see if the variable
+exists, or trap the Python exception, or make use of *tohil.getvar*'s handy
+*default* keyword-only argument:
 
 ::
 
@@ -188,9 +192,7 @@ or trap the Python exception, or make use of *tohil.getvar*'s handy
 tohil.exists
 ****************
 
-Since it is an error to try to *tohil.getvar* a variable that doesn't exist,
-you can trap the request from Python and handle the exception,
-or use *tohil.exists* to see if the var or array element exist.
+You can use *tohil.exists* to see if a variable or array element exists:
 
 ::
 
@@ -215,8 +217,8 @@ to increment it.
 If the contents of the variable preclude it being used as an int, a Python
 TypeError exception is thrown.
 
-An optional position argument specifies an increment amount.  The default
-increment is 1.
+An optional position argument specifies the amount to increment by.
+The default increment is 1.
 Negative increments are permitted.
 The increment amount can also be specified as
 a keyword argument, using "incr".
@@ -244,7 +246,7 @@ arrays in the Tcl interpreter.
    >>> tohil.getvar("x(e)")
    Traceback (most recent call last):
      File "<stdin>", line 1, in <module>
-   RuntimeError: can't read "x(e)": no such element in array
+   NameError: can't read "x(e)": no such element in array
 
 * Unset takes an arbitrary number of arguments, including zero.
 * Unsetting an array element uses Tcl subscript notation, for example
@@ -298,5 +300,3 @@ back by sending an end-of-file.
 tcldict
 tclobj
 tclvar
-=======
->>>>>>> e7333ccf4bcd0c70073e5b93170683cd3d9560f6
