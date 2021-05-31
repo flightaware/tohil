@@ -14,13 +14,14 @@ tohil is based on, and is completely inspired by and exists because of, libtclpy
 
 Tohil is pronounced as, your choice, toe-heel, or toe-hill.
 
-Tohil is currently on version 3 ([release notes](TOHIL-3.md)).
+Tohil has a growing body of documentation, including a tutorial
+and reference, available at https://flightaware.github.io/tohil-docs/.
 
 ## Usage
 
 You can import tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define tohil's functions in both.
 
-Using tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code, limited only by your machine's memory and your sanity (and the (settable) Python and Tcl recursion limits).
+Using tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code, and so on.
 
 ### Accessing TCL From Python
 
