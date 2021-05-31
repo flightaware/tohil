@@ -15,8 +15,8 @@ The principal tohil types are *tclobj* and *tcldict*.  There are a few additiona
 types for iterators and exceptions.
 
 Tclobjs and tcldicts are mutable.  As with native Python types, methods that add,
-subtract, or rearrange their members in place, and don't return a specific item, type
-return ``None`` rather than the collection instance itself.
+subtract, or rearrange their members in place, and don't return a specific
+item, returning ``None`` rather than the collection instance itself.
 
 Some operations are supported by both object types; in particular,
 they can be compared for equality, tested for truth
@@ -29,15 +29,15 @@ numeric), including as a source or target of in-place arithmetic.
 
 Tclobjs and tcldicts are very flexible in terms of what they can be
 constructed from.  A tclobj can be created as an empty Tcl object, or
-from a Python None object, a Python boolean, int, float, or string object.
-They can further be created from Pyton lists, tuples, sets, dicts, sequences
-and maps, and Unicode translations should work fine.
+from a Python None object, a Python boolean, int, float, or string,
+a Python list, tuple, set, dict, sequence
+or map, and Unicode/UTF-8 translations should work fine.
 
 
 .. _tohil-truth:
 
-Truth Value Testing
-===================
+Testing Tclobj Truth Values
+============================
 
 .. index::
    statement: if
@@ -95,10 +95,11 @@ this could be high overhead for large and/or very complicated structures.
 
 .. _tohil_numeric:
 
-Using Tohil tclobjs and tcldicts as Numeric Types
-=================================================
+Using Tohil tclobjs as Numeric Types
+====================================
 
-Tohil tclobjs can be freely used where integers or floating
+Tohil tclobjs can be freely used in Python code
+where integers or floating
 point numbers are needed.  The underlying Tcl object will be
 requested using Tcl standard library routines, causing a fetch
 of the cached representation if the cached representation is of
@@ -112,8 +113,8 @@ Bitwise Operations on Tohil Types
 ---------------------------------
 
 Tohil tclobj objects can be freely used as a source for boolean
-operations and shift counts.  Left and right shift, "and", "or",
-"exclusive or", "invert", 
+operations and shift counts.  Bitwise and, or, exclusive or,
+left and right shift, invert, and absolute value are supported.
 
 Attempting bitwise operations on a tclobj that isn't or can't
 be converted into an integer will fail with a TypeError exception raised.
@@ -124,10 +125,10 @@ be converted into an integer will fail with a TypeError exception raised.
 tclobjs as lists
 ================
 
-Tclobjs whose internal contents are valid tcl lists, can be largely
-treated as python lists.
+Tclobjs whose internal contents are valid Tcl lists, can be largely
+treated as Python lists.
 
-Tclobjs as lists can be created from Python based on strings,
+Tclobjs-as-lists can be created from Python based on strings,
 lists, tuples, sets, even dicts.  It's pretty cool.
 
 The common sequence operations of ``in`` and ``not in`` work fine, while
@@ -145,6 +146,10 @@ Tclobjs are mutable; you can assign an element with ``s[i] = x``, append
 an element with ``s.append(x)``, extend *s* with the contents of a Python
 list, set, tuple, int, float, etc, or another tclobj, with
 ``s.extend(x)``.
+
+(Because tclobjs are mutable, they cannot be directly used as a key
+in a dictionary or a value in a set.  If you need to use one as a key,
+wrap it with *str()* or something.)
 
 You can clear a tclobj or tcldict using ``s.clear()``, and pop items
 from the list using ``s.pop([i])``.
@@ -233,7 +238,8 @@ An example that uses most of the list methods::
 Mapping Types --- :class:`tcldict`
 ==================================
 
-Tcldicts are a Python type that manages a Tcl object of a dictionary structure. They can be used in a way fairly close to Python dicts.
+Tcldicts are a Python type that manages a Tcl object of a dictionary structure.
+Most things you can do with a Python dicts you can do with a tcldict.
 
 However, unlike dicts, tcldicts are recursive.  From Python, if a key is
 specified as a Python list, the Tcl dictionary is managed as a hierarchy

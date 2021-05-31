@@ -669,18 +669,18 @@ static void
 tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
 {
     switch (subtype) {
-        case PythonParent:
-            tohil_set_subinterp(interp, PyThreadState_Get());
-            Tcl_SetAssocData(interp, ASSOC_PYPARENT_NAME, NULL, (ClientData)1);
-            break;
+    case PythonParent:
+        tohil_set_subinterp(interp, PyThreadState_Get());
+        Tcl_SetAssocData(interp, ASSOC_PYPARENT_NAME, NULL, (ClientData)1);
+        break;
 
-        case TclParent:
-            tohil_set_subinterp(interp, PyThreadState_Get());
-            break;
+    case TclParent:
+        tohil_set_subinterp(interp, PyThreadState_Get());
+        break;
 
-        case TclChild:
-            tohil_set_subinterp(interp, Py_NewInterpreter());
-            break;
+    case TclChild:
+        tohil_set_subinterp(interp, Py_NewInterpreter());
+        break;
     }
 }
 
@@ -841,32 +841,25 @@ TohilImport_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *co
     return tohil_tcl_return(interp, TCL_OK);
 }
 
+// common routine for evaluating isolated expressions or sequences of statements
+// from python
 static int
-TohilEval_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+TohilExecEvalPython(int startSymbol, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     tohil_swap_subinterp(interp);
 
     if (objc != 2) {
-        Tcl_WrongNumArgs(interp, 1, objv, "evalString");
+        Tcl_WrongNumArgs(interp, 1, objv, startSymbol == Py_eval_input ? "evalString" : "execString");
         return tohil_tcl_return(interp, TCL_ERROR);
     }
     Tcl_DString ds;
     const char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
 
-    // PyCompilerFlags flags = _PyCompilerFlags_INIT;
-    // PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, &flags, -1);
-    PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_eval_input, NULL, -1);
-    Tcl_DStringFree(&ds);
-
-    if (code == NULL) {
-        return Tohil_ReturnExceptionToTcl(interp, "while compiling python eval code");
-    }
-
+    // evaluate the command according to the start symbol
     PyObject *main_module = PyImport_AddModule("__main__");
     PyObject *global_dict = PyModule_GetDict(main_module);
-    PyObject *pyobj = PyEval_EvalCode(code, global_dict, global_dict);
-
-    Py_XDECREF(code);
+    PyObject *pyobj = PyRun_StringFlags(cmd, startSymbol, global_dict, global_dict, 0);
+    Tcl_DStringFree(&ds);
 
     if (pyobj == NULL) {
         return Tohil_ReturnExceptionToTcl(interp, "while evaluating python code");
@@ -877,40 +870,18 @@ TohilEval_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     return tohil_tcl_return(interp, TCL_OK);
 }
 
-// awfully similar to TohilEval_Cmd above
-// but expecting to do more like capture stdout
+// evaluate using the Python grammar for isolated expressions
+static int
+TohilEval_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+{
+    return TohilExecEvalPython(Py_eval_input, interp, objc, objv);
+}
+
+// evaluate using the Python grammar for sequences of statements
 static int
 TohilExec_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    tohil_swap_subinterp(interp);
-
-    if (objc != 2) {
-        Tcl_WrongNumArgs(interp, 1, objv, "execString");
-        return tohil_tcl_return(interp, TCL_ERROR);
-    }
-    Tcl_DString ds;
-    const char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
-
-    PyObject *code = Py_CompileStringExFlags(cmd, "tohil", Py_file_input, NULL, -1);
-    Tcl_DStringFree(&ds);
-
-    if (code == NULL) {
-        return Tohil_ReturnExceptionToTcl(interp, "while compiling python exec code");
-    }
-
-    PyObject *main_module = PyImport_AddModule("__main__");
-    PyObject *global_dict = PyModule_GetDict(main_module);
-    PyObject *pyobj = PyEval_EvalCode(code, global_dict, global_dict);
-
-    Py_XDECREF(code);
-
-    if (pyobj == NULL) {
-        return Tohil_ReturnExceptionToTcl(interp, "while evaluating python code");
-    }
-
-    Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
-    Py_XDECREF(pyobj);
-    return tohil_tcl_return(interp, TCL_OK);
+    return TohilExecEvalPython(Py_file_input, interp, objc, objv);
 }
 
 //
@@ -2085,6 +2056,7 @@ typedef struct {
     PyObject_HEAD;
     TohilTclObj *tohilObj;
     int i;
+    int done;
 } TohilTclObj_IterObj;
 
 //
@@ -2104,6 +2076,7 @@ TohilTclObjIter(TohilTclObj *self)
     }
     Py_INCREF(self);
     pIter->i = 0;
+    pIter->done = 0;
     Py_INCREF(pIter);
     return (PyObject *)pIter;
 }
@@ -2124,7 +2097,17 @@ TohilTclObj_iternext(TohilTclObj_IterObj *self)
         return NULL;
     }
 
+    // the iterator is outside the range.  by python docs,
+    // return a stop-iteration exception, even multiple times.
     if (self->i >= length) {
+        // but only once, decrement the reference count to
+        // the tcl object we've been iterating, if it exists.
+        if (!self->done) {
+            self->done = 1;
+            if (self->tohilObj->tclobj != NULL) {
+                Tcl_DecrRefCount(self->tohilObj->tclobj);
+            }
+        }
         PyErr_SetNone(PyExc_StopIteration);
         return NULL;
     }
@@ -3641,6 +3624,13 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         // dig out tcl error information and create a tohil tcldict containing it
         // (Tcl_GetReturnOptions returns a tcl dict object)
         Tcl_Obj *returnOptionsObj = Tcl_GetReturnOptions(interp, tcl_result);
+
+        // the tcl errorstack is big and replicates a lot of stuff,
+        // just get rid of it.  if you want it, put this back in.
+        Tcl_Obj *keyObj = Tcl_NewStringObj("-errorstack", -1);
+        Tcl_DictObjRemove(NULL, returnOptionsObj, keyObj);
+        Tcl_DecrRefCount(keyObj);
+
         PyObject *pReturnOptionsObj = TohilTclDict_FromTclObj(interp, returnOptionsObj);
 
         // construct a two-element tuple comprising the interpreter result
@@ -3677,14 +3667,6 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         toString = pt->tp_name;
     }
     // printf("tohil_python_return called: tcl result %d, to=%s, resulObj '%s'\n", tcl_result, toString, Tcl_GetString(resultObj));
-
-    // if there's no "to" specified and the result object is empty,
-    // just return None.  This is experimental.  Not sure about it.
-    if (0 && toType == NULL) {
-        if (resultObj->bytes != NULL && resultObj->length == 0) {
-            Py_RETURN_NONE;
-        }
-    }
 
     if (toType == NULL || STREQU(toString, "tohil.tclobj")) {
         return TohilTclObj_FromTclObj(interp, resultObj);
@@ -3767,7 +3749,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         return callResult;
     }
 
-    PyErr_SetString(PyExc_TypeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, tohil.tclobj, tohil.tcldict, or a callble python function taking a tclobj argument and returning something");
+    PyErr_SetString(PyExc_TypeError, "'to' conversion type must be str, int, bool, float, list, set, dict, tuple, tohil.tclobj, tohil.tcldict, or a "
+                                     "callble python function taking a tclobj argument and returning something");
     return NULL;
 }
 
@@ -4078,6 +4061,25 @@ tohil_call(PyObject *m, PyObject *args, PyObject *kwargs)
 }
 
 //
+// tohil.result - return the tcl interpreter result object
+//
+static PyObject *
+tohil_result(PyObject *m, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = {"to", NULL};
+    PyObject *to = NULL;
+    Tcl_Interp *interp = tohilstate(m)->interp;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|$O", kwlist, &to)) {
+        return NULL;
+    }
+    Tcl_Obj *obj = Tcl_GetObjResult(interp);
+    assert(obj != NULL); // i don't think this can ever be null
+
+    return tohil_python_return(interp, TCL_OK, to, obj);
+}
+
+//
 // python C extension structure defining functions
 //
 // these are the tohil.* ones like tohil.eval, tohil.call, etc
@@ -4094,6 +4096,7 @@ static PyMethodDef TohilMethods[] = {
     {"convert", (PyCFunction)tohil_convert, METH_VARARGS | METH_KEYWORDS,
      "convert python to tcl object then to whatever to= says or string and return"},
     {"call", (PyCFunction)tohil_call, METH_VARARGS | METH_KEYWORDS, "invoke a tcl command with arguments"},
+    {"result", (PyCFunction)tohil_result, METH_VARARGS | METH_KEYWORDS, "return the tcl interpreter result object"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -4214,7 +4217,7 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_CreateObjCommand(interp, "::tohil::eval", (Tcl_ObjCmdProc *)TohilEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
         return TCL_ERROR;
 
-    if (Tcl_CreateObjCommand(interp, "::tohil::exec", (Tcl_ObjCmdProc *) TohilExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
+    if (Tcl_CreateObjCommand(interp, "::tohil::exec", (Tcl_ObjCmdProc *)TohilExec_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
         return TCL_ERROR;
 
     if (Tcl_CreateObjCommand(interp, "::tohil::call", (Tcl_ObjCmdProc *)TohilCall_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
