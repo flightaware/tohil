@@ -33,6 +33,14 @@ using reStructturedText markup, and using Sphinx to process it.
 You'll need to make a data dir under Doc and touch a file
 in there called refcounts.dat.
 
+### Notes on How to Do Stuff
+
+The stuff that ultimately becomes the main index page
+is at tools/templates/indexcontent.html
+
+There's other stuff in tools/templates that's important,
+like indexsidebar.html
+
 ### Build the HTML
 
 After that, from the command line you should be able to do a
