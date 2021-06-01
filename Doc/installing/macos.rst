@@ -122,6 +122,6 @@ Make
     sudo make install
     make test
 
-There's *README.macOS* and *READMEMacPorts* files in the top-level
+There's *README.macOS* and *README.MacPorts* files in the top-level
 tohil directory that might have some useful info in them.
 
