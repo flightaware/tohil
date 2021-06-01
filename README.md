@@ -1,4 +1,4 @@
-# tohil
+# Tohil
 
 [![Linux CI](https://github.com/flightaware/tohil/actions/workflows/linux-ci.yml/badge.svg)](https://github.com/flightaware/tohil/actions/workflows/linux-ci.yml)
 
@@ -10,8 +10,6 @@ Tohil is simultaneously a Python extension and a TCL extension that makes it pos
 
 Tohil is open source software, available for free including for profit and/or for redistribution, under the permissive 3-clause BSD license (see "LICENSE.txt").
 
-tohil is based on, and is completely inspired by and exists because of, libtclpy, by Aidan Hobson Sayers available at https://github.com/aidanhs/libtclpy/.
-
 Tohil is pronounced as, your choice, toe-heel, or toe-hill.
 
 Tohil has a growing body of documentation, including a tutorial
@@ -19,21 +17,21 @@ and reference, available at https://flightaware.github.io/tohil-docs/.
 
 ## Usage
 
-You can import tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define tohil's functions in both.
+You can import Tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define Tohil's functions in both.
 
-Using tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code, and so on.
+Using Tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code, and so on.
 
 ### Accessing TCL From Python
 
-To use Python to do things in Tcl, you invoke functions defined by the tohil module that gets created when you import tohil into your Python interpreter.
+To use Python to do things in Tcl, you invoke functions defined by the Tohil module that gets created when you import Tohil into your Python interpreter.
 
 Tohil:
 
 * ...provides several routines to evaluate Tcl code, passing it data using common and familiar Python objects such as strs, bools, ints, floats, lists, dicts, tuples, etc, and producing those types from Tcl results as well.
-* ...defines a new Python data types, [tohil.tclobj](TCLOBJECTS.md), that allows the direct and efficient manipulation of Tcl lists, dicts, etc, passing them around, using them as arguments in calls to Tcl functions, and receiving them from function results as well.
-* ...creates shadow dictionaries, a Python dictionary-type object that accesses and manipulate Tcl arrays as Python dictionaries
+* ...defines a new Python data type, [tohil.tclobj](TCLOBJECTS.md), that allows the direct and efficient manipulation of Tcl, well, strings, of course, but strings containing ints, floats, lists, dicts, etc, passing them around, using them as arguments in calls to Tcl functions, and receiving them from function results as well.
+* ...creates shadow dictionaries, a Python dictionary-type object that accesses and manipulates Tcl arrays as Python dictionaries.
 * ...provides a [TclProc class](TCLPROCS.md) that creates callable Python object-functions that will call their corresponding Tcl procs and C commands and return the results to Python, optionally with a specified Python type that the returned data should be converted to.
-* ...provides a TclNamespace class that has the ability to import all the Tcl procs and C commands found there as methods of the namespace class, and recursively descend child namespaces, creating new TclNamespaces objects, binding them to their parent objects, and importing all the procs found within them as well.  See also the tohil 3 [release notes](TOHIL-3.md).
+* ...provides a TclNamespace class that has the ability to import all the Tcl procs and C commands found there as methods of the namespace class, and recursively descend child namespaces, creating new TclNamespaces objects, binding them to their parent objects, and importing all the procs found within them as well.  See also the Tohil 3 [release notes](TOHIL-3.md).
 
 ```python
 import tohil
@@ -47,11 +45,11 @@ import tohil
    - side effects: executes code in the Tcl interpreter
    - *Do not use with untrusted substituted input*
    - `evalString` may be any valid Tcl code, including semicolons for single line statements or multiline blocks
-   - uncaught Tcl errors tracing back all the way to the the tohil membrane are raised as a Python exception
+   - uncaught Tcl errors tracing back all the way to the the Tohil membrane are raised as a Python exception
 
 By default the results of the Tcl code evaluated (if there wasn't an exception) is returned to the caller, as a string.
 
-The optional "to" named parameter allows you to specify one of a number of data types that will cause tohil to convert the return into a native Python data type.
+The optional "to" named parameter allows you to specify one of a number of data types that will cause Tohil to convert the return into a native Python data type.
 
 The types supported are str, int, bool, float, list, set, dict, tuple, and tohil.tclobj.
 
@@ -76,7 +74,7 @@ Note that currently for list, set, dict, and tuple, the values constructed there
    - takes: single Tcl command name plus zero or more arguments, and an optional data type to convert the return to
    - returns: whatever Tcl returned
    - side effects: executes code in the Tcl interpreter
-   - uncaught Tcl errors tracing back all the way to the the tohil interface are raised as a Python exception
+   - uncaught Tcl errors tracing back all the way to the the Tohil interface are raised as a Python exception
 
 As it can be tricky to invoke Tcl using eval and not getting possibly unwanted side effects if arguments (such as data!) contain Tcl metadata such as square brackets and dollar signs, a direct argument-for-argument *tohil.call* is provided where Tcl will not do variable and command substitution on its arguments and thus help keep funny business to a minimum.
 
@@ -319,7 +317,7 @@ a KeyError exception is raised.  As with so many other functions, the
 to= named parameter can be specified to state what return type you
 want back to python.
 
-#### Examples using tohil from Python
+#### Examples using Tohil from Python
 
 ```python
 >>> import tohil
@@ -380,13 +378,13 @@ Now eval with to=set option to return a set from a list...
 
 ### Accessing Python From TCL
 
-From Tcl, tohil provides access to Python through several commands and some procs.
+From Tcl, Tohil provides access to Python through several commands and some procs.
 
 Probably the most important commands are `tohil::eval`, `tohil::exec` and `tohil::call`.  The first two commands correspond closely to Python's `eval` and `exec`.
 
 General notes:
  - All commands are run in the context of a single interpreter session. Imports, function definitions and variables persist.
- - Uncaught exceptions in the Python interpreter resulting from code invoked from Tcl using tohil will propagate a TCL error including a stack trace of the Python code that was executing. As the exception continues up the stack, the Tcl stack trace will be appended to it.
+ - Uncaught exceptions in the Python interpreter resulting from code invoked from Tcl using Tohil will propagate a TCL error including a stack trace of the Python code that was executing. As the exception continues up the stack, the Tcl stack trace will be appended to it.
  - The Tcl error code is set to a list comprising "PYTHON", the class name of the exception, and the base error message.  This is experimental but likely to continue.  I would like to add the class arguments, though.
  - Such Python errors may be caught (as per Tcl stack traces) with Tcl's catch or try, the same as any other TCL error.
 
@@ -420,7 +418,7 @@ tohil::import provides a way to import Python modules, although I'm not sure tha
 
 #### tohil::interact
 
-Take tohil to eleven.  You're on ten here... all the way up... You're on ten on your guitar... where can you go from there?  Where?  Nowhere.  Exactly.  What we do is if we need that extra... push over the cliff... you know what we do?
+Take Tohil to eleven.  You're on ten here... all the way up... You're on ten on your guitar... where can you go from there?  Where?  Nowhere.  Exactly.  What we do is if we need that extra... push over the cliff... you know what we do?
 
 We run tohil::interact from Tcl and enter the Python interactive loop.  When we're done, we send end of file (^D) to end the Python loop and return to the Tcl one.
 
@@ -469,7 +467,7 @@ bar
    - You can do the same thing using exec and, currently, exercise more control.  For example `tohil::exec "from io import StringIO"`
 
 
-#### Examples using tohil from Tcl
+#### Examples using Tohil from Tcl
 
 ```
 % package require tohil
@@ -521,11 +519,11 @@ This might bake your noodle...
 '4294967295'
 ```
 
-### Using tohil from Rivet
+### Using Tohil from Rivet
 
 From a Rivet page, in some of your Tcl code, invoke `package require tohil`.
 
-If you run tohil_rivet it will plug tohil's Python interpreter such that everything it writes to stdout using print, or whatever, will go through Tcl's stdout and thereby into your Rivet page.
+If you run tohil_rivet it will plug Tohil's Python interpreter such that everything it writes to stdout using print, or whatever, will go through Tcl's stdout and thereby into your Rivet page.
 
 ```
 <?
@@ -542,9 +540,9 @@ print("<hr>")
 ?>
 ```
 
-###  Building tohil on Unix, Linux, FreeBSD and the Mac
+###  Building Tohil on Unix, Linux, FreeBSD and the Mac
 
-tohil builds with the familiar GNU autoconf build system.  "autoreconf" will produce a configure script based on the configure.in.  The tooling used is the standard Tcl Extension Architecture (TEA) approach, which is pretty evolved and fairly clean considering it's autoconf.
+Tohil builds with the familiar GNU autoconf build system.  "autoreconf" will produce a configure script based on the configure.in.  The tooling used is the standard Tcl Extension Architecture (TEA) approach, which is pretty evolved and fairly clean considering it's autoconf.
 
 It is assumed that you
  - have got the repo (either by `git clone` or a tar.gz from the releases page).
@@ -590,24 +588,8 @@ literal bytes) as seen by the Python interpreter.
 
 You need to build the library without stubs for Python to be able to use it.
 
-On FreeBSD at least i have to change -ltclstub86 to -ltcl86 in Makefile after
-it is created -- this needs to be done properly
-
-On the Mac the Python3 setup.tcl thing builds a shared library but it doesn't properly link it to the Tcl library so you get a runtime error when you try to import tohil.
-
-copy the .dylib file that make built to the .so file where make install sent the Python module and it will work.
-
-something like (on the mac, using pyenv)
-
-sudo cp tohil1.0.0.dylib ~/.pyenv/versions/3.8.2/lib/Python3.8/site-packages/tohil.cPython-38-darwin.so
-
-or
-
-cp tohil1.0.0.dylib build/lib.macosx-10.6-x86_64-3.8/tohil.cPython-38-darwin.so
-
 ### To Do
 
-* a way to pass kwargs thought tohil::eval - done
 * if Python is the parent, register a Tcl panic handler and invoke Py_FatalError if Tcl panics.
 * the reverse of the above if Tcl is the parent if Python has a panic-type function with a registerable callback
 * Python tclobj and tcldict types have worked out pretty well.  what might we do with a Tcl type that encapsulates a Python object?
@@ -619,8 +601,7 @@ In order of priority:
  - allow compiling on Windows
  - `py call -types [list t1 ...] func ?arg ...? : ?t1 ...? -> multi`
    (polymorphic args, polymorphic return)
- - unicode handling (exception messages, fn param, returns from calls...AS\_STRING is bad)
- - allow statically compiling Python into tohil
+ - allow statically compiling Python into Tohil
    - http://pkaudio.blogspot.co.uk/2008/11/notes-for-embedding-Python-in-your-cc.html
    - https://github.com/albertz/Python-embedded
    - https://github.com/zeha/Python-superstatic
@@ -630,31 +611,31 @@ In order of priority:
  - allow statically compiling
  - check threading compatibility
  - `py import ?-from module? module : -> nil`
- - return the short error line in the catch err variable and put the full stack trace in errorInfo
  - py call of non-existing function says raises attribute err, should be a NameError
  - make `py call` look in the builtins module - http://stackoverflow.com/a/11181607
  - all TODOs
 
-### notes
+### Notes
 
-[pyman](http://chiselapp.com/user/gwlester/repository/pyman/home) is a Tcl package that provides a higher level of abstraction on top of tclpy.  It will need to be updated for tohil but bears examination and hopefully the participation of its author, Gerald Lester.
+[pyman](http://chiselapp.com/user/gwlester/repository/pyman/home) is a Tcl package that provides a higher level of abstraction on top of tclpy.  It will need to be updated for Tohil but bears examination and hopefully the participation of its author, Gerald Lester.
 
-### geek notes
+### Geek Notes
 
-The same tohil shared library created by building this software can be
-loaded both by Python and Tcl, which is pretty cool.  It used to be
-necessary so that tohil could work at all.
+The same Tohil shared library created by building this software originally
+could be
+loaded both by Python and Tcl, which was pretty cool.  It used to be
+necessary so that Tohil could work at all.
 
 However since there are different
 build pipelines for Tcl extensions (based on autoconf via the Tcl extension
 architecture) and Python (based on Python setuptools), we
-changed tohil's implementation to be able to work ok even with two different
+changed Tohil's implementation to be able to work ok even with two different
 shared libraries by moving the critical piece of shared data, the Tcl
 interpreter pointer, formerly held statically by the shared library itself,
 into the Python interpreter via Python's capsule stuff, allowing both shared
 libraries to be able to find the interpreter.
 
-### what magic is this
+### What Magic Is This
 
 ```
 tohil.call("set", "mydict", tohil.call("dict", "create", *itertools.chain(*d.items())))
@@ -680,13 +661,13 @@ o.td_get('c', to=int)
 ```
 
 
-### formatting
+### Formatting
 
 this needs to be built into the makefile or something
 
 clang-format -style=file -i generic/tohil.c
 
-### debugging tohil internals
+### Debugging Tohil Internals
 
 https://Pythonextensionpatterns.readthedocs.io/en/latest/debugging/debug_Python.html#debug-version-of-Python-memory-alloc-label
 
@@ -705,9 +686,13 @@ build tohil
 
 note 3.9d instead of just 3.9
 
-### image attribution
+### Acknowledgements
 
-Do you like the tohil logo?  It's from a creative commons-licensed image of the Mayan deity Quetzalcoatl (also known in some cultures as Tohil), from the Codex Telleriano-Remensis, from the 16th century.
+Tohil is based on, and is completely inspired by and exists because of, libtclpy, by Aidan Hobson Sayers available at https://github.com/aidanhs/libtclpy/.
+
+### Image Attribution
+
+Do you like the Tohil logo?  It's from a creative commons-licensed image of the Mayan deity Quetzalcoatl (also known in some cultures as Tohil), from the Codex Telleriano-Remensis, from the 16th century.
 
 A scan of the image can be found here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_telleriano.jpg.  A wikimedia user, https://commons.wikimedia.org/wiki/User:Di_(they-them), made an SVG file of it, available here https://commons.wikimedia.org/wiki/File:Quetzalcoatl_feathered_serpent.svg
 
