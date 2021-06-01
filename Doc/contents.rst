@@ -2,11 +2,6 @@
  Tohil Documentation contents
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-.. image:: images/tohil-237px.png
-   :width: 237
-   :alt: Tohil Graphic
-
-
 .. toctree::
 
    whatsnew/index.rst
