@@ -1,5 +1,6 @@
 .. _tohil-exceptions:
 
+================
 Tohil Exceptions
 ================
 

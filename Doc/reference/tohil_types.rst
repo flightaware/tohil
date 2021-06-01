@@ -36,6 +36,7 @@ or map, and Unicode/UTF-8 translations should work fine.
 
 .. _tohil-truth:
 
+============================
 Testing Tclobj Truth Values
 ============================
 
@@ -84,6 +85,7 @@ close to Python rules, however.
 
 .. _tohil_comparisons:
 
+===========
 Comparisons
 ===========
 
@@ -95,6 +97,7 @@ this could be high overhead for large and/or very complicated structures.
 
 .. _tohil_numeric:
 
+====================================
 Using Tohil tclobjs as Numeric Types
 ====================================
 
@@ -109,8 +112,9 @@ float.
 
 .. _tohil_bitstring-ops:
 
+=================================
 Bitwise Operations on Tohil Types
----------------------------------
+=================================
 
 Tohil tclobj objects can be freely used as a source for boolean
 operations and shift counts.  Bitwise and, or, exclusive or,
@@ -122,6 +126,7 @@ be converted into an integer will fail with a TypeError exception raised.
 
 .. _tohil_typesseq:
 
+================
 tclobjs as lists
 ================
 
@@ -235,6 +240,7 @@ An example that uses most of the list methods::
 
 .. _typesmapping:
 
+==================================
 Mapping Types --- :class:`tcldict`
 ==================================
 
@@ -377,8 +383,9 @@ Tcldicts can be created by the :class:`tcldict` constructor.
 
 .. _dict-views:
 
+=======================
 Dictionary view objects
------------------------
+=======================
 
 The objects returned by :meth:`tcldict.keys`, :meth:`tcldict.values` and
 :meth:`tcldict.items` are fake *view objects*.  Unlike native Python dicts,

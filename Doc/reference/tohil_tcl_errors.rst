@@ -1,5 +1,6 @@
 .. _tohil-tcl-errors:
 
+================
 Tohil Tcl Errors
 ================
 

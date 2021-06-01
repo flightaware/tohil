@@ -13,6 +13,7 @@ know of any deficiencies you find in it.
 It can be sometimes faster to fix bugs yourself and contribute patches to
 Tohil. This can be done through https://github.com/flightaware/tohil.
 
+==================
 Documentation bugs
 ==================
 
@@ -21,6 +22,7 @@ please submit a bug report on aforelinked github site.  If you
 have a suggestion on how to fix it, include that as well.
 
 
+==============================
 Using the Tohil issue tracker
 ==============================
 
@@ -29,6 +31,7 @@ Please use Tohil's issue tracker at https://github.com/flightaware/tohil/issues.
 
 .. _contributing-to-tohil:
 
+===============================================
 Getting started contributing to Tohil yourself
 ===============================================
 
