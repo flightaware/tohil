@@ -10,6 +10,9 @@ Building and Installing on FreeBSD
 Install Prerequisites
 =====================
 
+*You should backup your machine regularly, and confirm
+you have made a full backup before proceeding.*
+
 These instructions assume you are building FreeBSD
 ports from source.  You can also install without
 building using the pkg package manager.

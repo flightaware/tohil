@@ -10,6 +10,9 @@ Building and Installing on Linux
 Install Prerequisites
 =====================
 
+*You should backup your machine regularly, and confirm
+you have made a full backup before proceeding.*
+
 First you need to install Python and
 the Python *pip* installer:
 

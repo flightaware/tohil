@@ -18,5 +18,5 @@ In the meantime, you will need to build from source.
    :maxdepth: 2
 
    linux.rst
-   mac.rst
+   macos.rst
    freebsd.rst
