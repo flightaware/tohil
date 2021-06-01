@@ -14,8 +14,9 @@ Install Prerequisites
 you have made a full backup before proceeding.*
 
 These instructions assume you are building FreeBSD
-ports from source.  You can also install without
-building using the pkg package manager.
+ports from source.  You can also install ports without
+building from source by using the pkg package manager.
+We're only covering doing it using ports at this time.
 
 First you need to install Python and
 the Python *pip* installer:
@@ -59,7 +60,7 @@ module:
 
 ::
 
-    sudo pip3 install hypothesis
+    sudo pip3 install sphinx
 
 ==============================
 Build the Configure Script
@@ -79,14 +80,25 @@ Run the Configure Script
 
 Run the configure script.  The Python version must be specified.
 
-This specification is a little trickier than usual because FreeBSD
-is a little more rigorous about where stuff is supposed to go:
+This specification is a little trickier than usual because the
+approach the FreeBSD developers have taken toward packaging
+is a little more particular about where stuff is supposed to go.
+
+This has advantages, though.  For instance you can have multiple
+versions of Tcl installed and multiple versions of Python 3
+installed at the same time.
 
 ::
 
-    ./configure --with-tcl=/usr/local/lib/tcl8.6 --mandir=/usr/local/man --with-python-include=/usr/local/include/python3.7m --with-python-lib=/usr/local/lib --with-python-version=3.7m
+    ./configure --with-tcl=/usr/local/lib/tcl8.6 --mandir=/usr/local/man --with-python-version=3.7m
 
-# don't forget the "m" if your stuff has that.
+In the above, we tell configure where to find the Tcl library because
+it's in a slightly nonstandard place.  We tell it the Python version;
+Tohil's configure script will use python3.7m-config or whatever
+to find the Python library and includes.
+
+
+Don't forget the "m" in the version name if your stuff has that.
 
 
 ====
