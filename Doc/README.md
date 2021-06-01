@@ -33,13 +33,16 @@ using reStructturedText markup, and using Sphinx to process it.
 You'll need to make a data dir under Doc and touch a file
 in there called refcounts.dat.
 
-### Notes on How to Do Stuff
+### Notes on How to Do Stuff That's Annoyingly Obscure
 
 The stuff that ultimately becomes the main index page
 is at tools/templates/indexcontent.html
 
 There's other stuff in tools/templates that's important,
 like indexsidebar.html
+
+Also sometimes an *rm -rf _build* can help make stuff
+appear after changes.
 
 ### Build the HTML
 

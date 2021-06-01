@@ -1,4 +1,4 @@
-.. _installing-intro:
+.. _installing-index:
 
 ######################
 Installing Tohil
