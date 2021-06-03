@@ -10,4 +10,4 @@
    intro.rst
    tohil_python.rst
    tohil_tcl.rst
-
+   shadow_dicts.rst
