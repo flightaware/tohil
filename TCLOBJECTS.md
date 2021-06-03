@@ -65,21 +65,15 @@ You can get the length of the tclobj list with len(obj), while obj.lindex(i) wil
 You can also just use `l[i]` to get the i'th element of l, although lindex supports the
 to=type conversion as well.
 
-<<<<<<< HEAD
-obj.lappend() will append Python stuff to the list stored in the tclobj.
+*obj.append()* will append python stuff to the list stored in the tclobj.
 
-obj.lappend_list() will append a Tcl object comprising a list, or a Python list, to a list, making it flat, i.e. each element of the list is appended to obj's list.
-=======
-obj.append() will append python stuff to the list stored in the tclobj.
+*obj.extend()* will append a Tcl object comprising a list, or a Python list, to a list, making it flat, i.e. each element of the list is appended to obj's list.
 
-obj.extend() will append a tcl object comprising a list, or a python list, to a list, making it flat, i.e. each element of the list is appended to obj's list.
+*obj.pop(x)* will pop the xth element from a tcl obj comprising a list.  If no index is specified, obj.pop() removes and returns the liast item in the list.
 
-obj.pop(x) will pop the xth element from a tcl obj comprising a list.  If no index is specified, obj.pop() removes and returns the liast item in the list.
-
-obj.insert(i, x) will insert item x at position i.  So obj.insert(0, x) inserts at the front of the list, and a.insert(len(a), x) is equivalent to obj.append(x)
+*obj.insert(i, x)* will insert item x at position i.  So obj.insert(0, x) inserts at the front of the list, and a.insert(len(a), x) is equivalent to obj.append(x)
 
 obj.clear() removes all items from the list.
->>>>>>> main
 
 Thanks to tohil's increasingly thorough tclobj object implementation and Python's excellent support for such things, you can use the indexing syntax to access and even change certain elements.
 
@@ -111,24 +105,16 @@ It seems pretty good, but this is new stuff, so be careful and let us know how i
 
 ### find out the tclobj Tcl object's type and reference count
 
-<<<<<<< HEAD
-t.tcltype will tell you the Tcl object type of the Tcl object stored within
-=======
-t._tcltype will tell you the tcl object type of the tcl object stored within
->>>>>>> main
+t.\_tcltype will tell you the tcl object type of the tcl object stored within
 the tclobj.  Note that you may get nothing back even though there is some
 valid thing there, say for instance a dict, but you haven't accessed it as
 a dict, so it's just a string or list or some other data type until you do.
 
-<<<<<<< HEAD
-t.refcount will tell you the reference count of the tclobj's Tcl object.  This is kind of cool.
-=======
-t._refcount will tell you the reference count of the tclobj's tcl object.
+t.\_refcount will tell you the reference count of the tclobj's tcl object.
 This isn't probably useful for production code but it is kind of cool for poking
 around and trying to understand what objects are shared and how and when and stuff.
 
-t._pyrefcount likewise will return the python reference count of the tclobj.
->>>>>>> main
+t.\_pyrefcount likewise will return the python reference count of the tclobj.
 
 Note if you're poking around that sometimes you might think the reference
 count is one higher than it should be, but frequently the object you just
@@ -140,13 +126,8 @@ produces a new result, your object's reference count will go down by one.
 
 Tcldicts have the same internal structure as tclobj... a Python object pointing to a Tcl
 object.  But it is a distinct data type because it has different implementations of
-<<<<<<< HEAD
-sequences and maps and whatnot, to provide pythonic feel to Tcl dictionaries, which can
-be hierarchies of key-value data.
-=======
 sequences and maps and whatnot, to provide pythonic feel to tcl dictionaries, which can
 also be hierarchies of key-value data.
->>>>>>> main
 
 You can create a tcldict object similarly to creating a tclobj.
 
