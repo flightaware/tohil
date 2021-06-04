@@ -10,4 +10,6 @@
    intro.rst
    tohil_python.rst
    tohil_tcl.rst
+   tohil_tclobjs.rst
+   tohil_tcldictss.rst
    shadow_dicts.rst
