@@ -18,7 +18,7 @@ help:
 serve:
 	cd $(BUILDDIR)/html && python3 -m http.server
 
-tohil-github-io:
+sync-tohil-docs:
 	rsync -av $(BUILDDIR)/html/ $(SYNCDIR)
 
 # Catch-all target: route all unknown targets to Sphinx using the new

@@ -78,7 +78,7 @@ After you're confident enough in how stuff looks you can send it
 to github.  You'll want to have the tohil-docs repo in the same parent
 directory that you've got tohil in.
 
-After a `make html` you'll do a `make tohil-github-io` to rsync
+After a `make html` you'll do a `make sync-tohil-docs` to rsync
 the html pages into that repo.  Next, go to that repo, and git
 add any new files and git commit all the changes, and push, and
 it should show up on github after a bit, like tens of seconds or less.

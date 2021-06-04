@@ -28,9 +28,9 @@ To use Python to do things in Tcl, you invoke functions defined by the Tohil mod
 Tohil:
 
 * ...provides several routines to evaluate Tcl code, passing it data using common and familiar Python objects such as strs, bools, ints, floats, lists, dicts, tuples, etc, and producing those types from Tcl results as well.
-* ...defines a new Python data type, [tohil.tclobj](TCLOBJECTS.md), that allows the direct and efficient manipulation of Tcl, well, strings, of course, but strings containing ints, floats, lists, dicts, etc, passing them around, using them as arguments in calls to Tcl functions, and receiving them from function results as well.
+* ...defines a new Python data type, [tohil.tclobj](https://flightaware.github.io/tohil-docs/tutorial/tohil_tclobjs.html), that allows the direct and efficient manipulation of Tcl, well, strings, of course, but strings containing ints, floats, lists, dicts, etc, passing them around, using them as arguments in calls to Tcl functions, and receiving them from function results as well.
 * ...creates shadow dictionaries, a Python dictionary-type object that accesses and manipulates Tcl arrays as Python dictionaries.
-* ...provides a [TclProc class](TCLPROCS.md) that creates callable Python object-functions that will call their corresponding Tcl procs and C commands and return the results to Python, optionally with a specified Python type that the returned data should be converted to.
+* ...provides a [TclProc class](https://flightaware.github.io/tohil-docs/tutorial/tohil_tclprocs.html) that creates callable Python object-functions that will call their corresponding Tcl procs and C commands and return the results to Python, optionally with a specified Python type that the returned data should be converted to.
 * ...provides a TclNamespace class that has the ability to import all the Tcl procs and C commands found there as methods of the namespace class, and recursively descend child namespaces, creating new TclNamespaces objects, binding them to their parent objects, and importing all the procs found within them as well.  See also the Tohil 3 [release notes](https://flightaware.github.io/tohil-docs/whatsnew/3.0.html).
 
 ```python
@@ -235,7 +235,7 @@ Run the Tcl interactive command loop on stdin, hopefully a terminal, until you s
 
 Tohil 2 introduced a new Python data type called tclobj, aka tohil.tclobj.
 
-It's a Python-wrapped Tcl object and it's very useful for generating and manipulating, passing to and receiving from, Tcl routines, Tcl lists, .  See [TCLOBJECTS.md](TCLOBJECTS.md) for more.
+It's a Python-wrapped Tcl object and it's very useful for generating and manipulating, passing to and receiving from, Tcl routines, Tcl lists, .  See [TCLOBJECTS.md](https://flightaware.github.io/tohil-docs/tutorial/tohil_tclobjs.html) for more.
 
 #### Shadow Dictionaries
 
