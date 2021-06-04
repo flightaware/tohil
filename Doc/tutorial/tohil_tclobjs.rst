@@ -29,7 +29,9 @@ Creating Tclobj Objects From Python
 You can create an empty tclobj just like creating any other object from
 a class in Python:
 
-t = tclobj()
+::
+
+   t = tclobj()
 
 Something pretty cool is you can pass many different Python data types,
 including lists and dicts, to tohil.tclobj, and it will
@@ -54,17 +56,15 @@ Get stuff from tclobjs as Other Python Objects
 Tclobjs have methods to convert the tclobj to Python strings, ints, floats,
 bools, lists, sets, tuples, dicts, byte arrays, and, again, tclobjs.
 
-t = tohil.tclobj()
-
-* bool(t) - return the contents of the tclobj object as a python bool
-* t.as_byte_array() - a python byte array
-* t.as_dict() - a python dict
-* float(t), int(t) - as a python float and int (long), respectively.
-* list(t) - as a python list
-* str(t) - as a python str
-* tuple(t) - as a python tuple object
-* tohil.tclobj(t) - as a new python tclobj object
-* tohil.tcldict(t) - as a new python tcldict object
+* *bool(t)* - Return the contents of the tclobj object as a Python bool
+* *float(t)*, *int(t)* - as a python float and int (long), respectively.
+* *list(t)* - as a python list
+* *str(t)* - as a python str
+* *tuple(t)* - as a python tuple object
+* *tohil.tclobj(t)* - as a new python tclobj object
+* *tohil.tcldict(t)* - as a new python tcldict object
+* *t.as_byte_array()* - a Python byte array
+* *t.as_dict()* - a Python dict
 
 #########################
 set() and reset()
@@ -72,7 +72,7 @@ set() and reset()
 
 *t.set()* tries to covert whatever Python object is passed to it and store
 it in the tclobj as a Tcl object, while *t.reset()* resets the tclobj object
-to have an empty Tcl object.
+to contain an empty Tcl object.
 
 ###############
 incr()
@@ -93,7 +93,7 @@ It can also be specified using the "incr" named argument.
 
 
 #############################
-tclobjs containing Tcl lists
+Tclobjs Containing Tcl lists
 #############################
 
 When a tclobj contains Tcl lists, cool stuff comes into play.
@@ -218,6 +218,6 @@ You can create a tclobj from most Python stuff.
     >>> z = tohil.tclobj(d)
     >>> str(z)
     'a 0 b 1 c 2 d 3'
-```
+
 
 
