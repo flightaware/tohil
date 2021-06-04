@@ -12,4 +12,5 @@
    tohil_tcl.rst
    tohil_tclobjs.rst
    tohil_tcldicts.rst
+   tohil_tclprocs.rst
    shadow_dicts.rst
