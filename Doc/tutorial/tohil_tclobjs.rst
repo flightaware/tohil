@@ -1,31 +1,56 @@
 
-## tohil's tclobj type
+********************************
+Tohil's Tclobj Python Data Type
+********************************
 
-tohil 2 introduces a new Python data type called tclobj, aka tohil.tclobj.
+To provide powerful and facile interactions between Python and Tcl,
+Tohil provides a new Python data type, the Tcl object, or *tclobj*, aka
+*tohil.tclobj*.
 
 It's a Python-wrapped Tcl object.
 
 It's pretty insanely powerful.
 
-Each tclobj maintains a pointer to a Tcl object and can do things to and with that Tcl object.
+See, Tcl has these objects, fairly similar to Python at the C level, that
+it uses throughout.
 
-### creating tclobj objects
+They can be a string or an int or a float or a list or a nested dictionary
+or a bunch of other things.
 
-You can create an empty tclobj just like creating any other object from a class in Python:
+Each tclobj maintains a pointer to a Tcl object and can do things to and
+with that Tcl object.
+
+####################################
+Creating Tclobj Objects From Python
+####################################
+
+You can create an empty tclobj just like creating any other object from
+a class in Python:
 
 t = tclobj()
 
-What's kind of cool is you can pass a lot of different stuff to tclobj() and it will pretty much "do the right thing."
+Something pretty cool is you can pass many different Python data types,
+including lists and dicts, to tohil.tclobj, and it will
+and it will pretty much "do the right thing," i.e. it will produce
+something expected and straightforward that Tcl can make sense of.
 
-For example you can pass tclobj() None, bools, numbers, bytes, unicode, sequences, maps, and even other tclobjs.
+For example you can pass tclobj() None, bools, numbers, bytes, unicode,
+sequences, maps, and even other tclobjs.
 
-### .getvar() and .setvar() methods
+########################################
+.getvar() and .setvar() methods
+########################################
 
-You can also attach a tclobj to a Tcl variable or array element, or set a variable or array element from the contents of the tclobj using its getvar() and setvar() methods.
+You can also attach a tclobj to a Tcl variable or array element, or set
+a variable or array element from the contents of the tclobj using its
+*getvar()* and *setvar()* methods.
 
-### get stuff from tclobjs as other Python pbjects
+##################################################
+Get stuff from tclobjs as Other Python Objects
+##################################################
 
-Tclobjs have methods to convert the tclobj to Python strings, ints, floats, bools, lists, sets, tuples, dicts, byte arrays, and, again, tclobjs.
+Tclobjs have methods to convert the tclobj to Python strings, ints, floats,
+bools, lists, sets, tuples, dicts, byte arrays, and, again, tclobjs.
 
 t = tohil.tclobj()
 
@@ -39,272 +64,158 @@ t = tohil.tclobj()
 * tohil.tclobj(t) - as a new python tclobj object
 * tohil.tcldict(t) - as a new python tcldict object
 
-### set() and reset()
+#########################
+set() and reset()
+#########################
 
-t.set() tries to covert whatever Python object is passed to it and store it in the tclobj as a Tcl object, while t.reset() resets the tclobj object to have an empty Tcl object.
+*t.set()* tries to covert whatever Python object is passed to it and store
+it in the tclobj as a Tcl object, while *t.reset()* resets the tclobj object
+to have an empty Tcl object.
 
-### incr()
+###############
+incr()
+###############
 
-t.incr() tries to increment the tclobj object.  If the contents of the object preclude it from being used as an integer, a TypeError exception is throwing.
+*t.incr()* tries to increment the tclobj object.  If the contents of the object
+preclude it from being used as an integer, a TypeError exception is thrown.
 
-t.incr takes an optional positional argument, which is the increment amount.  It can also be specified using the "incr" named argument
+t.incr takes an optional positional argument, which is the increment amount.
+It can also be specified using the "incr" named argument.
 
-```
-t = tohil.tclobj(0)
-t.incr()
-t.incr(1)
-t.incr(incr=-1)
-```
+::
 
-### tclobjs containing Tcl lists
+    t = tohil.tclobj(0)
+    t.incr()
+    t.incr(1)
+    t.incr(incr=-1)
+
+
+#############################
+tclobjs containing Tcl lists
+#############################
 
 When a tclobj contains Tcl lists, cool stuff comes into play.
 
-You can get the length of the tclobj list with len(obj), while obj.lindex(i) will return the i'th element.
+Accessing a tclobj containing a list from Python is nearly identical
+to accessing a standard Python list.  You can access and change elements,
+use slice notation, etc, and most standard Python list methods are provided
+as well.
 
-You can also just use `l[i]` to get the i'th element of l, although lindex supports the
-to=type conversion as well.
+You can get the length of the tclobj list with *len(obj)*, while
+*obj.lindex(i)* will return the *i*'th element.
 
-*obj.append()* will append python stuff to the list stored in the tclobj.
+You can also just use ``l[i]`` to get the i'th element of *l*, although
+the *lindex* supports Tohil's *to=type* conversion as well.
 
-*obj.extend()* will append a Tcl object comprising a list, or a Python list, to a list, making it flat, i.e. each element of the list is appended to obj's list.
+*obj.append()* will append to the list stored in the tclobj.
 
-*obj.pop(x)* will pop the xth element from a tcl obj comprising a list.  If no index is specified, obj.pop() removes and returns the liast item in the list.
+*obj.extend()* will append a Tcl object comprising a list, or a Python list,
+to a list, making it flat, i.e. each element of the list is appended to obj's
+list.
 
-*obj.insert(i, x)* will insert item x at position i.  So obj.insert(0, x) inserts at the front of the list, and a.insert(len(a), x) is equivalent to obj.append(x)
+*obj.pop(x)* will pop the *x*'th element from a tcl obj comprising a list.
+If no index is specified, obj.pop() removes and returns the last item in
+the list.
 
-obj.clear() removes all items from the list.
+*obj.insert(i, x)* will insert item *x* at position *i*.
+So as with Python lists, ``obj.insert(0, x)`` inserts at the front of the
+list, and ``a.insert(len(a), x)`` is equivalent to ``obj.append(x)``
 
-Thanks to tohil's increasingly thorough tclobj object implementation and Python's excellent support for such things, you can use the indexing syntax to access and even change certain elements.
+*obj.clear()* removes all items from the list.
 
-```
->>> x = tohil.eval("list 1 2 3 4 5 6", to=tohil.tclobj)
->>> x
-<tohil.tclobj: '1 2 3 4 5 6'>
->>> x[2]
-'3'
->>> x[3:]
-['4', '5', '6']
->>> x[-2:]
-['5', '6']
->>> x[-2:-1]
-['5']
-```
+You can use Python's indexing syntax to access and replace list elements.
 
-### comparing tclobjs to each other
+::
 
-Tclobjs can be compared.  If equality check is requested, first their internal
-tclobj pointers are compared for absolute equality.  Following that, and for all
-other cases (<, <=, >, >=), their string representations are obtained and compared.
-Not something you probably should rely on for complicated objects but should be
-fine for simple ones.
+    >>> x = tohil.eval("list 1 2 3 4 5 6", to=tohil.tclobj)
+    >>> x
+    <tohil.tclobj: '1 2 3 4 5 6'>
+    >>> x[2]
+    '3'
+    >>> x[3:]
+    ['4', '5', '6']
+    >>> x[-2:]
+    ['5', '6']
+    >>> x[-2:-1]
+    ['5']
 
-Comparisons are really permissive, too, in what the tclobj implementation accepts from Python.
+####################################
+Comparing Tclobjs wo Each Other
+####################################
 
-It seems pretty good, but this is new stuff, so be careful and let us know how it's going.
+Tclobjs can be compared.  If equality check is requested, first their
+internal tclobj pointers are compared for absolute equality.  Following that,
+and for all other cases (<, <=, >, >=), their string representations are
+obtained and compared.
 
-### find out the tclobj Tcl object's type and reference count
+Not something you probably should rely on for complicated objects but should
+be fine for simple ones.
 
-t.\_tcltype will tell you the tcl object type of the tcl object stored within
-the tclobj.  Note that you may get nothing back even though there is some
-valid thing there, say for instance a dict, but you haven't accessed it as
-a dict, so it's just a string or list or some other data type until you do.
+Comparisons are really permissive, too, in what the tclobj implementation
+accepts from Python.
 
-t.\_refcount will tell you the reference count of the tclobj's tcl object.
+It seems pretty good, but this is new stuff, so be careful and let us know
+how it's going.
+
+#############################################
+Get the tclobj's Tcl Type and Reference Count
+#############################################
+
+*t._tcltype* will tell you the tcl object type of the tcl object stored
+within the tclobj.  Note that you may get nothing back even though there
+is some valid thing there, say for instance a dict, but you haven't
+accessed it as a dict, so it's just a string or list or some other data
+type until you do.
+
+*t._refcount* will tell you the reference count of the tclobj's tcl object.
 This isn't probably useful for production code but it is kind of cool for poking
-around and trying to understand what objects are shared and how and when and stuff.
+around and trying to understand what objects are shared and how and when
+and stuff.
 
-t.\_pyrefcount likewise will return the python reference count of the tclobj.
+*t._pyrefcount* likewise will return the python reference count of the tclobj.
 
-Note if you're poking around that sometimes you might think the reference
+Note that if you're poking around, that sometimes you might think the reference
 count is one higher than it should be, but frequently the object you just
-set the value of also happens to be the Tcl interpreter result (you used
+set the value of also happens to be the Tcl interpreter result (i.e. you used
 the interpreter to make it).  Once the interpreter does something else and
 produces a new result, your object's reference count will go down by one.
 
-## tcldict objects
+If this doesn't make sense, don't worry about it.  You probably don't need
+it and don't care anyway.
 
-Tcldicts have the same internal structure as tclobj... a Python object pointing to a Tcl
-object.  But it is a distinct data type because it has different implementations of
-sequences and maps and whatnot, to provide pythonic feel to tcl dictionaries, which can
-also be hierarchies of key-value data.
+You can create a tclobj from most Python stuff.
 
-You can create a tcldict object similarly to creating a tclobj.
+...a list:
 
->>> d = tohil.tcldict("a 1 b 2 c 3 d 4 e 5")
+::
 
-### accessing elements in a tcldict
 
-You can access elements using normal Python dict access techniques.
+    >>> l = [1, 2, 3, 4, 5]
+    >>> type(l)
+    <class 'list'>
+    >>> kl = tohil.tclobj(l)
+    >>> str(kl)
+    '1 2 3 4 5'
+    >>> kl.llength()
+    5
 
-For instance, `d["a"]` returns 1, `d.get('a')` does the same.  With the "get" approach
-you can specify a to=type to control what Python type is returned.  Also you
-can set the Python type returned by doing `d.to = type`.
+...a tuple:
 
-The tcldict can represent a hierarchy of dicts, so you can say stuff like
+::
 
-### setting values into a tcldict
 
-Setting values will do "dict set" on a tcldict.  It takes a key and a value.
-The value can be one among a number of different Python objects.
-Two choices are a tclobj or tcldict object, in which case tohil will do the right thing
-and grab a reference to the object rather than copying it.
+    >>> z = tohil.tclobj((1, 2, 3))
+    >>> str(z)
+    '1 2 3'
 
-The key can be a
-list of keys, in which case instead of working with dict as a single-level
-dictionary, it will treat it as a nested tree of dictionaries, with inner
-dictionaries stored as values inside outer dictionaries.
+...a dict:
 
+::
+
+    >>> d = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
+    >>> z = tohil.tclobj(d)
+    >>> str(z)
+    'a 0 b 1 c 2 d 3'
 ```
-d[['airport', 'KHOU', 'name']] = 'Houston Hobby'
-d[['airport', 'KHOU', 'lat']] = 29.6459
-d[['airport', 'KHOU', 'lon']] = -95.2769
-```
-
-The td_get method will do a "dict get" on a tclobj.  It returns the object in the style requested, str by default, but to= can be specified, as in:
-
-```
->>> x = tohil.eval("list a 1 b 2 c 3", to=tohil.tcldict)
->>> x.get('a')
-'1'
->>> x.get('a',to=int)
-1
-```
-
-
-### get()
-
-Likewise, `get` will accept a list of keys, treating the Tcl object as
-a nested tree of dictionaries, with inner dictionaries stored as values
-inside outer dictionaries.  It is an error to try to get a key that
-doesn't exist.
-
-t.get() supports our to=datatype technique to get the contents of the
-tcldict as one of numbers different datatypes (the same ones supported
-for tohil.getvar, etc.)
-
-One kind of annoyance about Tcl dicts is having to use dict exist to
-traverse the hierarchy of dicts to see if something exists before
-traversing it a second time to actually get it, or to try the get
-and catch the error.
-
-get() offers a second approach, where you invoke get() and specify
-the optional default= argument, where you specify a value that get
-will return if the requested key doesn't exist.
-
-If a to=datatype is specified, the default value is coerced to that
-datatype if possible, or an exception is raised if not.
-
-### checking for existence
-
-You can do the usual Python `'a' in mydict` check for existence.
-
-The thing being checked for can be a list, in order to navigate
-a hierarchy of Tcl dictionaries.  For example, `["airport", "KHOU"] in mydict`
-
-### len()
-
-len(t) returns the size of the Tcl dict, or throws an error if the contents of the object can't be treated as a Tcl dict.
-
-### removing
-
-Standard `del t[key]` Python stuff.
-
-td_remove can also accept a list of elements and in that case it will delete a hierarchy of subordinate Tcl dictionaries.  In the list case, if more than one element is specified in the list, it is an error if any of the keys don't exist.
-
-You can create new tclobjs or tcldicts as the contents of sub-parts of dictionaries and use them as dictionaries in their own right, or whatever.
-
-Say you have a tcldict t containing a dictionary of elements, one of which, 'a', contains a dictionary of elements, one of which, 'c', contains a dictionary of elements, 'd'.
-
-If you want a dictionary consisting of eveyrthing below c, you might do
-
-```
-x = t[['a', 'b', 'c']]
-```
-
-...or...
-
-```
-x = t.get(['a','b','c'], to=tohil.tclobj)
-```
-
-Likewise you can compose a more complicated dictionaries by attaching a dictionary to a point within another dictionary, simply by assigning a tclobj or tcldict that itself contains a dictionary.
-
-#### iterators
-
-You can iterate over a tcldict with normal Python semantics.
-For example, something like:
-
-```
-t = tohil.tcldict("a 1 b 2 c 3 d 4 e 5 f 6")
-for i in t:
-    print(i)
-```
-
-If you pass a to= conversion to iter, the iterator returns tuples comprising the key and the value as well, with the value converted to the to= conversion.
-
-```
-for key, value in t.iter(to=int):
-    print(f"key {key} value {value}")
-```
-
-### misc stuff
-
-You can examine the Tcl reference count.
-
-```
-x = tohil.eval("list 1 2 3 4 5", to=tohil.tclobj)
-
-x.lindex(0)
-
-x.refcount
-
-x.setvar("foo")
-
-x.refcount
-
-x.unset("foo")
-
-x.refcount
-
-str(x)
-
-y = x
-
-y.refcount
-```
-
-You can create a tclobj or tcldict from most Python stuff.
-
-a list:
-
-```
->>> l = [1, 2, 3, 4, 5]
->>> type(l)
-<class 'list'>
->>> kl = tohil.tclobj(l)
->>> str(kl)
-'1 2 3 4 5'
->>> kl.llength()
-5
-```
-
-a tuple:
-
-```
->>> z = tohil.tclobj((1, 2, 3))
->>> str(z)
-'1 2 3'
-```
-
-a dict:
-
-```
->>> d = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
->>> z = tohil.tclobj(d)
->>> str(z)
-'a 0 b 1 c 2 d 3'
-```
-
 
 
