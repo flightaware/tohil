@@ -5,7 +5,8 @@
 Introduction
 ************
 
-This reference describes the Tohil Python module cum Tcl package.
+This reference describes the Tohil, the Python module and Tcl package
+that are two great tastes that taste great together.
 
 Tohil provides ways to execute code and ways to exchange data
 between the Python and Tcl interpreters.
