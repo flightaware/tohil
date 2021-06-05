@@ -125,11 +125,41 @@ when the tohil package has been imported.
 
 .. function:: tohil.interact()
 
-.. function:: tohil.package_require()
+   Run the Tcl interactive command loop on stdin, which hopefully
+   is a terminal, until the user sends EOF, at which point they'll
+   be returned to the Python command line, or whatever the Python
+   code that called *tohil.interact()* does next.
 
-.. function:: tohil.result()
+.. function:: tohil.package_require(packageName[, [version=]versionID])
+
+   Load the specified package.  A specific package version
+   can be specified, either positionally or by name using
+   the *version=* parameter.
+
+   This is a shortcut for
+   ``tohil.eval(f"package require {packageName} {versionID}")``.
+
+.. function:: tohil.result([to=type])
+
+   Return the Tcl interpreter result object.
+
+   The Tcl interpreter has a "result object."  It contains
+   the result of the last thing the interpreter did.
+
+   It's not something you would likely normally need to access, because
+   you would have gotten the result by doing something like
+   ``set myResult [myFunction myArg1 myArg2]``.
+
+   Nonetheless we make it available because it's been useful for
+   the Tohil devs to be able to see what's in there.
 
 .. function:: tohil.run()
+   Perform tohil.exec, but redirect stdout emitted while
+   python is running it into a string and return
+   the string to run's caller after the exec has finished.
+
+   Python users are often surprised that exec doesn't return
+   anything.
 
 .. function:: tohil.setvar()
 
