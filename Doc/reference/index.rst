@@ -15,6 +15,7 @@ describes the library that is Tohil.
 
    intro.rst
    tohil_types.rst
+   tohil_python_functions.rst
    tohil_exceptions.rst
    tohil_tcl_errors.rst
 

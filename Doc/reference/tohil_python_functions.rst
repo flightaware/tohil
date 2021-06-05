@@ -161,25 +161,44 @@ when the tohil package has been imported.
    Python users are often surprised that exec doesn't return
    anything.
 
-.. function:: tohil.setvar()
+.. function:: tohil.setvar([var=]varName[, [value=]value)
 
-.. function:: tohil.source()
+   Set a variable or array element referenced by *varName*
+   to the value specified by *value*.
 
-.. function:: tohil.subst()
+   A few errors are possible, such as trying to set an array
+   element of a scalar variable or set a scalar variable
+   that is actually an array.
 
-.. function:: tohil.tcldict()
+.. function:: tohil.source(fileName)
 
-.. function:: tohil.TclNamespace()
+   Take the contents of the file specified by *fileName* and
+   evaluate it using the Tcl interpreter.  The return value
+   is the value of the last command executed in the script.
 
-.. function:: tohil.tclobj()
+   This is the equivalent of ``tohil.call("source", fileName)``.
 
-.. function:: tohil.TclProc()
+.. function:: tohil.subst(substString)
+
+   Perform Tcl backslash, command and variable substiutions,
+   and return the result of doing that without evaluating it.
+
+   This is handy for generating some kind of string while
+   substituting parts of it with embedded $-substitutions of
+   Tcl variables and evaluation of Tcl code enclosed in square
+   brackets.
 
 .. function:: tohil.tclvar()
 
-.. function:: tohil.TclWriter()
+   Create a tclobj object that shadows a Tcl variable or
+   array element.
 
-.. function:: tohil.traceback()
+   Any accesses of the resulting tclobj from Python will
+   always begin with a (noncopying) access of the Tcl
+   variable or array element's contents, and any writing
+   of the variable from Python (by doing things with the tclobj
+   such as invoking methods on them, using Python list notation
+   to update tclobj list elements, etc.
 
 .. function:: tohil.unset(* args)
 
