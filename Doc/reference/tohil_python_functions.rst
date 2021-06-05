@@ -154,6 +154,7 @@ when the tohil package has been imported.
    the Tohil devs to be able to see what's in there.
 
 .. function:: tohil.run()
+
    Perform tohil.exec, but redirect stdout emitted while
    python is running it into a string and return
    the string to run's caller after the exec has finished.

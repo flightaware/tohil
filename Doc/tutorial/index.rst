@@ -5,7 +5,8 @@
 ######################
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
+   :numbered:
 
    intro.rst
    tohil_python.rst
