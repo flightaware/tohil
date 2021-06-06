@@ -302,7 +302,7 @@ Now eval with to=set option to return a set from a list...
 {'3', '4', '2', '1'}
 ```
 
-### Accessing Python From TCL
+### Accessing Python From Tcl
 
 From Tcl, Tohil provides access to Python through several commands and some procs.
 
@@ -318,80 +318,9 @@ General notes:
 package require tohil
 ```
 
-Tohil provides new commands for interacting with the Python interpreter, via the ::tohil namespace.
+Tohil provides commands for interacting with the Python interpreter, via the ::tohil namespace.
 
-#### tohil::eval
-
-tohil::eval evaluates the code passed to it as if with native Python's eval.  So the argument has to be an expression, some kind of simple call, etc, i.e. it is an error if you try to define a function with it, or even set the value of a variable.
-
-Anything returned by Python from the eval is returned to to the caller of tohil::eval.
-
-#### tohil::exec
-
-tohil::exec evaluates the code passed to it as if with Python's exec.  Nothing is returned.  If the Python code prints anything, it goes to stdout using Python's I/O subsystem.  However you can easily redirect Python's output to go to a string, or whatever, in the normal Python manner.  tohil::run, in fact, provides a way to do this.
-
-#### tohil::run
-
-tohil::run evaluates the code passed to it as if with Python's exec, but unlike tohil::exec, anything emitted by the Python code to Python's stdout (print, etc) is captured by tohil::run and returned to the caller.
-
-#### tohil::call
-
-tohil::call provides a way to invoke one Python function, with zero or more arguments, without having to pass it through Python's eval or exec and running the risk that Python metacharacters appearing in the data will cause quoting problems, accidental code execution, etc.
-
-#### tohil::import
-
-tohil::import provides a way to import Python modules, although I'm not sure that it's much different from doing a tohil::exec "import module"
-
-#### tohil::interact
-
-Take Tohil to eleven.  You're on ten here... all the way up... You're on ten on your guitar... where can you go from there?  Where?  Nowhere.  Exactly.  What we do is if we need that extra... push over the cliff... you know what we do?
-
-We run tohil::interact from Tcl and enter the Python interactive loop.  When we're done, we send end of file (^D) to end the Python loop and return to the Tcl one.
-
-```
-tcl % tohil::interact
->>> def foo():
-...   print("bar")
-...
->>> ^D
-tcl % tohil::eval foo()
-bar
-```
-
-#### Reference
-
- - `tohil::eval evalString`
-   - takes: string of valid Python code
-   - returns: the result of the eval
-   - side effects: executes code in the Python interpreter
-   - `evalString` may be any valid Python expression
- - `tohil::call ?obj.?func ?arg ...?`
-   - takes: name of a Python function
-   - returns: return value of function with the first appropriate conversion applied from the list below:
-     - `None` is converted to an empty string
-     - `True` and `False` are converted to a Tcl boolean object with a corresponding value
-     - Python *str objects* are converted to Tcl byte arrays
-     - Python *unicode objects* are converted to Tcl unicode strings
-     - Python *number objects* are converted I think to text numbers NB this is probably improvable
-     - Python *mapping objects* (supporting key-val mapping, e.g. Python dicts) are converted to Tcl dicts
-     - Python *sequence objects* (supporting indexing, e.g. Python lists) are converted to Tcl lists
-     - Otherwise, the str function is applied to the Python object and that's set into the corresponding Tcl object
-   - side effects: executes function
-   - `func` may be a dot qualified name (i.e. object or module method)
- - `tohil::exec execString`
-   - `takes: string of valid Python code`
-   - `returns: the result of the Python exec`
-   - `side effects: executes code in the Python interpreter`
-   - **Do not use with substituted input**
-   - `execString` may be any valid Python code, including semicolons for single line statements or (non-indented) multiline blocks with indentions, etc.
-   - errors reaching the Python interpreter top level (i.e. not caught Tcl-side or Python-side by application code) are printed to stderr
- - `tohil::import module`
-   - takes: name of a Python module
-   - returns: nothing
-   - side effects: imports named module into globals of the Python interpreter
-   - the name of the module may be of the form module.submodule
-   - You can do the same thing using exec and, currently, exercise more control.  For example `tohil::exec "from io import StringIO"`
-
+Check out the part of the tutorial about [Using Python From Tcl](https://flightaware.github.io/tohil-docs/tutorial/tohil_tcl.html), and the Tohil reference on [Tohil Tcl Functions](https://flightaware.github.io/tohil-docs/reference/tohil_tcl_functions.html)
 
 #### Examples using Tohil from Tcl
 
@@ -487,14 +416,9 @@ Python3 setup.py install
 
 ...to build and install the Python module.
 
-Now try it out:
+Chceck out the docs on [installing Tohil](https://flightaware.github.io/tohil-docs/installing/index.html).
 
-	$ TCLLIBPATH=. tclsh
-	% package require tohil
-	1.0.0
-	% tohil::import random
-	% tohil::call random.random
-	0.507094977417
+Also there are README files for Linux, FreeBSD and macOS.
 
 ### tests
 
