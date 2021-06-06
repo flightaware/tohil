@@ -1,5 +1,5 @@
 
-.. tohil-built-ins:
+.. tohil-python-functions:
 
 
 Tohil Python Functions

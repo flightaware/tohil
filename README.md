@@ -17,18 +17,18 @@ and reference, available at https://flightaware.github.io/tohil-docs/.
 
 ## Usage
 
-You can import Tohil into either a Tcl or Python parent interpreter. Doing so will create and initialise an interpreter for the corresponding language and define Tohil's functions in both.
+You can import Tohil into either a Tcl or Python parent interpreter. Doing so will create and initialize an interpreter for the corresponding language and define Tohil's functions in both.
 
 Using Tohil, Python code can call Tcl code at any time, and vice versa, and they can call "through" each other, i.e. Python can call Tcl code that calls Python code that calls Tcl code, and so on.
 
-### Accessing TCL From Python
+### Accessing Tcl From Python
 
 To use Python to do things in Tcl, you invoke functions defined by the Tohil module that gets created when you import Tohil into your Python interpreter.
 
 Tohil:
 
 * ...provides several routines to evaluate Tcl code, passing it data using common and familiar Python objects such as strs, bools, ints, floats, lists, dicts, tuples, etc, and producing those types from Tcl results as well.
-* ...defines a new Python data type, [tohil.tclobj](https://flightaware.github.io/tohil-docs/tutorial/tohil_tclobjs.html), that allows the direct and efficient manipulation of Tcl, well, strings, of course, but strings containing ints, floats, lists, dicts, etc, passing them around, using them as arguments in calls to Tcl functions, and receiving them from function results as well.
+* ...defines a new Python data type, [tohil.tclobj](https://flightaware.github.io/tohil-docs/tutorial/tohil_tclobjs.html), that provides direct and efficient manipulation of Tcl, well, strings, of course, but strings containing ints, floats, lists, dicts, etc, passing them around, using them as arguments in calls to Tcl functions, and receiving them from function results as well.
 * ...creates shadow dictionaries, a Python dictionary-type object that accesses and manipulates Tcl arrays as Python dictionaries.
 * ...provides a [TclProc class](https://flightaware.github.io/tohil-docs/tutorial/tohil_tclprocs.html) that creates callable Python object-functions that will call their corresponding Tcl procs and C commands and return the results to Python, optionally with a specified Python type that the returned data should be converted to.
 * ...provides a TclNamespace class that has the ability to import all the Tcl procs and C commands found there as methods of the namespace class, and recursively descend child namespaces, creating new TclNamespaces objects, binding them to their parent objects, and importing all the procs found within them as well.  See also the Tohil 3 [release notes](https://flightaware.github.io/tohil-docs/whatsnew/3.0.html).
