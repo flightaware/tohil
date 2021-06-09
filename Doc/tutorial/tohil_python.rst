@@ -57,7 +57,7 @@ but we do this so often that tohil provides a shortcut:
 
    >>> tohil.package_require('Tclx')
 
-You can specify the verison as an optional argument, either by
+You can specify the version as an optional argument, either by
 positional or named parameter.  The following two statements
 are equivalent:
 

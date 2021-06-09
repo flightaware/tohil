@@ -94,7 +94,7 @@ Support for Separate Virtual Interpreters in Rivet
 
 A nice bit of fallout from the above, if you're running the Apache
 webserver with the
-`Apache Rivet https://tcl.apache.org/rivet/`_ module installed and running
+`Apache Rivet <https://tcl.apache.org/rivet/>`_ module installed and running
 in the mode where different
 virtual hosts run in separate Tcl interpreters, known as separate virtual
 interpreters, each vhost that does a ``package require tohil`` will get its
