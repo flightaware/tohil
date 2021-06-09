@@ -117,7 +117,7 @@ You instead need to use tohil::eval in this example.  You can call
 functions using tohil::eval, by the way.
 
 Though possibly a bit surprising, this behavior is consistent
-with how exec works in Python. It probably sbhouldn't
+with how exec works in Python. It probably shouldn't
 be a surprise that Tohil is using Python's
 eval and exec mechanisms at the C level to provide these capabilities
 to Tcl.
@@ -183,9 +183,9 @@ return to the Tcl one.
 Using tohil from Rivet
 **********************
 
-Rivet is an Apache webserver module that provides among other things
-a way for webpages to be made from HTML files with embedded Tcl code
-that executes when the page is requested.
+`Apache Rivet <https:/https://tcl.apache.org/rivet/>`_ is an Apache webserver
+module that provides among other things a way for webpages to be made from HTML
+files with embedded Tcl code that executes when the page is requested.
 
 From a Rivet page, in some of your Tcl code, invoke `package require tohil`.
 
