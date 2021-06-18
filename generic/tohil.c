@@ -4148,6 +4148,7 @@ tohil_register_callback(PyObject *m, PyObject *args, PyObject *kwargs)
     Tcl_DString ds;
     char *tcl_name = tohil_UTF8ToTclDString(interp, name, -1, &ds);
     data = PyMem_NEW(PythonCmd_ClientData, 1);
+    Py_INCREF(callback);
     data->func = callback;
     Tcl_CreateObjCommand(interp, tcl_name, PythonCmd, (ClientData)data, NULL);
     Tcl_DStringFree(&ds);
