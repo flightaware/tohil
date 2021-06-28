@@ -66,6 +66,8 @@ static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyObject *toT
 
 static int tohil_mod_exec(PyObject *m);
 
+static PyObject *TohilTclObj_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj);
+
 typedef struct {
     Tcl_Interp *interp;
 } TohilModuleState;
@@ -209,10 +211,12 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
     for (int i = 0; i < count; i += 2) {
         Tcl_DString kds, vds;
         char *key = tohil_TclObjToUTF8DString(interp, list[i], &kds);
-        char *val = tohil_TclObjToUTF8DString(interp, list[i + 1], &vds);
-        PyDict_SetItem(pdict, Py_BuildValue("s", key), Py_BuildValue("s", val));
+        // char *val = tohil_TclObjToUTF8DString(interp, list[i + 1], &vds);
+        PyObject *val = TohilTclObj_FromTclObj(interp, list[i + 1]);
+        PyDict_SetItem(pdict, Py_BuildValue("s", key), val);
         Tcl_DStringFree(&kds);
-        Tcl_DStringFree(&vds);
+        // Tcl_DStringFree(&vds);
+        Py_DECREF(val);
     }
 
     return pdict;
