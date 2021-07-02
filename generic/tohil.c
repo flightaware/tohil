@@ -1526,7 +1526,7 @@ TohilTclObj_lappend(TohilTclObj *self, PyObject *pObject)
         return NULL;
     }
 
-    Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
     if (writeObj == NULL)
         return NULL;
 
@@ -1555,7 +1555,7 @@ TohilTclObj_lappend(TohilTclObj *self, PyObject *pObject)
 static PyObject *
 TohilTclObj_lappend_list(TohilTclObj *self, PyObject *pObject)
 {
-    Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
     if (writeObj == NULL)
         return NULL;
 
@@ -1645,7 +1645,8 @@ TohilTclObj_type(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 }
 
 //
-// insert something to the tclobj list
+// insert an element into the tclobj list at the specified
+// location, like l.insert(0, "string")
 //
 static PyObject *
 TohilTclObj_insert(TohilTclObj *self, PyObject *args, PyObject *kwargs)
@@ -1662,7 +1663,7 @@ TohilTclObj_insert(TohilTclObj *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
     if (writeObj == NULL)
         return NULL;
 
@@ -3348,7 +3349,7 @@ TohilTclDict_setitem(TohilTclObj *self, PyObject *keys, PyObject *pValue)
     // we are about to try to modify the object, so if it's shared we need to copy
     TohilTclObj_dup_if_shared(self);
 
-    Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
     if (writeObj == NULL)
         return -1;
 
