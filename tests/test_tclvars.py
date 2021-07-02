@@ -72,6 +72,46 @@ class TclVarTests(unittest.TestCase):
         assert(str(tl) == tohil.getvar(list_name))
         assert(list(tl) == tohil.getvar(list_name, to=list))
 
+    def test_tclvar4(self):
+        """exercise tclobj insert method"""
+        ns_name = "::tohil_test"
+        list_name = ns_name + "::varsync_list"
+
+        tohil.unset(list_name)
+        tl = tohil.tclvar(list_name, default="1 2 3 4 5")
+        assert(tl[0] == 1)
+        self.assertEqual(len(tl), 5)
+        tl.insert(0, 1)
+        self.assertEqual(len(tl), 6)
+        self.assertEqual(tl[0], 1)
+        self.assertEqual(tl[5], 5)
+
+    def test_tclvar5(self):
+        """exercise tclobj append method"""
+        ns_name = "::tohil_test"
+        list_name = ns_name + "::varsync_list"
+
+        tohil.unset(list_name)
+        tl = tohil.tclvar(list_name, default="1 2 3 4 5")
+        assert(tl[0] == 1)
+        self.assertEqual(len(tl), 5)
+        tl.append('6')
+        self.assertEqual(len(tl), 6)
+        self.assertEqual(tl[0], 1)
+        self.assertEqual(tl[5], 6)
+
+    def test_tclvar6(self):
+        """exercise tclobj extend method"""
+        ns_name = "::tohil_test"
+        list_name = ns_name + "::varsync_list"
+
+        tohil.unset(list_name)
+        tl = tohil.tclvar(list_name, default="1 2 3 4 5")
+        tl.extend(tohil.tclobj("1 2 3"))
+        self.assertEqual(len(tl), 8)
+        self.assertEqual(tl[0], 1)
+        self.assertEqual(tl[7], 3)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1075,6 +1075,10 @@ TohilTclObj_init(TohilTclObj *self, PyObject *args, PyObject *kwds)
     return 0;
 }
 
+// get the tclobj pointer of a tohil tclobj object, regardless of
+// whether it's directly got a tclobj (normal) or tied to a tcl
+// variable (tclvar).  use this when you want to access the tclobj
+// but you aren't planning to mutate it
 static Tcl_Obj *
 TohilTclObj_objptr(TohilTclObj *self)
 {
@@ -1087,6 +1091,44 @@ TohilTclObj_objptr(TohilTclObj *self)
     if (obj == NULL) {
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return NULL;
+    }
+    return obj;
+}
+
+// get the tclobj pointer of a tohil tclobj object, regardless of
+// whether it's directly got a tclobj (normal) or tied to a tcl
+// variable (tclvar).  but in this case, we want to write, so if
+// the object is shared, duplicate it first so the one we end up
+// using is not shared.
+//
+// wherever this function is called, there should be a corresponding
+// call to TohilTclObj_possibly_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
+//
+static Tcl_Obj *
+TohilTclObj_objptr_for_write(TohilTclObj *self)
+{
+    // if there's a direct tclobj pointer, duplicate it if it's
+    // shared and return the pointer
+    if (self->tclobj != NULL) {
+        assert(self->tclvar == NULL);
+        if (Tcl_IsShared(self->tclobj)) {
+            Tcl_DecrRefCount(self->tclobj);
+            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+        }
+        return self->tclobj;
+    }
+
+    // there isn't a direct pointer, there's a tcl variable bound.
+    // get the object from the tcl variable.
+    Tcl_Obj *obj = Tcl_ObjGetVar2(self->interp, self->tclvar, NULL, TCL_LEAVE_ERR_MSG);
+    if (obj == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        return NULL;
+    }
+    // duplicate the object if it's shared
+    if (Tcl_IsShared(obj)) {
+        Tcl_DecrRefCount(obj);
+        obj = Tcl_DuplicateObj(obj);
     }
     return obj;
 }
@@ -1104,6 +1146,10 @@ TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
     return 0;
 }
 
+// given a tclobj and a pointer to a tcl-native object, if the
+// tclobj is bound to a tcl variable, store the obj in the tcl
+// variable, else do nothing, as the obj itself should be a
+// self->tclobj pointer
 static int
 TohilTclObj_possibly_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
 {
@@ -1526,7 +1572,7 @@ TohilTclObj_lappend(TohilTclObj *self, PyObject *pObject)
         return NULL;
     }
 
-    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr_for_write(self);
     if (writeObj == NULL)
         return NULL;
 
@@ -1555,7 +1601,7 @@ TohilTclObj_lappend(TohilTclObj *self, PyObject *pObject)
 static PyObject *
 TohilTclObj_lappend_list(TohilTclObj *self, PyObject *pObject)
 {
-    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr_for_write(self);
     if (writeObj == NULL)
         return NULL;
 
@@ -1663,7 +1709,7 @@ TohilTclObj_insert(TohilTclObj *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr_for_write(self);
     if (writeObj == NULL)
         return NULL;
 
@@ -1697,7 +1743,7 @@ TohilTclObj_pop(TohilTclObj *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    Tcl_Obj *selfobj = TohilTclObj_objptr(self);
+    Tcl_Obj *selfobj = TohilTclObj_objptr_for_write(self);
     if (selfobj == NULL)
         return NULL;
 
@@ -1726,11 +1772,6 @@ TohilTclObj_pop(TohilTclObj *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
     Tcl_IncrRefCount(resultObj);
-
-    if (Tcl_IsShared(selfobj)) {
-        Tcl_DecrRefCount(selfobj);
-        selfobj = Tcl_DuplicateObj(selfobj);
-    }
 
     // remove the item for the list
     if (Tcl_ListObjReplace(self->interp, selfobj, i, 1, 0, NULL) == TCL_ERROR) {
@@ -1867,7 +1908,7 @@ TohilTclObj_ass_item(TohilTclObj *self, Py_ssize_t i, PyObject *v)
         return -1;
     }
 
-    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr_for_write(self);
     if (writeObj == NULL)
         return -1;
 
@@ -1963,23 +2004,14 @@ TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
             Py_RETURN_NOTIMPLEMENTED;
     }
 
-    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr_for_write(self);
     if (writeObj == NULL)
         return NULL;
 
-    if (Tcl_IsShared(writeObj)) {
-        Tcl_DecrRefCount(writeObj);
-        writeObj = Tcl_DuplicateObj(writeObj);
-    }
-
     Tcl_AppendObjToObj(writeObj, tItem);
 
-    if (self->tclobj != NULL) {
-        self->tclobj = writeObj;
-    } else {
-        if (TohilTclObj_stuff_var(self, writeObj) < 0)
-            return NULL;
-    }
+    if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
+        return NULL;
 
     Py_INCREF(self);
     return (PyObject *)self;
@@ -3297,7 +3329,7 @@ TohilTclDict_delitem(TohilTclObj *self, PyObject *keys)
         pyListToTclObjv(self->interp, (PyListObject *)keys, &objc, &objv);
 
         // we are about to try to modify the object, so if it's shared we need to copy
-        writeObj = TohilTclObj_writable_objptr(self);
+        Tcl_Obj *writeObj = TohilTclObj_objptr_for_write(self);
         if (writeObj == NULL)
             return -1;
 
@@ -3349,7 +3381,7 @@ TohilTclDict_setitem(TohilTclObj *self, PyObject *keys, PyObject *pValue)
     // we are about to try to modify the object, so if it's shared we need to copy
     TohilTclObj_dup_if_shared(self);
 
-    Tcl_Obj *writeObj = TohilTclObj_objptr(self);
+    Tcl_Obj *writeObj = TohilTclObj_objptr_for_write(self);
     if (writeObj == NULL)
         return -1;
 
