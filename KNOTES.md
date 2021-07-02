@@ -394,4 +394,16 @@ it with the current tcl interpreter.
 
 -----
 
+trying to understand why call can't find builtins
+
+well, tohil::eval and tohil::exec use PyRun_StringFlags.
+
+The logic in TohilCall_Cmd for finding the callable python object to run
+doesn't completely work right, compared to PyRun_StringFlags.
+
+PyRun_StringFlags is in cpython/Python/pythonrun.c.  It uses python internal
+functions _PyUnicode_FromId, _PyParser_ASTFromString, _PyArena_New, _PyArena_Free.
+
+I think PyParser_ASTFromString and run_mod are the things of interest.
+
 
