@@ -109,6 +109,12 @@ class TestTrampoline(unittest.TestCase):
             "<class 'TclProc' 'lindex', c-function>",
         )
 
+    def test_trampoline7(self):
+        """confirm it's an error to create TclProc where the corresponding
+        Tcl proc or C function doesn't exist"""
+        with self.assertRaises(NameError):
+            t = tohil.TclProc("shenanigans")
+
 
 # add support for to =; be able to coerce output
 

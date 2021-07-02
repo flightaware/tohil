@@ -374,6 +374,9 @@ class TclProc:
         self.proc = proc
         self.function_name = self._proc_to_function(proc)
 
+        if len(info_commands(proc)) == 0:
+            raise NameError(f"tcl function '{proc}' is not defined")
+
         try:
             self.proc_args = info_args(proc)
             self.is_proc = True
