@@ -22,6 +22,11 @@ from Tcl interpreter, the following commands are available:
    If *-kwlist list* is specified, *list* contains key-value pairs
    that will be passed to the function as named parameters.
 
+   When you use tohil::call, Tohil converts all of your arguments
+   to Python Unicode, unless an argument is comprised of the special
+   sentinel `tohil::NONE`, in which case the Python "None" data type
+   is substituted in place of that argument.
+
 .. function:: tohil::eval evalString
 
    *evalString* contains a valid Python expression.  Tohil

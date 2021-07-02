@@ -141,8 +141,8 @@ or whatever, that unless you are very careful, various characters
 can cause your Python not to parse properly.  For example, a single
 quote in a name, quotes in general, and other stuff.
 
-Tohil provides *tohil::call* to make it possible to call a Python
-function and make sure that the arguments you pass to the function
+Tohil provides *tohil::call* to provide a way to call a Python
+function while making sure that the arguments you pass to the function
 are not interpreted by Python along the way.
 
 
@@ -151,9 +151,9 @@ arguments, without having to pass it through Python's eval or exec and running
 the risk that Python metacharacters appearing in the data will cause quoting
 problems, accidental code execution, etc.
 
-tohil::import provides a way to import Python modules, although it's not much
-different from doing a tohil::exec "import module"
-
+When you use tohil::call, Tohil converts all of your arguments to Python
+Unicode, unless an argument is comprised of the special sentinel `tohil::NONE`,
+in which case that argument is replaced by the Python "None" data type.
 
 ***************
 tohil::interact
