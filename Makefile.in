@@ -465,3 +465,6 @@ clean-python-module:
 
 distclean-python-module:
 	rm -rf setup.py build/ dist/ pysrc/tohil.egg-info/ tests/__pycache__/
+
+yolo:
+	make && sudo make install && make test
