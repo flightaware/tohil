@@ -195,6 +195,27 @@ test tohil_call-1.12 {call of nonexistent object methods} \
 	-returnCodes error \
 	-result {invalid syntax (<string>, line 1)}
 
+test tohil_call-1.13 {call with tohil::NONE sentinel for None type} \
+	-body {
+		tohil::exec {def a(x): return x == None}
+		tohil::call a tohil::NONE
+	} \
+	-result 1
+
+test tohil_call-1.14 {call with not quite tohil::NONE sentinel} \
+	-body {
+		tohil::exec {def a(x): return x == None}
+		tohil::call a tohil::NONEzee
+	} \
+	-result 0
+
+test tohil_call-1.15 {call with extra tohil::NONE sentinel action} \
+	-body {
+		tohil::exec {def a(x, y, z): return str(x) + ' ' + str(y) + ' ' + str(z)}
+		tohil::call a tohil::NONE 42 tohil::NONE
+	} \
+	-result "None 42 None"
+
 # =========
 # TYPES
 # =========

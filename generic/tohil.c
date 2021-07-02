@@ -74,6 +74,17 @@ typedef struct {
 
 // TCL library begins here
 
+#define TOHIL_NONE_SENTINEL "tohil::NONE"
+
+// tohil_TclObjIsNoneSentinel - return true if a Tcl object matches the
+// tohil "none" sentinel, else false.
+static int
+tohil_TclObjIsNoneSentinel(Tcl_Obj *obj)
+{
+    char *tclString = Tcl_GetString(obj);
+    return (STREQU(tclString, TOHIL_NONE_SENTINEL));
+}
+
 //
 // tohil_TclObjToUTF8DString - convert a Tcl object (string in WTF-8) to real UTF-8
 // for Python. Use a DString for buffering.
@@ -704,7 +715,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     const char *objandfn = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
     int objStart = 2;
 
-    if (*objandfn == '-' && STREQU(objandfn, "-kwlist")) {
+    if (STREQU(objandfn, "-kwlist")) {
         if (objc < 4)
             goto wrongargs;
         kwObj = tclListObjToPyDictObject(interp, objv[2]);
@@ -764,15 +775,19 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
 
     // if there are no positional arguments, we will
     // call PyTuple_New with a 0 argument, producing
-    // a 0-length tuple.  whil PyObject_Call's kwargs
+    // a 0-length tuple.  while PyObject_Call's kwargs
     // argument can be NULL, args must not; an empty
-    // tuple should be used
+    // tuple should be used.
     int i;
     PyObject *pArgs = PyTuple_New(objc - objStart);
     PyObject *curarg = NULL;
     for (i = objStart; i < objc; i++) {
-        curarg = PyUnicode_FromString(tohil_TclObjToUTF8DString(interp, objv[i], &ds));
-        Tcl_DStringFree(&ds);
+        if (tohil_TclObjIsNoneSentinel(objv[i])) {
+            curarg = Py_None;
+        } else {
+            curarg = PyUnicode_FromString(tohil_TclObjToUTF8DString(interp, objv[i], &ds));
+            Tcl_DStringFree(&ds);
+        }
         if (curarg == NULL) {
             Py_DECREF(pArgs);
             Py_DECREF(pFn);
