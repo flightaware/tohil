@@ -412,7 +412,10 @@ class TclProc:
 
     def __repr__(self):
         """repr function"""
-        return f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}>"
+        if self.is_proc:
+            return f"<class 'TclProc' '{self.proc}', args '{repr(self.proc_args)}'>"
+        else:
+            return f"<class 'TclProc' '{self.proc}', c-function>"
 
     def set_to(to):
         self.to_type = to

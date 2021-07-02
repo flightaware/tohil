@@ -90,6 +90,24 @@ class TestTrampoline(unittest.TestCase):
             return [list $a $b $args]
         }"""
         )
+        arg_check_ab = tohil.TclProc("arg_check_ab")
+        self.assertEqual(
+            arg_check_ab("c_val4", b="b_val4", a="a_val4"),
+            "a_val4 b_val4 c_val4",
+        )
+        self.assertEqual(
+            arg_check_ab("c_val5", a="a_val5"),
+            "a_val5 c_val5 {}",
+        )
+
+    def test_trampoline6(self):
+        """confirm TclProc against a C function produces something
+        and doesn't break"""
+        t = tohil.TclProc("lindex")
+        self.assertEqual(
+            repr(t),
+            "<class 'TclProc' 'lindex', c-function>",
+        )
 
 
 # add support for to =; be able to coerce output
