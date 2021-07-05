@@ -3817,7 +3817,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     }
 
     if (STREQU(toString, "dict")) {
-        return tclListObjToPyDictObject(interp, resultObj);
+        // return tclListObjToPyDictObject(interp, resultObj);
+        return tclListObjToPyDictTclObjects(interp, resultObj);
     }
 
     if (STREQU(toString, "tuple")) {
