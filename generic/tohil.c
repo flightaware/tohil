@@ -66,6 +66,8 @@ static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyObject *toT
 
 static int tohil_mod_exec(PyObject *m);
 
+static PyObject * TohilTclObj_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj);
+
 typedef struct {
     Tcl_Interp *interp;
 } TohilModuleState;
@@ -224,6 +226,39 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
         PyDict_SetItem(pdict, Py_BuildValue("s", key), Py_BuildValue("s", val));
         Tcl_DStringFree(&kds);
         Tcl_DStringFree(&vds);
+    }
+
+    return pdict;
+}
+
+//
+// turn a tcl list of key-value pairs into a python dict,
+// where the values are tclobjs
+//
+static PyObject *
+tclListObjToPyDictTclObjects(Tcl_Interp *interp, Tcl_Obj *inputObj)
+{
+    Tcl_Obj **list;
+    int count;
+
+    if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
+        PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
+        return NULL;
+    }
+
+    if (count % 2 != 0) {
+        // list doesn't have an even number of elements
+        PyErr_SetString(PyExc_TypeError, "list doesn't have an even number of elements");
+        return NULL;
+    }
+
+    PyObject *pdict = PyDict_New();
+
+    for (int i = 0; i < count; i += 2) {
+        Tcl_DString kds;
+        char *key = tohil_TclObjToUTF8DString(interp, list[i], &kds);
+        PyDict_SetItem(pdict, Py_BuildValue("s", key), TohilTclObj_FromTclObj(interp, list[i + 1]));
+        Tcl_DStringFree(&kds);
     }
 
     return pdict;
@@ -1355,7 +1390,8 @@ TohilTclObj_as_dict(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
         return NULL;
-    return tclListObjToPyDictObject(self->interp, selfobj);
+    //return tclListObjToPyDictObject(self->interp, selfobj);
+    return tclListObjToPyDictTclObjects(self->interp, selfobj);
 }
 
 //
@@ -3781,7 +3817,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     }
 
     if (STREQU(toString, "dict")) {
-        return tclListObjToPyDictObject(interp, resultObj);
+        // return tclListObjToPyDictObject(interp, resultObj);
+        return tclListObjToPyDictTclObjects(interp, resultObj);
     }
 
     if (STREQU(toString, "tuple")) {
