@@ -645,5 +645,9 @@ class TclNamespace:
 def import_tcl():
     return TclNamespace("")
 
+def tcl_stdout_to_python():
+    """redirect tcl's stdout to python"""
+    call("tohil::redirect_stdout_to_python")
+
 
 ### end of trampoline stuff
