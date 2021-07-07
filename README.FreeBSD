@@ -1,9 +1,0 @@
-#
-# tohil configure for FreeBSD
-#
-
-
-autoreconf
-./configure --with-tcl=/usr/local/lib/tcl8.6 --mandir=/usr/local/man --with-python-include=/usr/local/include/python3.7m --with-python-lib=/usr/local/lib --with-python-version=3.7m
-#--enable-symbols
-
