@@ -4353,12 +4353,10 @@ tohil_mod_exec(PyObject *m)
         // printf("tohil_mod_exec: i created tcl interp %p, setting subinterp to main thread i hope %p\n", interp, PyThreadState_Get());
         tohil_setup_subinterp(interp, PythonParent);
 
-        // invoke Tohil_Init to load us into the tcl interpreter
-        // NB uh this probably isn't enough and we need to do a
-        // package require tohil as there is tcl code in files in
-        // the package now
-        // OTOH you know you've got the right shared library
-        if (Tohil_Init(interp) == TCL_ERROR)
+        // do a "package require tohil" here, not just a Tohil_Init,
+        // as we need tohil's tcl package's tcl file(s) loaded,
+        // not just the C extension part.
+        if (Tcl_Eval(interp, "package require tohil " PACKAGE_VERSION) == TCL_ERROR)
             goto fail;
     } else {
         // python interpreter-containing attribute exists, get the interpreter
