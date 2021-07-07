@@ -1,0 +1,22 @@
+# brew seems to require handholding, so ports are recommended
+
+# if you haven't updated ports in a while because you've been using brew
+
+  #  sudo port selfupdate
+  #  sudo port upgrade outdated
+
+  sudo port install python39
+  sudo port select --set python3 python39
+  sudo port install py39-setuptools
+# or manually install a more recent autoconf 2.6x
+  sudo port install autoconf264
+
+  autoconf264
+
+  ./configure --prefix=/opt/local --exec-prefix=/opt/local --with-python-version=3.9 --with-tcl=/opt/local/lib
+
+  make
+
+  sudo make install
+
+

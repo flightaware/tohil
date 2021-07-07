@@ -1,0 +1,8 @@
+AUTORECONF=`ls -r /opt/local/bin/autoreconf26* | sed 1q`
+[ -z "$AUTORECONF" ] && AUTORECONF=autoreconf
+
+# macports
+#./configure --prefix=/opt/local --exec-prefix=/opt/local --with-python-version=3.9 --with-tcl=/opt/local/lib
+
+$AUTORECONF
+./configure --prefix=/usr/local --with-tcl=/usr/local/lib/ --with-python-version=3.8
