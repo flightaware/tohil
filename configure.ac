@@ -94,7 +94,7 @@ fi
 if test "${with_python_version+set}" = "set"; then
     PYTHON_VERSION="${with_python_version}"
 else
-    PYTHON_VERSION="3.8"
+    PYTHON_VERSION="3.9"
 fi
 AC_MSG_RESULT([using python version of... "$PYTHON_VERSION"])
 
