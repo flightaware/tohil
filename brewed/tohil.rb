@@ -13,7 +13,7 @@ class Tohil < Formula
   def install
     virtualenv_install_with_resources :using => "python@3.9"
     system "autoconf"
-    system "./configure", "--prefix=/opt/homebrew", "--with-python-lib=/opt/homebrew/python@3.9/lib/", "--with-tcl=/opt/homebrew/opt/tcl-tk/lib/"
+    system "./configure", "--prefix=/usr/local/opt", "--with-python-version=3.9", "--with-tcl=/usr/local/opt/tcl-tk/lib/"
     system "make"
     # system Formula["python@3.9"].opt_bin/"python3", *Language::Python.setup_install_args(prefix) 
     system "make", "install"
