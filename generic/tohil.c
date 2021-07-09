@@ -4080,11 +4080,18 @@ tohil_result(PyObject *m, PyObject *args, PyObject *kwargs)
 }
 
 
-
 /* Client data struct */
 typedef struct {
     PyObject *func;
 } PythonCmd_ClientData;
+
+static void
+PythonCmdDelete(ClientData clientData)
+{
+    PythonCmd_ClientData *data = (PythonCmd_ClientData *)clientData;
+    Py_XDECREF(data->func);
+    PyMem_Free(data);
+}
 
 
 /* This is the Tcl command that acts as a wrapper for Python
@@ -4131,9 +4138,12 @@ PythonCmd(ClientData clientData, Tcl_Interp *interp,
     return TCL_OK;
 }
 
+
 static PyObject *
 tohil_register_callback(PyObject *m, PyObject *args, PyObject *kwargs)
 {
+    // Accepts a Python callable that will be invoked when the Tcl command with
+    // the specificed name is executed.
     Tcl_Interp *interp = tohilstate(m)->interp;
     PythonCmd_ClientData *data;
     static char *kwlist[] = {"name", "callback", NULL};
@@ -4150,12 +4160,10 @@ tohil_register_callback(PyObject *m, PyObject *args, PyObject *kwargs)
     data = PyMem_NEW(PythonCmd_ClientData, 1);
     Py_INCREF(callback);
     data->func = callback;
-    Tcl_CreateObjCommand(interp, tcl_name, PythonCmd, (ClientData)data, NULL);
+    Tcl_CreateObjCommand(interp, tcl_name, PythonCmd, (ClientData)data, PythonCmdDelete);
     Tcl_DStringFree(&ds);
     Py_RETURN_NONE;
 }
-
-
 
 
 //
