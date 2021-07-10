@@ -295,8 +295,16 @@ making a lot of *tohil.eval* calls to manipulate the Tcl interpreter, you
 can flip to the Tcl interpreter, interact with it directly, then flip
 back by sending an end-of-file.
 
+**************************************
+tohil.tcl_stdout_to_python()
+**************************************
 
+Redirect Tcl's standard output to pass through Python's I/O
+subsystem.
 
-tcldict
-tclobj
+Among other things,
+if using `Jupyter Notebook <https://https://jupyter.org>`_, invoking
+tohil.tcl_stdout_to_python() will cause
+output from the Tcl interpreter to appear in the notebook.
+
 tclvar

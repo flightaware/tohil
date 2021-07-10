@@ -24,10 +24,12 @@ namespace eval ::tohil {
 		proc finalize {id} {
 		}
 
+		#
+		# write - write handler, send passed data
+		#   to python
+		#
 		proc write {id data} {
-			#tohil::call __builtins__.print $data
 			tohil::call sys.stdout.write $data
-			#return [string bytelength $data]
 			return
 		}
 	}

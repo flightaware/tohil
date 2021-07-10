@@ -643,6 +643,7 @@ class TclNamespace:
 
 
 def import_tcl():
+    """recursively import all tcl namespaces and functions"""
     return TclNamespace("")
 
 def tcl_stdout_to_python():

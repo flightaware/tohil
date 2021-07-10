@@ -218,3 +218,23 @@ when the tohil package has been imported.
    array elements that don't exist.
 
 
+.. function:: tohil.tcl_stdout_to_python()
+
+   Tcl normally uses its own I/O system to read and write data.
+
+   As *tohil.rivet()* can be used from Python to redirect Python's
+   writing to standard output to go through Tcl's I/O subsystem
+   (and, hence, to Rivet),
+   *tohil.tcl_stdout_to_python* does the opposite, configuring the
+   Tcl interpreter to redirect its
+   standard output, *stdout*, away from Tcl's I/O subsystem and
+   instead send whatever is written through Python's.
+
+   If using `Jupyter Notebook <https://https://jupyter.org>`_, invoking
+   tohil.tcl_stdout_to_python() will cause
+   any Tcl output written to standard output to appear in the notebook rather
+   than in the log file or stdout of the jupyter command line that's causing
+   the Jupyter notebook webserver to exist.
+
+
+
