@@ -414,16 +414,15 @@ I think PyParser_ASTFromString and run_mod are the things of interest.
 
 
 python3 setup.py build --debug --force
+
 sudo /opt/local/bin/python3 install --prefix=/opt/local
 
-hey guess what, sudo changes the PATH, say you have /opt/local/bin first in your path, sudo
-gives you a real chopped-down path, so sudo python3 may give you /usr/bin/python3 even though
+hey guess what, sudo changes the PATH, say you have /opt/local/bin
+first in your path, sudo gives you a real chopped-down path, so
+sudo python3 may give you /usr/bin/python3 even though
 python3 gives you /opt/local/bin/python3
 
 so say which version of python3 you want, explicitly
 
 this is probably why forcing the prefix screwed things up previously
-
-
-
 
