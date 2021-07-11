@@ -407,3 +407,23 @@ functions _PyUnicode_FromId, _PyParser_ASTFromString, _PyArena_New, _PyArena_Fre
 I think PyParser_ASTFromString and run_mod are the things of interest.
 
 
+
+./configure --prefix=/opt/local --exec-prefix=/opt/local --with-python-version=3.9 --with-tcl=/usr/lib --enable-symbols
+./configure --prefix=/opt/local --exec-prefix=/opt/local --with-python-version=3.9 --with-tcl=/opt/local/lib --enable-symbols
+
+
+
+python3 setup.py build --debug --force
+sudo /opt/local/bin/python3 install --prefix=/opt/local
+
+hey guess what, sudo changes the PATH, say you have /opt/local/bin first in your path, sudo
+gives you a real chopped-down path, so sudo python3 may give you /usr/bin/python3 even though
+python3 gives you /opt/local/bin/python3
+
+so say which version of python3 you want, explicitly
+
+this is probably why forcing the prefix screwed things up previously
+
+
+
+
