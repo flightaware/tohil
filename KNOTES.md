@@ -407,3 +407,12 @@ functions _PyUnicode_FromId, _PyParser_ASTFromString, _PyArena_New, _PyArena_Fre
 I think PyParser_ASTFromString and run_mod are the things of interest.
 
 
+
+./configure --prefix=/opt/local --exec-prefix=/opt/local --with-python-version=3.9 --with-tcl=/usr/lib --enable-symbols
+./configure --prefix=/opt/local --exec-prefix=/opt/local --with-python-version=3.9 --with-tcl=/opt/local/lib --enable-symbols
+
+
+
+python3 setup.py build --debug --force
+
+
