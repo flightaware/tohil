@@ -4363,8 +4363,10 @@ tohil_mod_exec(PyObject *m)
         PyErr_Clear();
         interp = Tcl_CreateInterp();
 
-        if (Tcl_Init(interp) != TCL_OK)
+        if (Tcl_Init(interp) != TCL_OK) {
+            PyErr_SetString(PyExc_RuntimeError, "Tcl interpreter initialization failed");
             goto fail;
+        }
 
         // since python is the parent, the python subinterpreter
         // isn't really a subinterpreter
@@ -4374,8 +4376,10 @@ tohil_mod_exec(PyObject *m)
         // do a "package require tohil" here, not just a Tohil_Init,
         // as we need tohil's tcl package's tcl file(s) loaded,
         // not just the C extension part.
-        if (Tcl_Eval(interp, "package require tohil " PACKAGE_VERSION) == TCL_ERROR)
+        if (Tcl_Eval(interp, "package require tohil " PACKAGE_VERSION) == TCL_ERROR) {
+            PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
             goto fail;
+        }
     } else {
         // python interpreter-containing attribute exists, get the interpreter
         interp = PyCapsule_GetPointer(pCap, "tohil.interp");
