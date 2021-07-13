@@ -426,3 +426,21 @@ so say which version of python3 you want, explicitly
 
 this is probably why forcing the prefix screwed things up previously
 
+-----
+
+fixing the failure of tohil::call to find builtins
+
+how python does it Python/ceval.c 2749 case TARGET(LOAD_NAME)
+
+it looks for the name in locals.  if it doesn't find it, it looks in
+globals.  if it doesn't find it, it looks in builtins.
+
+Do we need to look in locals?  I think so.  If there is an execution frame.
+
+The reflection API, PyEval_GetLocals, PyEval_GetGlobals, PyEval_GetBuiltins
+might be of use.
+
+But digging stuff out of dunder main will probably work even if there isn't
+an execution frame, right?
+
+
