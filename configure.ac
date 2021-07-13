@@ -67,6 +67,8 @@ TEA_SETUP_COMPILER
 
 # happy local stuff
 
+AC_CHECK_LIB([util], [forkpty])
+
 #--------------------------------------------------------------------
 # Get the paths to the python includes and libraries.
 #--------------------------------------------------------------------
