@@ -798,10 +798,28 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     }
 
     PyObject *pFn = PyObject_GetAttrString(pObj, objandfn);
+
+    // if we didn't find anything and we weren't invoked with dotted notation,
+    // check builtins
+    if (pFn == NULL && pObjParent == NULL) {
+        // (PyObject_GetAttrString raised an exception above if pFn is null)
+        PyErr_Clear();
+
+        PyObject *builtins = PyEval_GetBuiltins();
+        pFn = PyDict_GetItemString(builtins, objandfn);
+    }
+
     Py_DECREF(pObj);
-    Tcl_DStringFree(&ds);
-    if (pFn == NULL)
+
+    if (pFn == NULL) {
+#define CALL_ERROR_STRING_SIZE 256
+        char errorString[CALL_ERROR_STRING_SIZE];
+        snprintf(errorString, CALL_ERROR_STRING_SIZE, "name '%.200s' is not defined.", objandfn);
+        Tcl_DStringFree(&ds);
+        PyErr_SetString(PyExc_NameError, errorString);
         return Tohil_ReturnExceptionToTcl(interp, "failed to find object/function in python interpreter");
+    }
+    Tcl_DStringFree(&ds);
 
     if (!PyCallable_Check(pFn)) {
         Py_DECREF(pFn);
