@@ -4139,8 +4139,9 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_PkgProvide(interp, "tohil", PACKAGE_VERSION) != TCL_OK)
         return TCL_ERROR;
 
-    if (Tcl_CreateNamespace(interp, "::tohil", NULL, NULL) == NULL)
-        return TCL_ERROR;
+    //if (Tcl_CreateNamespace(interp, "::tohil", NULL, NULL) == NULL)
+    //    return TCL_ERROR;
+    Tcl_CreateNamespace(interp, "::tohil", NULL, NULL);
 
     // if i haven't been told python is up, tcl is the parent,
     // and we need to initialize the python interpreter and
