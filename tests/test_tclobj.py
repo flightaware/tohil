@@ -251,5 +251,17 @@ class TestTclObj(unittest.TestCase):
         with self.assertRaises(IndexError):
             t.pop()
 
+    def test_tclobj25(self):
+        """tohil.tclobj dict wrapping tests"""
+        # This isn't recommended (you should use the to= kwarg), but it works
+        self.assertEqual(dict(tohil.tclobj()), {})
+        # And here's why it's not recommended
+        with self.assertRaises(ValueError):
+            dict(tohil.tclobj("1 2"))
+        with self.assertRaises(TypeError):
+            # iterating on the tclobj gives us more tclobjs, which aren't
+            # hashable and so cannot be keys
+            dict(tohil.tclobj("{1 2}"))
+
 if __name__ == "__main__":
     unittest.main()
