@@ -586,6 +586,20 @@ Tohil_ReturnTclError(Tcl_Interp *interp, char *string)
 }
 
 //
+// Tohil_ReturnTclErrorInfo - return a tcl error to the tcl interpreter
+//   with the specified string added to the errorInfo
+//
+static int
+Tohil_ReturnTclErrorInfo(Tcl_Interp *interp, char *string)
+{
+    Tcl_AddErrorInfo(interp, " (");
+    Tcl_AddErrorInfo(interp, string);
+    Tcl_AddErrorInfo(interp, ")");
+    return tohil_tcl_return(interp, TCL_ERROR);
+}
+
+
+//
 // Tohil_ReturnExceptionToTcl - return a python exception to tcl as a tcl error
 //
 static int
@@ -4305,7 +4319,7 @@ Tohil_Init(Tcl_Interp *interp)
         // PyObject_Print(pType, stdout, 0);
         // PyObject_Print(pVal, stdout, 0);
 
-        return Tohil_ReturnTclError(interp, "unable to import tohil module to python interpreter");
+        return Tohil_ReturnTclErrorInfo(interp, "unable to import tohil module to python interpreter");
     }
     // printf("Tohil_Init: imported tohil module\n");
 
