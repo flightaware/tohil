@@ -2258,7 +2258,7 @@ static PyTypeObject TohilTclObj_IterType = {
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "tohil tclobj iterator type",
     .tp_dealloc = (destructor)TohilTclObjIter_dealloc,
-    .tp_iter = (getiterfunc)TohilTclObjIter,
+    .tp_iter = (getiterfunc)PyObject_SelfIter,
     .tp_iternext = (iternextfunc)TohilTclObj_iternext,
 };
 
