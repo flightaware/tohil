@@ -188,7 +188,7 @@ test tohil_call-1.10 {stacked call exception} \
 test tohil_call-1.11 {call of nonexistent functions} \
 	-body {tohil::call aosdin} \
 	-returnCodes error \
-	-result {name 'aosdin' is not defined.}
+	-result {module '__main__' has no attribute 'aosdin'}
 
 test tohil_call-1.12 {call of nonexistent object methods} \
 	-body {tohil::eval {a = "aaa"}} \
