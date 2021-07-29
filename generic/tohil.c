@@ -66,7 +66,7 @@ static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyObject *toT
 
 static int tohil_mod_exec(PyObject *m);
 
-static PyObject * TohilTclObj_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj);
+static PyObject *TohilTclObj_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj);
 
 typedef struct {
     Tcl_Interp *interp;
@@ -597,7 +597,6 @@ Tohil_ReturnTclErrorInfo(Tcl_Interp *interp, char *string)
     Tcl_AddErrorInfo(interp, ")");
     return tohil_tcl_return(interp, TCL_ERROR);
 }
-
 
 //
 // Tohil_ReturnExceptionToTcl - return a python exception to tcl as a tcl error
@@ -1422,7 +1421,7 @@ TohilTclObj_as_dict(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
         return NULL;
-    //return tclListObjToPyDictObject(self->interp, selfobj);
+    // return tclListObjToPyDictObject(self->interp, selfobj);
     return tclListObjToPyDictTclObjects(self->interp, selfobj);
 }
 
@@ -4196,7 +4195,6 @@ tohil_result(PyObject *m, PyObject *args, PyObject *kwargs)
     return tohil_python_return(interp, TCL_OK, to, obj);
 }
 
-
 /* Client data struct */
 typedef struct {
     PyObject *func;
@@ -4210,13 +4208,11 @@ PythonCmdDelete(ClientData clientData)
     PyMem_Free(data);
 }
 
-
 /* This is the Tcl command that acts as a wrapper for Python
  * function or method.
  */
 static int
-PythonCmd(ClientData clientData, Tcl_Interp *interp,
-          int objc, Tcl_Obj *const objv[])
+PythonCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     PythonCmd_ClientData *data = (PythonCmd_ClientData *)clientData;
     PyObject *args, *res;
@@ -4255,7 +4251,6 @@ PythonCmd(ClientData clientData, Tcl_Interp *interp,
     return TCL_OK;
 }
 
-
 static PyObject *
 tohil_register_callback(PyObject *m, PyObject *args, PyObject *kwargs)
 {
@@ -4266,7 +4261,9 @@ tohil_register_callback(PyObject *m, PyObject *args, PyObject *kwargs)
     static char *kwlist[] = {"name", "callback", NULL};
     PyObject *callback = NULL;
     char *name = NULL;
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO", kwlist, &name, &callback)) return NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO", kwlist, &name, &callback)) {
+        return NULL;
+    }
     if (!PyCallable_Check(callback)) {
         PyErr_SetString(PyExc_RuntimeError, "callback argument is not callable");
         return NULL;
@@ -4281,7 +4278,6 @@ tohil_register_callback(PyObject *m, PyObject *args, PyObject *kwargs)
     Tcl_DStringFree(&ds);
     Py_RETURN_NONE;
 }
-
 
 //
 // python C extension structure defining functions
@@ -4302,7 +4298,7 @@ static PyMethodDef TohilMethods[] = {
     {"call", (PyCFunction)tohil_call, METH_VARARGS | METH_KEYWORDS, "invoke a tcl command with arguments"},
     {"result", (PyCFunction)tohil_result, METH_VARARGS | METH_KEYWORDS, "return the tcl interpreter result object"},
     {"register_callback", (PyCFunction)tohil_register_callback, METH_VARARGS | METH_KEYWORDS,
-    "Register a Python callable so it can be called directly from Tcl as a command"},
+     "Register a Python callable so it can be called directly from Tcl as a command"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -4345,7 +4341,7 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_PkgProvide(interp, "tohil", PACKAGE_VERSION) != TCL_OK)
         return TCL_ERROR;
 
-    //if (Tcl_CreateNamespace(interp, "::tohil", NULL, NULL) == NULL)
+    // if (Tcl_CreateNamespace(interp, "::tohil", NULL, NULL) == NULL)
     //    return TCL_ERROR;
     Tcl_CreateNamespace(interp, "::tohil", NULL, NULL);
 
