@@ -4196,6 +4196,93 @@ tohil_result(PyObject *m, PyObject *args, PyObject *kwargs)
     return tohil_python_return(interp, TCL_OK, to, obj);
 }
 
+
+/* Client data struct */
+typedef struct {
+    PyObject *func;
+} PythonCmd_ClientData;
+
+static void
+PythonCmdDelete(ClientData clientData)
+{
+    PythonCmd_ClientData *data = (PythonCmd_ClientData *)clientData;
+    Py_XDECREF(data->func);
+    PyMem_Free(data);
+}
+
+
+/* This is the Tcl command that acts as a wrapper for Python
+ * function or method.
+ */
+static int
+PythonCmd(ClientData clientData, Tcl_Interp *interp,
+          int objc, Tcl_Obj *const objv[])
+{
+    PythonCmd_ClientData *data = (PythonCmd_ClientData *)clientData;
+    PyObject *args, *res;
+    int i;
+    Tcl_Obj *obj_res;
+
+    /* Create argument tuple (objv1, ..., objvN) */
+    if (!(args = PyTuple_New(objc - 1)))
+        return TCL_ERROR;
+
+    for (i = 0; i < (objc - 1); i++) {
+        Tcl_DString ds;
+        PyObject *s = Py_BuildValue("s", tohil_TclObjToUTF8DString(interp, objv[i + 1], &ds));
+        Tcl_DStringFree(&ds);
+        if (!s) {
+            Py_DECREF(args);
+            return TCL_ERROR;
+        }
+        PyTuple_SET_ITEM(args, i, s);
+    }
+
+    res = PyObject_Call(data->func, args, NULL);
+    Py_DECREF(args);
+
+    if (res == NULL)
+        return TCL_ERROR;
+
+    obj_res = _pyObjToTcl(interp, res);
+    if (obj_res == NULL) {
+        Py_DECREF(res);
+        return TCL_ERROR;
+    }
+    Tcl_SetObjResult(interp, obj_res);
+    Py_DECREF(res);
+
+    return TCL_OK;
+}
+
+
+static PyObject *
+tohil_register_callback(PyObject *m, PyObject *args, PyObject *kwargs)
+{
+    // Accepts a Python callable that will be invoked when the Tcl command with
+    // the specificed name is executed.
+    Tcl_Interp *interp = tohilstate(m)->interp;
+    PythonCmd_ClientData *data;
+    static char *kwlist[] = {"name", "callback", NULL};
+    PyObject *callback = NULL;
+    char *name = NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO", kwlist, &name, &callback)) return NULL;
+    if (!PyCallable_Check(callback)) {
+        PyErr_SetString(PyExc_RuntimeError, "callback argument is not callable");
+        return NULL;
+    }
+
+    Tcl_DString ds;
+    char *tcl_name = tohil_UTF8ToTclDString(interp, name, -1, &ds);
+    data = PyMem_NEW(PythonCmd_ClientData, 1);
+    Py_INCREF(callback);
+    data->func = callback;
+    Tcl_CreateObjCommand(interp, tcl_name, PythonCmd, (ClientData)data, PythonCmdDelete);
+    Tcl_DStringFree(&ds);
+    Py_RETURN_NONE;
+}
+
+
 //
 // python C extension structure defining functions
 //
@@ -4214,6 +4301,8 @@ static PyMethodDef TohilMethods[] = {
      "convert python to tcl object then to whatever to= says or string and return"},
     {"call", (PyCFunction)tohil_call, METH_VARARGS | METH_KEYWORDS, "invoke a tcl command with arguments"},
     {"result", (PyCFunction)tohil_result, METH_VARARGS | METH_KEYWORDS, "return the tcl interpreter result object"},
+    {"register_callback", (PyCFunction)tohil_register_callback, METH_VARARGS | METH_KEYWORDS,
+    "Register a Python callable so it can be called directly from Tcl as a command"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 

@@ -139,6 +139,13 @@ when the tohil package has been imported.
    This is a shortcut for
    ``tohil.eval(f"package require {packageName} {versionID}")``.
 
+.. function:: tohil.register_callback(name, callback)
+
+   Create a Tcl command with the given name linked to the given Python
+   callable. When the command is invoked, it will directly invoke the callback,
+   passing along any arguments. This is useful in cases where the Tcl event
+   loop is utilized to execute code asynchronous.
+
 .. function:: tohil.result([to=type])
 
    Return the Tcl interpreter result object.
