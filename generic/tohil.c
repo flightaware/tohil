@@ -586,16 +586,33 @@ Tohil_ReturnTclError(Tcl_Interp *interp, char *string)
 }
 
 //
-// Tohil_ReturnTclErrorInfo - return a tcl error to the tcl interpreter
-//   with the specified string added to the errorInfo
+// Tohil_ReturnStartupExceptionToTcl - return a python exception to tcl as a tcl error
+//   when tohil isn't up far enough to do a thorough job of it
 //
 static int
-Tohil_ReturnTclErrorInfo(Tcl_Interp *interp, char *string)
+Tohil_ReturnStartupExceptionToTcl(Tcl_Interp *interp, char *description)
 {
+    // Shouldn't call this function unless Python has excepted
+    if (PyErr_Occurred() == NULL) {
+        return Tohil_ReturnTclError(interp, "bug in tohil - Tohil_ReturnStartupExceptionToTcl called without a python error having occurred");
+    }
+
+    // break out the exception
+    PyObject *pType = NULL, *pVal = NULL, *pTrace = NULL;
+
+    PyErr_Fetch(&pType, &pVal, &pTrace); // clears exception
+    PyErr_NormalizeException(&pType, &pVal, &pTrace);
+    // NB pType contains the exception type; might want to do something with that
+
+    // set tcl interpreter result to the error message
+    Tcl_SetObjResult(interp, pyObjToTcl(interp, pVal));
+
+    // add the description to tcl's error info
     Tcl_AddErrorInfo(interp, " (");
-    Tcl_AddErrorInfo(interp, string);
+    Tcl_AddErrorInfo(interp, description);
     Tcl_AddErrorInfo(interp, ")");
-    return tohil_tcl_return(interp, TCL_ERROR);
+
+    return TCL_ERROR;
 }
 
 //
@@ -4397,14 +4414,7 @@ Tohil_Init(Tcl_Interp *interp)
     Py_DECREF(pTohilModStr);
 
     if (m == NULL) {
-        // NB debug break out the exception
-        PyObject *pType = NULL, *pVal = NULL, *pTrace = NULL;
-        PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
-        PyErr_NormalizeException(&pType, &pVal, &pTrace);
-        // PyObject_Print(pType, stdout, 0);
-        // PyObject_Print(pVal, stdout, 0);
-
-        return Tohil_ReturnTclErrorInfo(interp, "unable to import tohil module to python interpreter");
+        return Tohil_ReturnStartupExceptionToTcl(interp, "unable to import tohil module to python interpreter");
     }
     // printf("Tohil_Init: imported tohil module\n");
 
