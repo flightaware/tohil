@@ -1,0 +1,61 @@
+
+.. 4.1.rst:
+
+****************************
+  What's New In Tohil 4.1
+****************************
+
+==================================
+tclobjs returned from more places
+==================================
+
+* `to=dict` conversions now returns tclobjs for the values
+* tclobj.as_dict() does so as well
+
+==================================
+Python-side function registration
+==================================
+
+register_callback
+
+============================
+several other improvements
+============================
+
+* Pass None from Tcl to Python functions called via tohil::call
+  by using the tohil::NONE sentinel.
+
+* More precise error messages when Tohil startup fails should help
+  with troubleshooting installation problems.
+
+* Lots of new tests.
+
+============================
+numerous bug fixes
+============================
+
+* Python builtins can be called from Tcl-side tohil::call without
+  resorting to explicitly specifying the builtins namespace.
+
+* Fixed bugs in how tclvars (tclobjs bound to vars) handled some methods,
+  such as insert, pop, append, and extend.
+
+* Correct behavior of tclobj iterators, also fixes a crash.
+
+* If Python is initializing Tcl, it now does so using
+  `package require` rather than a `Tohil_Init` to cause Tohil's Tcl package
+  code to get sourced.
+
+
+
+
+====================================
+considerably improved documentation
+====================================
+
+We've considerably improved and extended the Tohil tutorial and
+reference, in Python-standard RST format,
+and are serving it out at https://flightaware.github.io/tohil-docs/
+
+
+
