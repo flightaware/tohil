@@ -4486,7 +4486,7 @@ tohil_mod_exec(PyObject *m)
         // do a "package require tohil" here, not just a Tohil_Init,
         // as we need tohil's tcl package's tcl file(s) loaded,
         // not just the C extension part.
-        if (Tcl_Eval(interp, "package require tohil " PACKAGE_VERSION) == TCL_ERROR) {
+        if (Tcl_Eval(interp, "package require -exact tohil " PACKAGE_VERSION) == TCL_ERROR) {
             PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(interp)));
             goto fail;
         }
