@@ -9,29 +9,32 @@
 tclobjs returned from more places
 ==================================
 
-* `to=dict` conversions now returns tclobjs for the values
-* tclobj.as_dict() does so as well
+* `to=dict` conversions now returns tclobjs for the dictionary values.
+* `tclobj.as_dict()` does so as well.
 
-==================================
-Python-side function registration
-==================================
+============================================
+Python-side callback function registration
+============================================
 
-register_callback
+The new `register_callback` function provides a nice way to create Tcl
+commands that directly call corresponding Python functions.  This is useful
+for processing asynchronous callbacks from the Tcl event loop using Python,
+and may be useful for other stuff as well.
 
 ============================
-several other improvements
+Several other improvements
 ============================
 
-* Pass None from Tcl to Python functions called via tohil::call
-  by using the tohil::NONE sentinel.
+* Pass None from Tcl to Python functions called via `tohil::call`
+  by using the `tohil::NONE` sentinel.
 
 * More precise error messages when Tohil startup fails should help
   with troubleshooting installation problems.
 
-* Lots of new tests.
+* Many new tests.
 
 ============================
-numerous bug fixes
+Numerous bug fixes
 ============================
 
 * Python builtins can be called from Tcl-side tohil::call without
@@ -44,18 +47,16 @@ numerous bug fixes
 
 * If Python is initializing Tcl, it now does so using
   `package require` rather than a `Tohil_Init` to cause Tohil's Tcl package
-  code to get sourced.
-
-
-
+  code to get sourced.  (It also requires the exact version of Tohil that it is,
+  to reduce the risk of it loading some other version of the library when
+  multiple versions are installed.)
 
 ====================================
-considerably improved documentation
+Considerably improved documentation
 ====================================
 
 We've considerably improved and extended the Tohil tutorial and
 reference, in Python-standard RST format,
 and are serving it out at https://flightaware.github.io/tohil-docs/
-
 
 

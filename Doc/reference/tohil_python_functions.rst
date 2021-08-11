@@ -142,9 +142,11 @@ when the tohil package has been imported.
 .. function:: tohil.register_callback(name, callback)
 
    Create a Tcl command with the given name linked to the given Python
-   callable. When the command is invoked, it will directly invoke the callback,
-   passing along any arguments. This is useful in cases where the Tcl event
-   loop is utilized to execute code asynchronous.
+   callable. When the Tcl-side command is invoked, tohil will directly invoke
+   the corresponding Python function, passing along any arguments.
+   This is useful in cases where the Tcl event
+   loop is being used to execute code asynchronously and you want to handle
+   the callbacks using Python.
 
 .. function:: tohil.result([to=type])
 
