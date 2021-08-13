@@ -4355,8 +4355,8 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_PkgRequire(interp, "Tcl", "8.6", 0) == NULL)
         return TCL_ERROR;
 
-    if (Tcl_PkgProvide(interp, "tohil", PACKAGE_VERSION) != TCL_OK)
-        return TCL_ERROR;
+    //if (Tcl_PkgProvide(interp, "tohil", PACKAGE_VERSION) != TCL_OK)
+    //    return TCL_ERROR;
 
     // if (Tcl_CreateNamespace(interp, "::tohil", NULL, NULL) == NULL)
     //    return TCL_ERROR;
@@ -4442,6 +4442,28 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_CreateObjCommand(interp, "::tohil::interact", (Tcl_ObjCmdProc *)TohilInteract_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
         return TCL_ERROR;
 
+    return TCL_OK;
+}
+
+int
+Tohil_Unload(Tcl_Interp *interp, int flags)
+{
+    Tcl_DeleteCommand(interp, "::tohil::eval");
+    Tcl_DeleteCommand(interp, "::tohil::exec");
+    Tcl_DeleteCommand(interp, "::tohil::call");
+    Tcl_DeleteCommand(interp, "::tohil::import");
+    Tcl_DeleteCommand(interp, "::tohil::interact");
+
+    if (flags & TCL_UNLOAD_DETACH_FROM_INTERPRETER) {
+        printf("tohil unload detach from interpreter\n");
+        // pass
+    } else if (flags & TCL_UNLOAD_DETACH_FROM_PROCESS) {
+        printf("tohil unload detach from process\n");
+        Py_FinalizeEx();
+    } else {
+        Tcl_SetResult(interp, "bug in tohil or some new feature of tcl unload it never heard of", TCL_STATIC);
+        return TCL_ERROR;
+    }
     return TCL_OK;
 }
 
