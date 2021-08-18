@@ -4455,10 +4455,9 @@ Tohil_Unload(Tcl_Interp *interp, int flags)
     Tcl_DeleteCommand(interp, "::tohil::interact");
 
     if (flags & TCL_UNLOAD_DETACH_FROM_INTERPRETER) {
-        printf("tohil unload detach from interpreter\n");
-        // pass
+        // printf("tohil unload detach from interpreter\n");
     } else if (flags & TCL_UNLOAD_DETACH_FROM_PROCESS) {
-        printf("tohil unload detach from process\n");
+        // printf("tohil unload detach from process\n");
         Py_FinalizeEx();
     } else {
         Tcl_SetResult(interp, "bug in tohil or some new feature of tcl unload it never heard of", TCL_STATIC);
