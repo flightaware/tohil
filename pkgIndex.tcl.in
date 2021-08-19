@@ -2,4 +2,4 @@
 # Tcl package index file
 #
 package ifneeded tohil @PACKAGE_VERSION@ \
-    [list load [file join $dir @PKG_LIB_FILE@] tohil]\n[list source [file join $dir tohil.tcl]]
+    [list load [file join $dir @PKG_LIB_FILE@] tohil]\n[list source [file join $dir tohil.tcl]]\n[list package provide tohil @PACKAGE_VERSION@]
