@@ -735,10 +735,10 @@ tohil_swap_subinterp(Tcl_Interp *interp)
 // tohil_setup_subinterp - setup the python subinterpreter and hook
 //  it up to tohil.
 //
-//  if invoked with PythonParent, it means python is the parent,
-//  we set this interpreter's "subinterpreter" to python's main
+//  If invoked with PythonParent, it means python is the parent.
+//  Set this interpreter's "subinterpreter" to python's main
 //  interpreter and set a second assoc data item to indicate
-//  that it's the parent, so we'll know not to delete it if our
+//  that it's the parent, so as not to delete it if our
 //  interpreter gets deleted.
 //
 static void
@@ -4368,7 +4368,7 @@ Tohil_Init(Tcl_Interp *interp)
     if (!Py_IsInitialized()) {
         // figure out argv0; it will help the python interpreter hopefully find
         // a path to the right python run-time libraries.
-        const char *argv0 = Tcl_GetVar(interp, "::argv0", 0);
+        const char *argv0 = Tcl_GetNameOfExecutable();
         if (argv0 != NULL) {
             wchar_t *wide_argv0 = Py_DecodeLocale(argv0, NULL);
             if (wide_argv0 != NULL) {
@@ -4383,7 +4383,7 @@ Tohil_Init(Tcl_Interp *interp)
         // python stuff
         char *python_lib = "libpython" PYTHON_VERSION ".so";
         if (dlopen(python_lib, RTLD_GLOBAL | RTLD_LAZY) == NULL) {
-            // fprintf(stderr, "load %s failed\n", python_lib);
+            fprintf(stderr, "load %s failed\n", python_lib);
         }
 
         // initialize python but since tcl is the parent,
