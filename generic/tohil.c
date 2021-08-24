@@ -4383,7 +4383,7 @@ Tohil_Init(Tcl_Interp *interp)
         // python stuff
         char *python_lib = "libpython" PYTHON_VERSION ".so";
         if (dlopen(python_lib, RTLD_GLOBAL | RTLD_LAZY) == NULL) {
-            fprintf(stderr, "load %s failed\n", python_lib);
+            // fprintf(stderr, "load %s failed\n", python_lib);
         }
 
         // initialize python but since tcl is the parent,
