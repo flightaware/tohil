@@ -1,11 +1,11 @@
 """ tohil """
 
-from collections.abc import MutableMapping
-from io import StringIO
-import keyword
-import sys
-import traceback
-import types
+from collections.abc import MutableMapping as _MutableMapping
+from io import StringIO as _StringIO
+import keyword as _keyword
+import sys as _sys
+import traceback as _traceback
+#import types as _types
 
 # too few public methods.  come on, man.
 # pylint: disable=R0903
@@ -45,7 +45,7 @@ def handle_exception(exception_type, val, traceback_object=None):
     if traceback_object is None:
         error_info = "\nfrom python code executed by tohil"
     else:
-        tb_list = traceback.format_tb(traceback_object)
+        tb_list = _traceback.format_tb(traceback_object)
         error_info = "\nfrom python code executed by tohil\n" + " ".join(tb_list).rstrip()
     return error_code, error_info
 
@@ -59,13 +59,13 @@ def run(command):
     let it go for tohil to take care of
     """
     try:
-        their_stdout = sys.stdout
-        my_stdout = StringIO()
-        sys.stdout = my_stdout
+        their_stdout = _sys.stdout
+        my_stdout = _StringIO()
+        _sys.stdout = my_stdout
 
         exec(command, globals(), locals())
     finally:
-        sys.stdout = their_stdout
+        _sys.stdout = their_stdout
 
     return my_stdout.getvalue().rstrip()
 
@@ -97,7 +97,7 @@ class ShadowDictIterator:
         return self.keys.pop(0)
 
 
-class ShadowDict(MutableMapping):
+class ShadowDict(_MutableMapping):
     """shadow dicts - python dict-like objects that shadow a tcl array"""
 
     def __init__(self, tcl_array, *, default=None, to=None):
@@ -257,7 +257,7 @@ class RivetControl:
             return
 
         # plug the tcl writer into stdout
-        sys.stdout = self.tcl_writer
+        _sys.stdout = self.tcl_writer
         self.activated = True
 
 
@@ -567,7 +567,7 @@ class TclNamespace:
 
     """
 
-    proc_excluder = keyword.kwlist
+    proc_excluder = _keyword.kwlist
 
     def __init__(self, namespace):
         # print(f"{self} importing namespace '{namespace}'")
@@ -622,7 +622,7 @@ class TclNamespace:
                 if proc != "::DES::Pad":
                     print(
                         f"failed to import proc '{proc}', exception '{exception}', continuing...",
-                        file=sys.stderr,
+                        file=_sys.stderr,
                     )
         # print(f"    done importing procs pattern '{pattern}'")
 
@@ -650,6 +650,5 @@ def import_tcl():
 def tcl_stdout_to_python():
     """redirect tcl's stdout to python"""
     call("tohil::redirect_stdout_to_python")
-
 
 ### end of trampoline stuff
