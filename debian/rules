@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	./configure --with-python-version=3.7m
+
+override_dh_auto_install:
+	make install-binaries DESTDIR=$(CURDIR)/debian/python3-tohil
+	make install-libraries DESTDIR=$(CURDIR)/debian/python3-tohil
+	make install-doc DESTDIR=$(CURDIR)/debian/python3-tohil
+	python3 setup.py install --force --root=debian/python3-tohil --install-layout=deb
+
+override_dh_auto_test:
