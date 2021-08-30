@@ -108,7 +108,7 @@ from python code executed by tohil
 test tohil_call-1.1 {incorrect call usage} \
 	-body {tohil::call} \
 	-returnCodes error \
-	-result {wrong # args: should be "tohil::call ?-kwlist list? func ?arg ...?"}
+	-result {wrong # args: should be "tohil::call ?-kwlist list? ?-nonevalue word? func ?arg ...?"}
 
 test tohil_call-1.2 {basic call} \
 	-body {tohil::exec {def a(): return 5**2}
