@@ -82,7 +82,7 @@ typedef struct {
 // tohil "none" sentinel, else false. A non-null sentinel overrides the
 // default.
 static int
-tohil_TclObjIsNoneSentinel(Tcl_Obj *obj, char *sentinel)
+tohil_TclObjIsNoneSentinel(Tcl_Obj *obj, const char *sentinel)
 {
     char *tclString = Tcl_GetString(obj);
     if(sentinel == NULL)
