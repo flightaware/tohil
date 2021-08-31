@@ -8,7 +8,7 @@ Tohil Tcl Functions
 Once a ``package require Tohil`` has been performed
 from Tcl interpreter, the following commands are available:
 
-.. function:: tohil::call [-kwlist list] [obj.]function [arg...]
+.. function:: tohil::call [-kwlist list] [-nonevalue word] [obj.]function [arg...]
 
    *tohil::call* provides a way to invoke a Python function,
    with zero or more positional parameters and zero or more
@@ -22,10 +22,14 @@ from Tcl interpreter, the following commands are available:
    If *-kwlist list* is specified, *list* contains key-value pairs
    that will be passed to the function as named parameters.
 
+   If *-nonevalue word* is specified, then this overrides the default sentinel
+   string.
+
    When you use tohil::call, Tohil converts all of your arguments
-   to Python Unicode, unless an argument is comprised of the special
-   sentinel `tohil::NONE`, in which case the Python "None" data type
-   is substituted in place of that argument.
+   to Python Unicode, unless an argument is comprised of  special
+   sentinel (normally `tohil::NONE`, or the argument to the -nonevalue
+   option), in which case the Python "None" data type is substituted
+   in place of that argument.
 
 .. function:: tohil::eval evalString
 

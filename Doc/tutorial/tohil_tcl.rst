@@ -152,8 +152,11 @@ the risk that Python metacharacters appearing in the data will cause quoting
 problems, accidental code execution, etc.
 
 When you use tohil::call, Tohil converts all of your arguments to Python
-Unicode, unless an argument is comprised of the special sentinel `tohil::NONE`,
-in which case that argument is replaced by the Python "None" data type.
+Unicode, unless an argument is comprised of a special sentinel, normally
+`tohil::NONE`, in which case that argument is replaced by the Python "None"
+data type.
+
+This sentinal can be changed with the `-nonevalue` argument.
 
 ***************
 tohil::interact
