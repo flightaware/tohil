@@ -222,6 +222,22 @@ test tohil_call-1.16 {make sure tohil::call of python builtins works} \
 	} \
 	-result 255
 
+test tohil_call-1.17 {call with arbitrary sentinel for None type} \
+	-body {
+		set sentinel "gensym-[clock seconds]"
+		tohil::exec {def a(x): return x == None}
+		tohil::call -nonevalue $sentinel a $sentinel
+	} \
+	-result 1
+
+test tohil_call-1.18 {call expecting arbitrary sentinel with tohil::NONE argument} \
+	-body {
+		set sentinel "gensym-[clock seconds]"
+		tohil::exec {def a(x): return x == None}
+		tohil::call -nonevalue $sentinel a tohil::NONE
+	} \
+	-result 0
+
 # =========
 # TYPES
 # =========
