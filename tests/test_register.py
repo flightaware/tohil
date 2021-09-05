@@ -24,13 +24,19 @@ class TestRegister(unittest.TestCase):
         tohil.register_callback("pycallback", callback)
         self.assertEqual(tohil.call("pycallback", 1, akwarg=2), ((1,), {}))
 
-    @unittest.skip("segfaults")
     def test_missing_req_arg(self):
-        # TODO: This segfaults when it should produce a reasonable error
         def callback(required):
             return required
         tohil.register_callback("pycallback", callback)
-        self.assertEqual(tohil.call("pycallback"), "")
+        with self.assertRaises(tohil.TclError):
+            tohil.call("pycallback")
+
+    def test_too_many_args(self):
+        def callback(required):
+            return required
+        tohil.register_callback("pycallback", callback)
+        with self.assertRaises(tohil.TclError):
+            tohil.call("pycallback 1 2")
 
     def test_after_func(self):
         flag = False
