@@ -4255,17 +4255,17 @@ PythonCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const ob
     Py_DECREF(args);
 
     if (res == NULL)
-        return TCL_ERROR;
+        return Tohil_ReturnExceptionToTcl(interp, "error in python object call");
 
     obj_res = _pyObjToTcl(interp, res);
     if (obj_res == NULL) {
         Py_DECREF(res);
-        return TCL_ERROR;
+        return Tohil_ReturnExceptionToTcl(interp, "error converting python object to tcl object");
     }
     Tcl_SetObjResult(interp, obj_res);
     Py_DECREF(res);
 
-    return TCL_OK;
+    return tohil_tcl_return(interp, TCL_OK);
 }
 
 static PyObject *
