@@ -443,4 +443,12 @@ might be of use.
 But digging stuff out of dunder main will probably work even if there isn't
 an execution frame, right?
 
+----
+
+building for pypi
+
+PATH=/home/karl/.local/bin:$PATH
+
+https://packaging.python.org/tutorials/packaging-projects/
+
 
