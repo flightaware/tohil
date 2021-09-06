@@ -239,7 +239,7 @@ install-doc: doc
 
 test: binaries libraries
 	@echo "PYTHON TESTS"
-	cd tests && python3 -m unittest
+	cd tests && $(bindir)/python3 -m unittest
 	@echo "TCL TESTS"
 	cd tests && $(TCLSH) all.tcl
 
@@ -455,10 +455,10 @@ uninstall-binaries:
 # tohil python stuff
 #
 build-python-module:
-	python3 setup.py build
+	$(bindir)/python3 setup.py build
 
 install-python-module:
-	python3 setup.py install
+	$(bindir)/python3 setup.py install
 
 clean-python-module:
 	rm -rf build/ dist/ pysrc/tohil.egg-info/ tests/__pycache__/
