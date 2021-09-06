@@ -414,34 +414,32 @@ I think PyParser_ASTFromString and run_mod are the things of interest.
 
 
 python3 setup.py build --debug --force
-
 sudo /opt/local/bin/python3 install --prefix=/opt/local
 
-hey guess what, sudo changes the PATH, say you have /opt/local/bin
-first in your path, sudo gives you a real chopped-down path, so
-sudo python3 may give you /usr/bin/python3 even though
+hey guess what, sudo changes the PATH, say you have /opt/local/bin first in your path, sudo
+gives you a real chopped-down path, so sudo python3 may give you /usr/bin/python3 even though
 python3 gives you /opt/local/bin/python3
 
 so say which version of python3 you want, explicitly
 
 this is probably why forcing the prefix screwed things up previously
 
------
+sudo /opt/local/bin/python3 setup.py install
 
-fixing the failure of tohil::call to find builtins
+^ did this magically put it in the right place
 
-how python does it Python/ceval.c 2749 case TARGET(LOAD_NAME)
+also not just gdb tclsh but gdb tclsh8.6 or make sure you're getting the right tclsh
 
-it looks for the name in locals.  if it doesn't find it, it looks in
-globals.  if it doesn't find it, it looks in builtins.
+---
 
-Do we need to look in locals?  I think so.  If there is an execution frame.
+run_eval_code_obj at line 1240 in pythonrun.c
 
-The reflection API, PyEval_GetLocals, PyEval_GetGlobals, PyEval_GetBuiltins
-might be of use.
+line 1212 /* Set globals['__builtins__'] if it doesn't exist */ is interesting
 
-But digging stuff out of dunder main will probably work even if there isn't
-an execution frame, right?
+but to get here it had to compile stuff, hopefully stepping PyEval_EvalCodeEx
+will lead us to understanding.
+
+_PyEval_EvalCode is getting closer
 
 ----
 
