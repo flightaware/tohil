@@ -15,7 +15,7 @@ The principal tohil types are *tclobj* and *tcldict*.  There are a few additiona
 types for iterators and exceptions.
 
 Tclobjs and tcldicts are mutable.  As with native Python types, methods that add,
-subtract, or rearrange their members in place, and don't return a specific
+subtract, or rearrange their members in place, don't return a specific
 item, returning ``None`` rather than the collection instance itself.
 
 Some operations are supported by both object types; in particular,
@@ -104,11 +104,16 @@ Using Tohil tclobjs as Numeric Types
 Tohil tclobjs can be freely used in Python code
 where integers or floating
 point numbers are needed.  The underlying Tcl object will be
-requested using Tcl standard library routines, causing a fetch
-of the cached representation if the cached representation is of
-the correct type, or an attempt by the Tcl library to convert
+requested using Tcl standard library routines, causing an
+efficient fetch
+of the Tcl object's cached representation if the cached
+representation is of the correct type, or by causing
+an attempt by the Tcl library to convert
 the contents of the Tcl object to a python Boolean, integer or
 float.
+
+Tohil will raise a TypeError exception if the Tcl object
+can't be converted to the Python type that's needed.
 
 .. _tohil_bitstring-ops:
 
@@ -130,7 +135,7 @@ be converted into an integer will fail with a TypeError exception raised.
 tclobjs as lists
 ================
 
-Tclobjs whose internal contents are valid Tcl lists, can be largely
+Tclobjs whose internal contents are valid Tcl lists can be largely
 treated as Python lists.
 
 Tclobjs-as-lists can be created from Python based on strings,
@@ -152,9 +157,9 @@ an element with ``s.append(x)``, extend *s* with the contents of a Python
 list, set, tuple, int, float, etc, or another tclobj, with
 ``s.extend(x)``.
 
-(Because tclobjs are mutable, they cannot be directly used as a key
-in a dictionary or a value in a set.  If you need to use one as a key,
-wrap it with *str()* or something.)
+Because tclobjs are mutable, they cannot be directly used as a key
+in a dictionary, or a value in a set.  If you need to use one as a key,
+wrap it with *str()* or something.
 
 You can clear a tclobj or tcldict using ``s.clear()``, and pop items
 from the list using ``s.pop([i])``.

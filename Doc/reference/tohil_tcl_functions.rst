@@ -10,26 +10,26 @@ from Tcl interpreter, the following commands are available:
 
 .. function:: tohil::call [-kwlist list] [-nonevalue word] [obj.]function [arg...]
 
-   *tohil::call* provides a way to invoke a Python function,
+   *tohil::call* provides a way to invoke a Python function from Tcl,
    with zero or more positional parameters and zero or more
    named parameters, without having to pass the parameters through
    Python's *eval* or *exec* and running the risk that Python
    metacharacters appearing in the data will cause quoting problems,
-   accidental code execution, etc.
+   unintentional code execution, etc.
 
    Whatever the Python function returns is returned to Tcl.
 
    If *-kwlist list* is specified, *list* contains key-value pairs
    that will be passed to the function as named parameters.
 
-   If *-nonevalue word* is specified, then this overrides the default sentinel
-   string.
-
    When you use tohil::call, Tohil converts all of your arguments
    to Python Unicode, unless an argument is comprised of  special
    sentinel (normally `tohil::NONE`, or the argument to the -nonevalue
    option), in which case the Python "None" data type is substituted
    in place of that argument.
+
+   If *-nonevalue word* is specified, then this overrides the default sentinel
+   string.
 
 .. function:: tohil::eval evalString
 
@@ -52,7 +52,6 @@ from Tcl interpreter, the following commands are available:
    to a string, or whatever, in the normal Python manner.
    *tohil::run*, in fact, provides a way to do this.
 
-
 .. function:: tohil::import module
 
    Import the specified module into the globals of the Python interpreter.
@@ -61,13 +60,13 @@ from Tcl interpreter, the following commands are available:
 
    You can do the same thing using *exec* and, currently, exercise
    more control, for example ``tohil::exec "from io import StringIO"``.
+   However, this reads cleanly and is often enough.
 
 .. function:: tohil::interact
 
    We run *tohil::interact* from the Tcl command prompt to enter the Python
    interactive loop.  When we're done, we send end of file (^D) to end the
    Python loop and return to the Tcl one.
-
 
 .. function:: tohil::run
 
@@ -84,6 +83,8 @@ from Tcl interpreter, the following commands are available:
    Works by pushing a custom Tcl channel handler onto Tcl's stdout channel.
    The handler passes everything written to Tcl's stdout to Python
    using Python's *sys.stdout.write*.
+
+   This allows, among other things, Tcl output to show up in Jupyter Notebook.
 
 .. function:: tohil_rivet
 

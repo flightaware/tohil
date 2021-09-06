@@ -13,17 +13,18 @@ when the tohil package has been imported.
    Invoke a Tcl command while specifying each argument explicitly,
    and returns the result.
 
-   This way, even if some arguments contain Tcl metacharacters such
+   Using tohil.call, even if some arguments contain Tcl metacharacters such
    as dollar sign, backslash, and square brackets, Tcl will not
    evaluate them.
 
    Zero or more arguments can be specified.  If one or more arguments
-   are specified, the first argument is the command name (could be a proc
-   or a C function or whatever), and whatever additional positional
+   are specified, the first argument is the command name (which could be
+   the name of a proc or a Tcl C function or whatever),
+   and whatever additional positional
    arguments are passed as arguments to the command.
 
    If no arguments are specified, that's legal for Tcl.  The Tcl
-   interpreter will evaluate an empty string, and an empty result.
+   interpreter will evaluate an empty string, and return an empty result.
 
    The optional *to=* named parameter can specify a Python data type
    to return, such as *str*, *int*, *float*, *bool*, *list*, *set*,
@@ -31,12 +32,12 @@ when the tohil package has been imported.
    one argument and returns a result.
 
    If the evaluation results in a Tcl error and the error is not caught
-   by inline Tcl code using *try* or *catch*, that is to say if an
+   by inline Tcl code using Tcl's *try* or *catch*, that is to say if an
    uncaught Tcl error is received by Tohil from the attempt, Tohil
-   uses information about the Tcl error to raise a TclError exception
-   to Python.
+   uses information about the Tcl error to create, populate and raise a
+   TclError exception to Python.
 
-.. function:: tohil.convert(python_object)
+.. function:: tohil.convert(python_object[, to=type])
 
     Convert some Python object into a Tcl object and then convert
     back to a Python object, a tohil.tclobj by default, but it can
@@ -92,19 +93,23 @@ when the tohil package has been imported.
    *default=None* is a valid default value and is distinct from
    not providing a default value.
 
+   If the variable doesn't exist and a a default value was not provided,
+   Tohil will raise a Python NameError exception.
+
    Note that default values are coerced to the *to=* data type,
    a tohil.tclobj by default.
 
 .. function:: tcl = tohil.import_tcl()
 
    Using Tcl's introspection capabilities, traverse all Tcl
-   namespaces, identify all procs and C commands in each one.
+   namespaces, and identify all procs and C commands in each one.
 
    Create a hierarchy of TclNamespace objects returning the
    top-level namespace object.
 
-   For the procs, suss out their arguments andf default values,
-   and attach to each namespace entrypoints for each proc and
+   For each proc, suss out its arguments and default values,
+   if any,
+   and attach, to each namespace, entrypoints for each proc and
    C command so that calling the Tcl procs looks very much
    like calling any Python function.
 
@@ -121,7 +126,7 @@ when the tohil package has been imported.
    to the increment amount.
 
    If the contents of the variable preclude it being used as
-   an integer, a Python TypeError exception will be thrown.
+   an integer, Tohil will raise a Python TypeError exception.
 
 .. function:: tohil.interact()
 
@@ -137,16 +142,18 @@ when the tohil package has been imported.
    the *version=* parameter.
 
    This is a shortcut for
-   ``tohil.eval(f"package require {packageName} {versionID}")``.
+   ``tohil.eval(f"package require {packageName} {versionID}")`` or
+   ``tohi..call("package", "require", packageName, versionID)``.
 
 .. function:: tohil.register_callback(name, callback)
 
    Create a Tcl command with the given name linked to the given Python
-   callable. When the Tcl-side command is invoked, tohil will directly invoke
+   callable.  When the Tcl-side command is invoked, tohil will directly invoke
    the corresponding Python function, passing along any arguments.
    This is useful in cases where the Tcl event
    loop is being used to execute code asynchronously and you want to handle
-   the callbacks using Python.
+   the callbacks using Python, but in general allows a Python function to
+   be made directly callable as a Tcl function.
 
 .. function:: tohil.result([to=type])
 
@@ -166,9 +173,9 @@ when the tohil package has been imported.
 
    Perform tohil.exec, but redirect stdout emitted while
    python is running it into a string and return
-   the string to run's caller after the exec has finished.
+   the string to tohil.run's caller after the exec has finished.
 
-   Python users are often surprised that exec doesn't return
+   Python users are often surprised that *exec* doesn't return
    anything.
 
 .. function:: tohil.setvar([var=]varName[, [value=]value)
@@ -178,7 +185,8 @@ when the tohil package has been imported.
 
    A few errors are possible, such as trying to set an array
    element of a scalar variable or set a scalar variable
-   that is actually an array.
+   that is actually an array.  Tohil raises these as a
+   Python RuntimeError exception.
 
 .. function:: tohil.source(fileName)
 
@@ -198,7 +206,9 @@ when the tohil package has been imported.
    Tcl variables and evaluation of Tcl code enclosed in square
    brackets.
 
-.. function:: tohil.tclvar()
+   See also the Tcl "subst" manual page.
+
+.. function:: tohil.tclvar([var=]varName)
 
    Create a tclobj object that shadows a Tcl variable or
    array element.
@@ -208,7 +218,9 @@ when the tohil package has been imported.
    variable or array element's contents, and any writing
    of the variable from Python (by doing things with the tclobj
    such as invoking methods on them, using Python list notation
-   to update tclobj list elements, etc.
+   to update tclobj list elements, etc.) will likewise
+   store the value into the corresponding variable or array element
+   in the Tcl interpreter.
 
 .. function:: tohil.unset(* args)
 
@@ -242,8 +254,8 @@ when the tohil package has been imported.
    If using `Jupyter Notebook <https://https://jupyter.org>`_, invoking
    tohil.tcl_stdout_to_python() will cause
    any Tcl output written to standard output to appear in the notebook rather
-   than in the log file or stdout of the jupyter command line that's causing
-   the Jupyter notebook webserver to exist.
+   than in the log file or stdout of the command
+   running Jupyter notebook.
 
 
 

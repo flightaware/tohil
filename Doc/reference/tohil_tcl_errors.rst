@@ -4,7 +4,7 @@
 Tohil Tcl Errors
 ================
 
-If Python code invoked from Tcl using Tohil results in 
+If Python code invoked from Tcl results in a
 Python exception that is not trapped by any of the Python code, Tohil
 will trap the exception, translate it into a Tcl error, and propagate
 the error back through Tcl.
@@ -21,7 +21,8 @@ code that was executing at the time of the exception being raised.
 
 The Tcl error code, often referred to as the Tcl global *errorCode*,
 but also accessible via a Tcl dict created via an argument to
-Tcl's *catch* or *try*
+Tcl's *catch* or *try*, is made available to Python through Tohil's
+TclError object.
 
 Tcl's errorCode represents additional information about an error in the form
 of a Tcl list that is intended to be easy easy to process with programs, unlike,
@@ -53,7 +54,7 @@ by the base error message.
 
 
 Here is another sample Tcl session catching an uncaught Python exception as a
-Tcl error, where the errorCode is set into the catch options var:
+Tcl error, where the errorCode is set into the catch options variable:
 
    >>>
    $ tclsh
