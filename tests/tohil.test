@@ -108,7 +108,7 @@ from python code executed by tohil
 test tohil_call-1.1 {incorrect call usage} \
 	-body {tohil::call} \
 	-returnCodes error \
-	-result {wrong # args: should be "tohil::call ?-kwlist list? func ?arg ...?"}
+	-result {wrong # args: should be "tohil::call ?-kwlist list? ?-nonevalue word? func ?arg ...?"}
 
 test tohil_call-1.2 {basic call} \
 	-body {tohil::exec {def a(): return 5**2}
@@ -221,6 +221,22 @@ test tohil_call-1.16 {make sure tohil::call of python builtins works} \
 		tohil::call int 255
 	} \
 	-result 255
+
+test tohil_call-1.17 {call with arbitrary sentinel for None type} \
+	-body {
+		set sentinel "gensym-[clock seconds]"
+		tohil::exec {def a(x): return x == None}
+		tohil::call -nonevalue $sentinel a $sentinel
+	} \
+	-result 1
+
+test tohil_call-1.18 {call expecting arbitrary sentinel with tohil::NONE argument} \
+	-body {
+		set sentinel "gensym-[clock seconds]"
+		tohil::exec {def a(x): return x == None}
+		tohil::call -nonevalue $sentinel a tohil::NONE
+	} \
+	-result 0
 
 # =========
 # TYPES
