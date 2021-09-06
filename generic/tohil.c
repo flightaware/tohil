@@ -331,6 +331,7 @@ tohil_TclToUTF8(Tcl_Interp *interp, char *src, int srclen, char **res, int *resl
     }
 }
 
+#ifdef UNUSED
 //
 // turn a tcl object into a python object by trying to convert it as a boolean,
 // then a long, then a double and finally a string
@@ -375,6 +376,7 @@ tclObjToPy(Tcl_Interp *interp, Tcl_Obj *tObj)
     ckfree(utf8string);
     return pObj;
 }
+#endif
 
 //
 // convert a python object to a tcl object - amazing code by aidan
@@ -1062,6 +1064,7 @@ TohilTclObj_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj)
     return (PyObject *)self;
 }
 
+#ifdef UNUSED
 static void
 tohil_dict_dump(PyObject *pt)
 {
@@ -1070,6 +1073,7 @@ tohil_dict_dump(PyObject *pt)
     const char *bytes = PyBytes_AS_STRING(str);
     printf("dict_dump: %s\n", bytes);
 }
+#endif
 
 // return true if toType is (probably) valid, else false
 static int
