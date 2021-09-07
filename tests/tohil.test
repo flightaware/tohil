@@ -55,6 +55,34 @@ test tohil_exec-1.6 {exec invoking python invoking tcl} \
 	-body {catch {tohil::exec "tohil.eval('nonesuch')"} catchResult catchDict; return [lindex [dict get $catchDict -errorcode] 1]} \
 	-result TclError
 
+test tohil_exec-1.7 {exec with indented code} \
+	-body {
+		tohil::exec {
+			a = 5
+		}
+	}
+
+test tohil_exec-1.8 {exec with indented code and mismatched spaces} \
+	-body {
+		tohil::exec {
+			a = 5
+		       b = 5
+		}
+	} \
+	-returnCodes error \
+	-result {can't undent Python block (possibly mixed spaces and tabs)}
+
+# Note that the blank line in the next test contains several spaces to try and trip up the undenter
+# this is deliberate, don't edit them out.
+test tohil_exec-1.9 {exec with indented code and blank lines} \
+	-body {
+		tohil::exec {
+			a = 5
+                      
+			b = 5
+		}
+	}
+
 # =========
 # tohil::import
 # =========

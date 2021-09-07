@@ -166,15 +166,21 @@ static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
         char c = *working_ptr++ = *code_ptr++;
         if(c == '\n') {
             indent_ptr = indent;
-            while(*indent_ptr) {
-		// Blank line, start over.
-		if(*code_ptr == '\n')
-                    break;
-                if(*indent_ptr++ != *code_ptr++) {
-                    Tcl_SetResult(interp, "indent missed spaces and tabs or something, we can't undent it", TCL_STATIC);
+            while(*indent_ptr && *code_ptr) {
+                // Look for mismatches
+                if(*indent_ptr != *code_ptr) {
+                    // Fast forward to end of line
+                    while(*code_ptr != '\n' && isspace(*code_ptr))
+			code_ptr++;
+                    // Mismatch on blank line, ignore
+                    if(*code_ptr == '\n')
+                        break;
+                    Tcl_SetResult(interp, "can't undent Python block (possibly mixed spaces and tabs)", TCL_STATIC);
                     free(indent);
-	            return TCL_ERROR;
+                    return TCL_ERROR;
                 }
+                ++indent_ptr;
+                ++code_ptr;
             }
         }
     }
