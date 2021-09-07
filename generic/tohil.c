@@ -171,7 +171,7 @@ static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
                 if(*indent_ptr != *code_ptr) {
                     // Fast forward to end of line
                     while(*code_ptr != '\n' && isspace(*code_ptr))
-			code_ptr++;
+                        code_ptr++;
                     // Mismatch on blank line, ignore
                     if(*code_ptr == '\n')
                         break;
