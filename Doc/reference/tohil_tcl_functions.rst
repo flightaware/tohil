@@ -23,7 +23,7 @@ from Tcl interpreter, the following commands are available:
    that will be passed to the function as named parameters.
 
    When you use tohil::call, Tohil converts all of your arguments
-   to Python Unicode, unless an argument is comprised of  special
+   to Python Unicode, unless an argument is comprised of a special
    sentinel (normally `tohil::NONE`, or the argument to the -nonevalue
    option), in which case the Python "None" data type is substituted
    in place of that argument.
