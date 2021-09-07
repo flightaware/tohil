@@ -123,6 +123,62 @@ tohil_UTF8ToTclDString(Tcl_Interp *interp, char *utf8String, int utf8StringLen, 
 }
 
 //
+// tohil_UndentPython - remove consistent indenting from a python code block
+//
+static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
+    char *indent = malloc(strlen(string)+1);
+    char *code_ptr = string;
+    char *indent_ptr = indent;
+    int seen_code = 0;
+
+    // look for indent
+    while (*code_ptr) {
+        // skip blank lines;
+        if(*code_ptr == '\n') {
+            ++code_ptr;
+            indent_ptr = indent;
+            continue;
+        }
+        // Got some code, we have an indent
+        if (!isspace(*code_ptr)) {
+            seen_code = 1;
+            *indent_ptr = '\0';
+            break;
+        }
+        // Copy blanks into indent;
+        *indent_ptr++ = *code_ptr++;
+    }
+
+    if(!seen_code) {
+        free(indent);
+        return TCL_OK;
+    }
+
+    // walk string deleting indent on every line
+    char *working_ptr = indent;
+    while(*code_ptr) {
+        char c = *working_ptr++ = *code_ptr++;
+        if(c == '\n') {
+            indent_ptr = indent;
+            while(*indent_ptr) {
+		fprintf(stderr, "Comparing indent_ptr '%c' to code pointer '%c'\n", *indent_ptr, *code_ptr);
+                if(*indent_ptr++ != *code_ptr++) {
+                    Tcl_SetResult(interp, "indent missed spaces and tabs or something, we can't undent it", TCL_STATIC);
+                    free(indent);
+	            return TCL_ERROR;
+                }
+            }
+        }
+    }
+    *working_ptr = '\0';
+
+    // free indent
+    free(indent);
+    return TCL_OK;
+}
+
+
+//
 // turn a tcl list into a python list
 //
 static PyObject *
@@ -977,7 +1033,11 @@ TohilExecEvalPython(int startSymbol, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         return tohil_tcl_return(interp, TCL_ERROR);
     }
     Tcl_DString ds;
-    const char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
+    char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
+    if(tohil_UndentPython(interp, cmd) == TCL_ERROR) {
+        Tcl_DStringFree(&ds);
+        return TCL_ERROR;
+    }
 
     // evaluate the command according to the start symbol
     PyObject *main_module = PyImport_AddModule("__main__");
