@@ -155,7 +155,7 @@ static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
     }
 
     // walk string deleting indent on every line
-    char *working_ptr = indent;
+    char *working_ptr = string;
     while(*code_ptr) {
         char c = *working_ptr++ = *code_ptr++;
         if(c == '\n') {
