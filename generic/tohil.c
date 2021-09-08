@@ -141,7 +141,7 @@ static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
         }
         // Even on Windows
         if (code_ptr[0] == '\r' && code_ptr[1] == '\n') {
-            code_pter += 2;
+            code_ptr += 2;
             indent_ptr = indent;
             continue;
         }
