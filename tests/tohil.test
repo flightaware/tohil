@@ -108,6 +108,8 @@ test tohil_exec-1.12 {exec with carriage returns} \
 	-body {
 		tohil::exec {
 			a = 5
+			
+			b = 5
 		}
 	}
 
