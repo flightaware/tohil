@@ -83,6 +83,35 @@ test tohil_exec-1.9 {exec with indented code and blank lines} \
 		}
 	}
 
+test tohil_exec-1.10 {exec with indent that is a mix of tabs and spaces} \
+	-body {
+		tohil::exec {
+		    a = 5
+		    b = 10
+		}
+	}
+
+test tohil_exec-1.11 {exec with an indented if statement} \
+	-body {
+		tohil::exec {
+			a = 5
+			if a > 10:
+				b = a
+			else:
+				b = 5
+		}
+	}
+
+# Note that the carriage returns at the end of lines in the following test are intentional
+# to test parsing of Windows format files.
+test tohil_exec-1.12 {exec with carriage returns} \
+	-body {
+		tohil::exec {
+			a = 5
+		}
+	}
+
+
 # =========
 # tohil::import
 # =========
