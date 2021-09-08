@@ -85,7 +85,7 @@ static int
 tohil_TclObjIsNoneSentinel(Tcl_Obj *obj, const char *sentinel)
 {
     char *tclString = Tcl_GetString(obj);
-    if(sentinel == NULL)
+    if (sentinel == NULL)
         sentinel = TOHIL_NONE_SENTINEL;
     return (STREQU(tclString, sentinel));
 }
@@ -133,9 +133,15 @@ static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
 
     // look for indent
     while (*code_ptr) {
-        // skip blank lines;
-        if(*code_ptr == '\n') {
+        // skip blank lines
+        if (*code_ptr == '\n') {
             ++code_ptr;
+            indent_ptr = indent;
+            continue;
+        }
+        // Even on Windows
+        if (code_ptr[0] == '\r' && code_ptr[1] == '\n') {
+            code_pter += 2;
             indent_ptr = indent;
             continue;
         }
@@ -150,7 +156,7 @@ static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
     }
 
     // Empty code block, so just pass it back unchanged.
-    if(!seen_code) {
+    if (!seen_code) {
         free(indent);
         return TCL_OK;
     }
@@ -162,18 +168,18 @@ static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
     // new newline.
     //
     char *working_ptr = string;
-    while(*code_ptr) {
+    while (*code_ptr) {
         char c = *working_ptr++ = *code_ptr++;
-        if(c == '\n') {
+        if (c == '\n') {
             indent_ptr = indent;
-            while(*indent_ptr && *code_ptr) {
+            while (*indent_ptr && *code_ptr) {
                 // Look for mismatches
-                if(*indent_ptr != *code_ptr) {
+                if (*indent_ptr != *code_ptr) {
                     // Fast forward to end of line
-                    while(*code_ptr != '\n' && isspace(*code_ptr))
+                    while (*code_ptr != '\n' && isspace(*code_ptr))
                         code_ptr++;
                     // Mismatch on blank line, ignore
-                    if(*code_ptr == '\n')
+                    if (!*code_ptr || *code_ptr == '\n')
                         break;
                     Tcl_SetResult(interp, "can't undent Python block (possibly mixed spaces and tabs)", TCL_STATIC);
                     free(indent);
@@ -886,7 +892,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     PyObject *pMainModule = PyImport_AddModule("__main__");
     if (pMainModule == NULL) {
         Tcl_DStringFree(&objandfn_ds);
-        if(nonevalue) Tcl_DStringFree(&nonevalue_ds);
+        if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
         return Tohil_ReturnExceptionToTcl(interp, "unable to add module __main__ to python interpreter");
     }
 
@@ -903,7 +909,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         if (pObjStr == NULL) {
             Py_DECREF(pObjParent);
             Tcl_DStringFree(&objandfn_ds);
-            if(nonevalue) Tcl_DStringFree(&nonevalue_ds);
+            if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
             return Tohil_ReturnExceptionToTcl(interp, "failed unicode translation of call function in python interpreter");
         }
 
@@ -912,7 +918,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         Py_DECREF(pObjParent);
         if (pObj == NULL) {
             Tcl_DStringFree(&objandfn_ds);
-            if(nonevalue) Tcl_DStringFree(&nonevalue_ds);
+            if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
             return Tohil_ReturnExceptionToTcl(interp, "failed to find dotted attribute in python interpreter");
         }
 
@@ -939,7 +945,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         char errorString[CALL_ERROR_STRING_SIZE];
         snprintf(errorString, CALL_ERROR_STRING_SIZE, "name '%.200s' is not defined.", objandfn);
         Tcl_DStringFree(&objandfn_ds);
-        if(nonevalue) Tcl_DStringFree(&nonevalue_ds);
+        if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
         PyErr_SetString(PyExc_NameError, errorString);
         return Tohil_ReturnExceptionToTcl(interp, "failed to find object/function in python interpreter");
     }
@@ -974,7 +980,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         /* Steals a reference */
         PyTuple_SET_ITEM(pArgs, i - objStart, curarg);
     }
-    if(nonevalue) Tcl_DStringFree(&nonevalue_ds);
+    if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
 
     PyObject *pRet = PyObject_Call(pFn, pArgs, kwObj);
     Py_DECREF(pFn);
