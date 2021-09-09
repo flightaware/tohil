@@ -1,0 +1,70 @@
+
+.. 4.2.rst:
+
+****************************
+  What's New In Tohil 4.2
+****************************
+
+Welcome to Tohil 4.2.
+
+4.2 is primarily a maintenance release, but includes at least one really
+nice new feature:
+
+===================================================================================
+Python code passed to tohil::exec is now unindented before being passed to Python
+===================================================================================
+
+Tohil's #1 new feature request!  Up until now, the argument to ``tohil::exec``
+had to obey Python indentation rules including there being no indentation at all
+for the top level, leading to ugly stuff like:
+
+::
+
+        tohil::exec {
+    def new_validate(self, data):
+         return json.loads(base64.b64decode(data))
+        }
+
+^ The "def" here has to occur at the beginning of the line, i.e. not be preceded
+by any spaces or
+tabs, or Python will raise an exception.  This nesting does not "read" well.
+
+To make it easier to make your code read well and comply with Python indentation rules,
+if the first nonblank line starts with whitespace, tohil::exec will un-indent the code block
+such that the first line is not indented at all and following lines are undented
+to match, all done lickety split, natively in C.
+
+So you can now nest your embedded Python code in a more standard way:
+
+::
+
+    tohil::exec {
+       def new_validate(self, data):
+            return json.loads(base64.b64decode(data))
+    }
+
+=======================================
+Additional Improvements
+=======================================
+
+* Added ``-nonevalue`` option to ``tohil::call``, allowing the "none" sentinel
+  to be specified arbitrarily (Retains the default value of ``tohil::NONE``.)
+* Cleaned up tohil namespace so ``dir(tohil)`` doesn't show modules tohil imported as
+  if it had created them.
+* Made ``package forget tohil`` work.
+* Added support for the Tcl ``unload`` command to be able to unload the Tohil shared
+  library. (Consider it risky, though.)
+
+========================================
+Bug Fixes
+========================================
+
+* Fixed crash when register_callback-registered functions raised a Python exception
+
+=====================================
+Improved Build Support
+=====================================
+
+* Added support for building tohil as a Debian package
+* Homebrew formula for building with homebrew
+

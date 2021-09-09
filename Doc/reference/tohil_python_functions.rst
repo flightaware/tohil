@@ -8,6 +8,12 @@ Tohil Python Functions
 Tohil has a number of functions and data types that it provides
 when the tohil package has been imported.
 
+.. function:: tohil.alias(name, callback)
+
+   Identical to `register_callback` and under consideration to replace it
+   as the command used to alias Tcl commands to Python commands, although
+   backwards compatibility would be maintained.
+
 .. function:: tohil.call(* args[, to=type])
 
    Invoke a Tcl command while specifying each argument explicitly,
