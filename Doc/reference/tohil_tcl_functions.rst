@@ -52,6 +52,11 @@ from Tcl interpreter, the following commands are available:
    to a string, or whatever, in the normal Python manner.
    *tohil::run*, in fact, provides a way to do this.
 
+   To make it easier to comply with Python indentation rules, if the first
+   nonblank line starts with whitespace, exec will un-indent the code block
+   so the first line is not indented at all and following lines are undented
+   to match.
+
 .. function:: tohil::import module
 
    Import the specified module into the globals of the Python interpreter.
