@@ -16,6 +16,7 @@ node(label: 'raspberrypi') {
 	def resultsdir = "results"
         stage('Build') {
 		echo 'Building..'
+		sh "printenv"
 		sh "rm -fr ${resultsdir}"
 		sh "mkdir -p ${resultsdir}"
 		dir(srcdir) {
