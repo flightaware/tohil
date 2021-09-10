@@ -125,8 +125,10 @@ tohil_UTF8ToTclDString(Tcl_Interp *interp, char *utf8String, int utf8StringLen, 
 //
 // tohil_UndentPython - remove consistent indenting from a python code block
 //
-static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
-    char *indent = malloc(strlen(string)+1);
+static int
+tohil_UndentPython(Tcl_Interp *interp, char *string)
+{
+    char *indent = malloc(strlen(string) + 1);
     char *code_ptr = string;
     char *indent_ptr = indent;
     int seen_code = 0;
@@ -196,7 +198,6 @@ static int tohil_UndentPython(Tcl_Interp *interp, char *string) {
     free(indent);
     return TCL_OK;
 }
-
 
 //
 // turn a tcl list into a python list
@@ -865,11 +866,11 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
 
     while (objandfn[0] == '-') {
         if (STREQU(objandfn, "-kwlist")) {
-            if (objc < 2+objStart)
+            if (objc < 2 + objStart)
                 goto wrongargs;
             kwObj = tclListObjToPyDictObject(interp, objv[objStart]);
             Tcl_DStringFree(&objandfn_ds);
-            objandfn = tohil_TclObjToUTF8DString(interp, objv[objStart+1], &objandfn_ds);
+            objandfn = tohil_TclObjToUTF8DString(interp, objv[objStart + 1], &objandfn_ds);
             objStart += 2;
             if (kwObj == NULL) {
                 return tohil_tcl_return(interp, TCL_ERROR);
@@ -877,11 +878,11 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
             continue;
         }
         if (STREQU(objandfn, "-nonevalue")) {
-            if (objc < 2+objStart || nonevalue)
+            if (objc < 2 + objStart || nonevalue)
                 goto wrongargs;
             nonevalue = tohil_TclObjToUTF8DString(interp, objv[objStart], &nonevalue_ds);
             Tcl_DStringFree(&objandfn_ds);
-            objandfn = tohil_TclObjToUTF8DString(interp, objv[objStart+1], &objandfn_ds);
+            objandfn = tohil_TclObjToUTF8DString(interp, objv[objStart + 1], &objandfn_ds);
             objStart += 2;
             continue;
         }
@@ -892,7 +893,8 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     PyObject *pMainModule = PyImport_AddModule("__main__");
     if (pMainModule == NULL) {
         Tcl_DStringFree(&objandfn_ds);
-        if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
+        if (nonevalue)
+            Tcl_DStringFree(&nonevalue_ds);
         return Tohil_ReturnExceptionToTcl(interp, "unable to add module __main__ to python interpreter");
     }
 
@@ -909,7 +911,8 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         if (pObjStr == NULL) {
             Py_DECREF(pObjParent);
             Tcl_DStringFree(&objandfn_ds);
-            if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
+            if (nonevalue)
+                Tcl_DStringFree(&nonevalue_ds);
             return Tohil_ReturnExceptionToTcl(interp, "failed unicode translation of call function in python interpreter");
         }
 
@@ -918,7 +921,8 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         Py_DECREF(pObjParent);
         if (pObj == NULL) {
             Tcl_DStringFree(&objandfn_ds);
-            if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
+            if (nonevalue)
+                Tcl_DStringFree(&nonevalue_ds);
             return Tohil_ReturnExceptionToTcl(interp, "failed to find dotted attribute in python interpreter");
         }
 
@@ -945,7 +949,8 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         char errorString[CALL_ERROR_STRING_SIZE];
         snprintf(errorString, CALL_ERROR_STRING_SIZE, "name '%.200s' is not defined.", objandfn);
         Tcl_DStringFree(&objandfn_ds);
-        if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
+        if (nonevalue)
+            Tcl_DStringFree(&nonevalue_ds);
         PyErr_SetString(PyExc_NameError, errorString);
         return Tohil_ReturnExceptionToTcl(interp, "failed to find object/function in python interpreter");
     }
@@ -980,7 +985,8 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         /* Steals a reference */
         PyTuple_SET_ITEM(pArgs, i - objStart, curarg);
     }
-    if (nonevalue) Tcl_DStringFree(&nonevalue_ds);
+    if (nonevalue)
+        Tcl_DStringFree(&nonevalue_ds);
 
     PyObject *pRet = PyObject_Call(pFn, pArgs, kwObj);
     Py_DECREF(pFn);
@@ -4465,7 +4471,7 @@ Tohil_Init(Tcl_Interp *interp)
     if (Tcl_PkgRequire(interp, "Tcl", "8.6", 0) == NULL)
         return TCL_ERROR;
 
-    //if (Tcl_PkgProvide(interp, "tohil", PACKAGE_VERSION) != TCL_OK)
+    // if (Tcl_PkgProvide(interp, "tohil", PACKAGE_VERSION) != TCL_OK)
     //    return TCL_ERROR;
 
     // if (Tcl_CreateNamespace(interp, "::tohil", NULL, NULL) == NULL)
