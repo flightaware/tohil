@@ -1,13 +1,12 @@
 #!/usr/bin/make -f
 
 export DH_VERBOSE=1
-PYTHON_CONFIG=/usr/bin/
 
 %:
 	dh $@
 
 override_dh_auto_configure:
-	./configure --with-python-version=3.7m
+	./configure --with-python-version=3.7m --with-python-include=/usr/bin/python3.7m-config
 
 override_dh_auto_install:
 	make install-binaries DESTDIR=$(CURDIR)/debian/python3-tohil
