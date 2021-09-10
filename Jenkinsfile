@@ -13,9 +13,16 @@ node(label: 'raspberrypi') {
             }
         }
 
+	def resultsdir = "results"
         stage('Build') {
             steps {
                 echo 'Building..'
+		sh "rm -fr ${resultsdir}"
+		sh "mkdir -p ${resultsdir}"
+		dir(srcdir) {
+			sh "BRANCH=${env.BRANCH_NAME} pdebuild --use-pdebuild-internal --debbuildopts -b --buildresult ${WORKSPACE}/${resultsdir} -- --override-config"
+		}
+		archiveArtifacts artifacts: "${results}/*.deb", fingerprint: true
             }
         }
         stage('Test') {
