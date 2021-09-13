@@ -22,7 +22,7 @@ node(label: 'raspberrypi') {
         dir(srcdir) {
             sh "DIST=${dist} BRANCH=${env.BRANCH_NAME} pdebuild --use-pdebuild-internal --debbuildopts -b --buildresult ${WORKSPACE}/${resultsdir}"
         }
-        archiveArtifacts artifacts: "${results}/*.deb", fingerprint: true
+        archiveArtifacts artifacts: "${resultsdir}/*.deb", fingerprint: true
         }
 
     stage("Test install on ${dist}") {
