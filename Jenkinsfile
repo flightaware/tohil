@@ -26,7 +26,7 @@ node(label: 'raspberrypi') {
         }
 
     stage("Test install on ${dist}") {
-        sh "BRANCH=${env.BRANCH_NAME} /build/pi-builder/scripts/validate-packages.sh ${dist} ${resultsdir}/tohil_*.deb"
+        sh "BRANCH=${env.BRANCH_NAME} /build/pi-builder/scripts/validate-packages.sh ${dist} ${resultsdir}/python3-tohil_*.deb"
     }
 
     stage('Deploy') {
