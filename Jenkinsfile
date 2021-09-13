@@ -1,11 +1,11 @@
 node(label: 'raspberrypi') {
-	properties([
+    properties([
             disableConcurrentBuilds(),
             durabilityHint(hint: 'PERFORMANCE_OPTIMIZED')
         ])
 
-	def srcdir = "${WORKSPACE}/src"
-	stage('Checkout') {
+    def srcdir = "${WORKSPACE}/src"
+    stage('Checkout') {
             sh "rm -fr ${srcdir}"
             sh "mkdir ${srcdir}"
             dir(srcdir) {
@@ -13,25 +13,25 @@ node(label: 'raspberrypi') {
             }
         }
 
-	def resultsdir = "results"
-        stage('Build') {
-		echo 'Building..'
-		def dist = "buster"
-		sh "rm -fr ${resultsdir}"
-		sh "mkdir -p ${resultsdir}"
-		dir(srcdir) {
-			sh "DIST=${dist} BRANCH=${env.BRANCH_NAME} pdebuild --use-pdebuild-internal --debbuildopts -b --buildresult ${WORKSPACE}/${resultsdir}"
-		}
-		archiveArtifacts artifacts: "${results}/*.deb", fingerprint: true
+    def resultsdir = "results"
+    stage('Build') {
+        echo 'Building..'
+        def dist = "buster"
+        sh "rm -fr ${resultsdir}"
+        sh "mkdir -p ${resultsdir}"
+        dir(srcdir) {
+            sh "DIST=${dist} BRANCH=${env.BRANCH_NAME} pdebuild --use-pdebuild-internal --debbuildopts -b --buildresult ${WORKSPACE}/${resultsdir}"
         }
-        stage('Test') {
-            steps {
-                echo 'Testing..'
-            }
+        archiveArtifacts artifacts: "${results}/*.deb", fingerprint: true
         }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying....'
-            }
+
+    stage("Test install on ${dist}") {
+        sh "BRANCH=${env.BRANCH_NAME} /build/pi-builder/scripts/validate-packages.sh ${dist} ${resultsdir}/tohil_*.deb"
+    }
+
+    stage('Deploy') {
+        steps {
+            echo 'Deploying....'
         }
+    }
 }
