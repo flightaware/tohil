@@ -16,11 +16,11 @@ node(label: 'raspberrypi') {
 	def resultsdir = "results"
         stage('Build') {
 		echo 'Building..'
-		sh "printenv"
+		def dist = "buster"
 		sh "rm -fr ${resultsdir}"
 		sh "mkdir -p ${resultsdir}"
 		dir(srcdir) {
-			sh "BRANCH=${env.BRANCH_NAME} pdebuild --use-pdebuild-internal --debbuildopts -b --buildresult ${WORKSPACE}/${resultsdir}"
+			sh "DIST=${dist} BRANCH=${env.BRANCH_NAME} pdebuild --use-pdebuild-internal --debbuildopts -b --buildresult ${WORKSPACE}/${resultsdir}"
 		}
 		archiveArtifacts artifacts: "${results}/*.deb", fingerprint: true
         }
