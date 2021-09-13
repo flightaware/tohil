@@ -8,16 +8,15 @@ node(label: 'raspberrypi') {
     def resultsdir = "results"
     def dist = "buster"
 
-    stage('Checkout') {
-            sh "rm -fr ${srcdir}"
-            sh "mkdir ${srcdir}"
-            dir(srcdir) {
-                checkout scm
-            }
+    stage("Checkout") {
+        sh "rm -fr ${srcdir}"
+        sh "mkdir ${srcdir}"
+        dir(srcdir) {
+            checkout scm
         }
+    }
 
-    stage('Build') {
-        echo 'Building..'
+    stage("Build") {
         sh "rm -fr ${resultsdir}"
         sh "mkdir -p ${resultsdir}"
         dir(srcdir) {
@@ -26,14 +25,11 @@ node(label: 'raspberrypi') {
         archiveArtifacts artifacts: "${resultsdir}/*.deb", fingerprint: true
     }
 
-    stage('Test install on ${dist}') {
-        echo 'Testing install on Buster'
+    stage("Test install on ${dist}") {
         sh "BRANCH=${env.BRANCH_NAME} /build/pi-builder/scripts/validate-packages.sh ${dist} ${resultsdir}/python3-tohil_*.deb"
     }
 
-    stage('Deploy') {
-        steps {
-            echo 'Deploying....'
-        }
+    stage("Deployment to internal repository") {
+        sh "/build/pi-builder/scripts/deploy.sh -distribution ${dist} -branch ${env.BRANCH_NAME} ${resultsdir}/*.deb"
     }
 }
