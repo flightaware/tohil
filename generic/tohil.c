@@ -788,6 +788,10 @@ tohil_delete_subinterp(ClientData clientData, Tcl_Interp *interp)
 static void
 tohil_set_subinterp(Tcl_Interp *interp, PyThreadState *pyterp)
 {
+    // stash the python subinterpreter thread state pointer (it might also be the
+    // main interpreter) in the tcl interpreter's C-side "associated data" cache,
+    // so that we can find it later through the tcl interpreter when tohil needs to
+    // do something with it
     Tcl_SetAssocData(interp, ASSOC_PYTERP_NAME, tohil_delete_subinterp, (ClientData)pyterp);
     // printf("tcl interpreter %p set assoc pyterp thread state %p\n", interp, pyterp);
 }
@@ -828,15 +832,21 @@ tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
 {
     switch (subtype) {
     case PythonParent:
+        // for when tohil has initialized tcl from scratch because python is the parent
         tohil_set_subinterp(interp, PyThreadState_Get());
         Tcl_SetAssocData(interp, ASSOC_PYPARENT_NAME, NULL, (ClientData)1);
         break;
 
     case TclParent:
+        // for when tohil has initialized python from scratch because tcl is the parent
         tohil_set_subinterp(interp, PyThreadState_Get());
         break;
 
     case TclChild:
+        // for when python is already present either by being the parent or
+        // having been started by tohil, and the passed-in tcl interpreter
+        // doesn't have a python subinterper attached to it,
+        // we create a subinterpreter
         tohil_set_subinterp(interp, Py_NewInterpreter());
         break;
     }
@@ -931,6 +941,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     }
 
     PyObject *pFn = PyObject_GetAttrString(pObj, objandfn);
+
 
     // if we didn't find anything and we weren't invoked with dotted notation,
     // check builtins
