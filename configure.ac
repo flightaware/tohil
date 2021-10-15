@@ -113,6 +113,8 @@ if test "$need_python_config" = "1"; then
         PYTHON_LIB_DIR="`$PYTHON_CONFIG --exec-prefix`/lib"
         AC_MSG_RESULT([using python3-config-deduced python lib dir of... "$PYTHON_LIB_DIR"])
     fi
+    PYTHON_VERSION="$PYTHON_VERSION`$PYTHON_CONFIG --abiflags`"
+    AC_MSG_RESULT([overriding python version to... "$PYTHON_VERSION"])
 fi
 
 AC_SUBST(PYTHON_INCLUDES)
