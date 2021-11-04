@@ -31,6 +31,13 @@
 // a pointer to the python subinterpreter's associated with this tcl interpreter
 #define TOHIL_ASSOC_PYTERPS "tohil_pyterps"
 
+// name we use to stash pointer to tcl interp in python interp
+#define TOHIL_TCL_INTERP_STASH_NAME "_tohil_interp"
+
+// name we use for the python capsule that holds the tcl interpreter
+// pointer for python
+#define TCL_TCL_INTERP_CAPSULE_NAME "tohil.interp"
+
 typedef struct {
     PyThreadState *parent;
     PyThreadState *child;
@@ -1240,7 +1247,7 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     // grab pointer to tcl interp out of tclobj type's dictionary
     PyObject *pCap = PyDict_GetItemString(type->tp_dict, "_interp");
     assert(pCap != NULL);
-    Tcl_Interp *interp = PyCapsule_GetPointer(pCap, "tohil.interp");
+    Tcl_Interp *interp = PyCapsule_GetPointer(pCap, TCL_TCL_INTERP_CAPSULE_NAME);
 
     TohilTclObj *self = (TohilTclObj *)type->tp_alloc(type, 0);
     if (self != NULL) {
@@ -4556,8 +4563,8 @@ Tohil_Init(Tcl_Interp *interp)
 
     // stash the Tcl interpreter pointer so the python side can find it later
     PyObject *main_module = PyImport_AddModule("__main__");
-    PyObject *pCap = PyCapsule_New(interp, "tohil.interp", NULL);
-    if (PyObject_SetAttrString(main_module, "interp", pCap) == -1) {
+    PyObject *pCap = PyCapsule_New(interp, TCL_TCL_INTERP_CAPSULE_NAME, NULL);
+    if (PyObject_SetAttrString(main_module, TOHIL_TCL_INTERP_STASH_NAME, pCap) == -1) {
         return TCL_ERROR;
     }
     Py_DECREF(pCap);
@@ -4639,7 +4646,7 @@ tohil_mod_exec(PyObject *m)
     // and we'll need to create initialize the Tcl interpreter.
     //
     PyObject *main_module = PyImport_AddModule("__main__");
-    PyObject *pCap = PyObject_GetAttrString(main_module, "interp");
+    PyObject *pCap = PyObject_GetAttrString(main_module, TOHIL_TCL_INTERP_STASH_NAME);
     if (pCap == NULL) {
         // stashed attribute doesn't exist.
         // tcl interp hasn't been set up.
@@ -4667,7 +4674,7 @@ tohil_mod_exec(PyObject *m)
         }
     } else {
         // python interpreter-containing attribute exists, get the interpreter
-        interp = PyCapsule_GetPointer(pCap, "tohil.interp");
+        interp = PyCapsule_GetPointer(pCap, TCL_TCL_INTERP_CAPSULE_NAME);
         Py_DECREF(pCap);
     }
     tohilstate(m)->interp = interp;
@@ -4695,8 +4702,8 @@ tohil_mod_exec(PyObject *m)
     // ..and stash a pointer to the tcl interpreter in a python
     // capsule so we can find it when we're doing python stuff
     // and need to talk to tcl
-    pCap = PyCapsule_New(interp, "tohil.interp", NULL);
-    if (PyObject_SetAttrString(m, "interp", pCap) == -1) {
+    pCap = PyCapsule_New(interp, TCL_TCL_INTERP_CAPSULE_NAME, NULL);
+    if (PyObject_SetAttrString(m, TOHIL_TCL_INTERP_STASH_NAME, pCap) == -1) {
         Py_DECREF(pCap);
         goto fail;
     }

@@ -284,7 +284,6 @@ from tohil._tohil import (
     exists,
     expr,
     getvar,
-    interp,
     setvar,
     subst,
     unset,
