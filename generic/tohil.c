@@ -882,9 +882,11 @@ tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
         child = Py_NewInterpreter();
         // printf("tohil_setup_subinterp: interp %p, TclChild, set child to new python interpreter %p\n", interp, child);
         tohil_associate_subinterp(interp, parent, child);
-        // swap python thread state to the parent.  if you don't do this then
-        // the python subinterpreter that we just started will end up reading
-        // your interactive input if python is the parent
+        // swap python thread state back to the parent python interpreter,
+        // as Py_NewInterpreter sets Python's thread state to that of the
+        // new interpreter.  if we don't do this and you're interactive, the
+        // session will proceed in the new interpreter in a messed up way
+        // where it doesn't have the prompt, at least circa python 3.7-3.9.
         PyThreadState_Swap(parent);
         break;
     }
