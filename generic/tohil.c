@@ -817,15 +817,15 @@ tohil_delete_subinterp(ClientData clientData, Tcl_Interp *interp)
     // with import tohil, because we belong to it, not the other way around.
     TohilPyterps *pyterps = (TohilPyterps *)clientData;
     assert(pyterps != NULL);
-    // printf("tohil_delete_subinterp: tcl interp %p, parent python interp %p, subinterp %p\n", interp, pyterps->parent, pyterps->child);
+    printf("tohil_delete_subinterp: tcl interp %p, parent python interp %p, subinterp %p\n", interp, pyterps->parent, pyterps->child);
     assert(pyterps->parent != NULL);
 
     if (pyterps->parent == pyterps->child) {
-        // printf("tohil_delete_subinterp: main python interpreter, not deleting\n");
+        printf("tohil_delete_subinterp: main python interpreter, not deleting\n");
         return;
     }
 
-    // printf("tcl interpreter %p being deleted, deleting subinterp %p, switching python threadstate to %p\n", interp, pyterps->child, pyterps->parent);
+    printf("tcl interpreter %p being deleted, deleting subinterp %p, switching python threadstate to %p\n", interp, pyterps->child, pyterps->parent);
     // the python subinterp being deleted has to be the current threadstate
     PyThreadState_Swap(pyterps->child);
     Py_EndInterpreter(pyterps->child);
@@ -848,7 +848,7 @@ tohil_associate_subinterp(Tcl_Interp *interp, PyThreadState *parent, PyThreadSta
     pyterps->parent = parent;
     pyterps->child = child;
     Tcl_SetAssocData(interp, TOHIL_ASSOC_PYTERPS, tohil_delete_subinterp, (ClientData)pyterps);
-    // printf("tohil_associate_subinterp: tcl interpreter %p, parent %p, child %p\n", interp, parent, child);
+    printf("tohil_associate_subinterp: tcl interpreter %p, parent %p, child %p\n", interp, parent, child);
 }
 
 // this is called to see if there's a subinterpreter associated with a tcl interpreter
@@ -869,7 +869,7 @@ tohil_swap_subinterp(Tcl_Interp *interp)
     PyThreadState *prior = PyThreadState_Get();
     assert(prior != NULL); // i think a python interpreter has to exist to get here
     if (pyterps->child != prior) {
-        // printf("tohil_swap_subinterp %p, swapping subinterpreter to %p\n", interp, pyterps->child);
+        printf("%s Swapping threads (%p): %p -> %p\n", __func__, interp, prior, pyterps->child);
         PyThreadState_Swap(pyterps->child);
     }
     return prior;
@@ -894,13 +894,13 @@ tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
     switch (subtype) {
     case PythonParent:
         // for when tohil has initialized tcl from scratch because python is the parent
-        // printf("tohil_setup_subinterp: interp %p, PythonParent\n", interp);
+        printf("tohil_setup_subinterp: interp %p, PythonParent\n", interp);
         tohil_associate_subinterp(interp, parent, parent);
         break;
 
     case TclParent:
         // for when tohil has initialized python from scratch because tcl is the parent
-        // printf("tohil_setup_subinterp: interp %p, TclParent\n", interp);
+        printf("tohil_setup_subinterp: interp %p, TclParent\n", interp);
         tohil_associate_subinterp(interp, parent, parent);
         break;
 
@@ -910,7 +910,7 @@ tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
         // doesn't have a python subinterper attached to it,
         // we create a subinterpreter
         child = Py_NewInterpreter();
-        // printf("tohil_setup_subinterp: interp %p, TclChild, set child to new python interpreter %p\n", interp, child);
+        printf("tohil_setup_subinterp: interp %p, TclChild, set child to new python interpreter %p\n", interp, child);
         tohil_associate_subinterp(interp, parent, child);
         break;
     }
@@ -4596,7 +4596,7 @@ Tohil_Init(Tcl_Interp *interp)
         prior = tohil_setup_subinterp(interp, TclParent);
     } else {
         if (!tohil_subinterp_is_set(interp)) {
-            // printf("Tohil_Init: python is there already and tcl interpreter %p doesn't have a subinterp set, making a subinterpreter\n", interp);
+            printf("Tohil_Init: python is there already and tcl interpreter %p doesn't have a subinterp set, making a subinterpreter\n", interp);
             prior = tohil_setup_subinterp(interp, TclChild);
         }
     }
