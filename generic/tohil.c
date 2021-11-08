@@ -769,6 +769,9 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyThreadState *prior, char *descr
     PyObject *handle_exception = PyObject_GetAttrString(m, "handle_exception");
     if (handle_exception == NULL || !PyCallable_Check(handle_exception)) {
         Py_XDECREF(handle_exception);
+        // Be sure to clear any error that might have been set by us trying to
+        // dig out handle_exception(). Tohil_ReturnTclError will recurse otherwise.
+        PyErr_Clear();
         return Tohil_ReturnTclError(interp, prior, "unable to find tohil.handle_exception function in python interpreter");
     }
 
