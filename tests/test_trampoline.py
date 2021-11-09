@@ -4,10 +4,15 @@ import tohil
 
 
 class TestTrampoline(unittest.TestCase):
+    def setUp(self):
+        tohil.eval("""proc ab_test {a {b b_default}} {return "a is '$a', b is '$b'"}""")
+        tohil.eval(
+            """proc abc_test {a {b b_default} {c c_default}} {return "a is '$a', b is '$b', c is '$c'"}"""
+        )
+
+
     def test_trampoline1(self):
         """create test proc and try different default values"""
-        tohil.eval("""proc ab_test {a {b b_default}} {return "a is '$a', b is '$b'"}""")
-
         ab_test = tohil.TclProc("ab_test")
 
         self.assertEqual(ab_test("a_val"), "a is 'a_val', b is 'b_default'")
@@ -33,10 +38,6 @@ class TestTrampoline(unittest.TestCase):
 
     def test_trampoline3(self):
         """different things with a 3-argument test proc"""
-        tohil.eval(
-            """proc abc_test {a {b b_default} {c c_default}} {return "a is '$a', b is '$b', c is '$c'"}"""
-        )
-
         abc_test = tohil.TclProc("abc_test")
 
         self.assertEqual(
