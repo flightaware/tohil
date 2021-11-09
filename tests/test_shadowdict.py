@@ -4,9 +4,14 @@ import tohil
 
 
 class TestShadowDicts(unittest.TestCase):
+    def setUp(self):
+        tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
+
+    def tearDown(self):
+        tohil.eval("array unset x")
+
     def test_shadowdict1(self):
         """create and access shadow dict as int and compare"""
-        tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
         x = tohil.ShadowDict("x", to=int)
         self.assertEqual(x["a"], 1)
 
@@ -24,18 +29,18 @@ class TestShadowDicts(unittest.TestCase):
     def test_shadowdict4(self):
         """length of shadow dict"""
         x = tohil.ShadowDict("x", to=int)
+        x["e"] = 5
         self.assertEqual(len(x), 5)
 
     def test_shadowdict5(self):
         """delete element from shadow dict and length"""
         x = tohil.ShadowDict("x", to=int)
         del x["d"]
-        self.assertEqual(len(x), 4)
+        self.assertEqual(len(x), 3)
 
     def test_shadowdict6(self):
         """get element from shadow dict, with and without
         specified defaults"""
-        tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
         x = tohil.ShadowDict("x", to=int)
         self.assertEqual(x.get('d'), 4)
         self.assertEqual(x.get('d', 'defval'), 4)
@@ -48,7 +53,6 @@ class TestShadowDicts(unittest.TestCase):
     def test_shadowdict7(self):
         """pop elements from shadow dict, with and without
         specified defaults"""
-        tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
         x = tohil.ShadowDict("x", to=int)
         self.assertEqual(x.pop('e', 5), 5)
         self.assertEqual(x.pop('d'), 4)
