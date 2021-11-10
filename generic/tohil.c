@@ -859,6 +859,9 @@ tohil_restore_subinterp(PyThreadState *prior)
     // that's already current, but from inspection it looks to do
     // a lot so we try to optimize here.  if we're wrong then simplify here.
     PyThreadState *current = PyThreadState_Get();
+    if (prior == NULL)
+        return current;
+
     if (prior != current) {
         PyThreadState_Swap(prior);
     }
@@ -874,7 +877,7 @@ tohil_restore_subinterp(PyThreadState *prior)
 //  that it's the parent, so as not to delete it if our
 //  interpreter gets deleted.
 //
-static void
+static PyThreadState *
 tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
 {
     PyThreadState *parent = PyThreadState_Get();
@@ -903,6 +906,7 @@ tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
         tohil_associate_subinterp(interp, parent, child);
         break;
     }
+    return parent;
 }
 
 //
@@ -4551,6 +4555,7 @@ static struct PyModuleDef TohilModule = {
 int
 Tohil_Init(Tcl_Interp *interp)
 {
+    static PyThreadState *prior = NULL;
     // printf("Tohil_Init\n");
 
     if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
@@ -4596,11 +4601,11 @@ Tohil_Init(Tcl_Interp *interp)
         Py_InitializeEx(0);
 
         // printf("Tohil_Init: initialized python from scratch, setting subinterp to main thread state\n");
-        tohil_setup_subinterp(interp, TclParent);
+        prior = tohil_setup_subinterp(interp, TclParent);
     } else {
         if (!tohil_subinterp_is_set(interp)) {
             // printf("Tohil_Init: python is there already and tcl interpreter %p doesn't have a subinterp set, making a subinterpreter\n", interp);
-            tohil_setup_subinterp(interp, TclChild);
+            prior = tohil_setup_subinterp(interp, TclChild);
         }
     }
 
@@ -4608,6 +4613,7 @@ Tohil_Init(Tcl_Interp *interp)
     PyObject *main_module = PyImport_AddModule("__main__");
     PyObject *pCap = PyCapsule_New(interp, TCL_TCL_INTERP_CAPSULE_NAME, NULL);
     if (PyObject_SetAttrString(main_module, TOHIL_TCL_INTERP_STASH_NAME, pCap) == -1) {
+        tohil_restore_subinterp(prior);
         return TCL_ERROR;
     }
     Py_DECREF(pCap);
@@ -4618,6 +4624,7 @@ Tohil_Init(Tcl_Interp *interp)
     Py_DECREF(pTohilModStr);
 
     if (m == NULL) {
+        tohil_restore_subinterp(prior);
         return Tohil_ReturnStartupExceptionToTcl(interp, "unable to import tohil module to python interpreter");
     }
     // printf("Tohil_Init: imported tohil module\n");
@@ -4626,9 +4633,15 @@ Tohil_Init(Tcl_Interp *interp)
     const char *tohil_modname = PyModule_GetName(m);
     if (tohil_modname != NULL) {
         int ret = PyObject_SetAttrString(main_module, tohil_modname, m);
-        if (ret < 0)
+        if (ret < 0) {
+            tohil_restore_subinterp(prior);
             return Tohil_ReturnTclError(interp, "unable to setattr tohil module to __main__");
+        }
     }
+
+    // there's no more python stuff in this routine so we can
+    // restore the python thread state to the caller's interp
+    tohil_restore_subinterp(prior);
 
     // define tohil C commands that extend the Tcl interpreter
     if (Tcl_CreateObjCommand(interp, "::tohil::eval", (Tcl_ObjCmdProc *)TohilEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
