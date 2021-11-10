@@ -858,9 +858,13 @@ tohil_restore_subinterp(PyThreadState *prior)
     // that code deal with if you're swapping to the thread state
     // that's already current, but from inspection it looks to do
     // a lot so we try to optimize here.  if we're wrong then simplify here.
-    PyThreadState *current = PyThreadState_Get();
+
+    // at startup PyThreadState_Get() can return NULL, don't switch
+    // the threadstate to NULL; just go on
     if (prior == NULL)
-        return current;
+        return;
+
+    PyThreadState *current = PyThreadState_Get();
 
     if (prior != current) {
         PyThreadState_Swap(prior);
