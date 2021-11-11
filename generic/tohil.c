@@ -1295,8 +1295,9 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             return NULL;
     }
 
-    // grab pointer to tcl interp out of tclobj type's dictionary
-    PyObject *pCap = PyDict_GetItemString(type->tp_dict, "_interp");
+    // grab pointer to tcl interp
+    PyObject *main_module = PyImport_AddModule("__main__");
+    PyObject *pCap = PyObject_GetAttrString(main_module, TOHIL_TCL_INTERP_STASH_NAME);
     assert(pCap != NULL);
     Tcl_Interp *interp = PyCapsule_GetPointer(pCap, TCL_TCL_INTERP_CAPSULE_NAME);
 
@@ -4764,16 +4765,6 @@ tohil_mod_exec(PyObject *m)
     // and need to talk to tcl
     pCap = PyCapsule_New(interp, TCL_TCL_INTERP_CAPSULE_NAME, NULL);
     if (PyObject_SetAttrString(m, TOHIL_TCL_INTERP_STASH_NAME, pCap) == -1) {
-        Py_DECREF(pCap);
-        goto fail;
-    }
-    // stash capsule in the tclobj datatype's dictionary
-    if (PyDict_SetItemString(TohilTclObjType.tp_dict, "_interp", pCap) == -1) {
-        Py_DECREF(pCap);
-        goto fail;
-    }
-    // stash capsule in the tcldict datatype's dictionary
-    if (PyDict_SetItemString(TohilTclDictType.tp_dict, "_interp", pCap) == -1) {
         Py_DECREF(pCap);
         goto fail;
     }
