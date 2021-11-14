@@ -4435,7 +4435,7 @@ PythonCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const ob
 
     /* Create argument tuple (objv1, ..., objvN) */
     if (!(args = PyTuple_New(objc - 1)))
-        return TCL_ERROR;
+        return tohil_tcl_return(interp, prior, TCL_ERROR);
 
     for (i = 0; i < (objc - 1); i++) {
         Tcl_DString ds;
@@ -4443,7 +4443,7 @@ PythonCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const ob
         Tcl_DStringFree(&ds);
         if (!s) {
             Py_DECREF(args);
-            return TCL_ERROR;
+            return tohil_tcl_return(interp, prior, TCL_ERROR);
         }
         PyTuple_SET_ITEM(args, i, s);
     }
