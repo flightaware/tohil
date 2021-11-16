@@ -27,6 +27,13 @@ test tohil_eval-1.4 {incorrect usage of eval} \
 	-returnCodes error \
 	-result {invalid syntax (<string>, line 1)}
 
+test tohil_eval-1.5 {Regression test: eval was having some trouble with inspect.getmembers} \
+	-constraints {knownBug} \
+	-body {
+		tohil::import inspect
+		lindex [tohil::eval {inspect.getmembers(inspect)}] 0
+	} \
+	-result {{ArgInfo} {<class 'inspect.ArgInfo'>}}
 # =========
 # tohil::exec
 # =========
