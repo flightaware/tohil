@@ -22,7 +22,7 @@ def d4(depth: int, width: int, in_list: list = list()):
 
 def make_a_bunch(depth: int, width: int):
     for interp in d4(depth, width):
-        print(f"creating {interp}")
+        #print(f"creating {interp}")
         tohil.call('interp', 'create', interp)
         tohil.call('interp', 'eval', interp, 'package require tohil')
 
@@ -60,19 +60,19 @@ class TestSubinterps(unittest.TestCase):
         """
         make_a_bunch(3, 3)
         #print(f'''"{tohil.eval('interp slaves')}"''')
-        print("deleting x2 x0 x1")
+        #print("deleting x2 x0 x1")
         tohil.call('interp', 'delete', ['x2', 'x0', 'x1'])
-        print("deleting x2 x1")
+        #print("deleting x2 x1")
         tohil.call('interp', 'delete', ['x2', 'x1'])
-        print("deleting x2")
+        #print("deleting x2")
         tohil.call('interp', 'delete', ['x2'])
-        print("deleting x2 x1")
+        #print("deleting x2 x1")
         tohil.call('interp', 'delete', ['x1', 'x1'])
-        print("deleting x1")
+        #print("deleting x1")
         tohil.call('interp', 'delete', ['x1'])
-        print("deleting x0")
+        #print("deleting x0")
         tohil.call('interp', 'delete', ['x0'])
-        print('done')
+        #print('done')
         self.assertEqual(tohil.call('interp', 'slaves'), '')
 
 
