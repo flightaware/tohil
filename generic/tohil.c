@@ -791,6 +791,7 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyThreadState *prior, char *descr
     Tcl_SetObjErrorCode(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 0)));
     Tcl_AppendObjToErrorInfo(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 1)));
     Py_DECREF(pExceptionResult);
+    tohil_restore_subinterp(prior);
     return TCL_ERROR;
 }
 
