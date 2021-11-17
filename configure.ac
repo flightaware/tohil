@@ -18,7 +18,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([tohil],[4.2.0])
+AC_INIT([tohil],[4.2.1])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -113,6 +113,11 @@ if test "$need_python_config" = "1"; then
         PYTHON_LIB_DIR="`$PYTHON_CONFIG --exec-prefix`/lib"
         AC_MSG_RESULT([using python3-config-deduced python lib dir of... "$PYTHON_LIB_DIR"])
     fi
+    PYTHON_ABIFLAGS="`$PYTHON_CONFIG --abiflags`"
+    if test "$PYTHON_ABIFLAGS" != ""; then
+		PYTHON_VERSION="$PYTHON_VERSION$PYTHON_ABIFLAGS"
+		AC_MSG_RESULT([adding abiflags, python version is now... "$PYTHON_VERSION"])
+	fi
 fi
 
 AC_SUBST(PYTHON_INCLUDES)
