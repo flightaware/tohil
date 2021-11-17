@@ -4545,7 +4545,7 @@ static struct PyModuleDef TohilModule = {
 int
 Tohil_Init(Tcl_Interp *interp)
 {
-    static PyThreadState *prior = NULL;
+    PyThreadState *prior = NULL;
     // printf("Tohil_Init\n");
 
     if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
