@@ -676,16 +676,21 @@ tohil_restore_subinterp(PyThreadState *prior)
 }
 
 // tohil_tcl_return - you call this routine when you are returning to
-//   tcl after having done some work.
+//   tcl after having done some work.  it restores the python thread
+//   state and returns the specified Tcl return code.
 //
-//   it checks to make sure
+//   it checks to make sure you aren't trying to return to Tcl with an
+//   unhandled Python exception, which if you did and we didn't check,
+//   it would just cause the next innocent Python thing attempted to get
+//   fingered for the error.
 //
 static int
 tohil_tcl_return(Tcl_Interp *interp, PyThreadState *prior, int tcl_result)
 {
     // check for an unhandled python exception -- that should not happen
+    // and if it does it indicates a bug in Tohil.
     if (PyErr_Occurred() != NULL) {
-        return Tohil_ReturnExceptionToTcl(interp, prior, "Tohil C code returned to Tcl with an unprocessed Python exception");
+        return Tohil_ReturnExceptionToTcl(interp, prior, "Tohil C code returned to Tcl with an unhandled Python exception");
     }
 
     tohil_restore_subinterp(prior);
