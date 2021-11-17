@@ -883,6 +883,17 @@ tohil_swap_subinterp(Tcl_Interp *interp)
 //  that it's the parent, so as not to delete it if our
 //  interpreter gets deleted.
 //
+//  When a new subinterpreter is created, Python switches the thread state
+//  to the new interpreter.  Because of this, tohil_setup_subinterp returns
+//  the Python thread state that was active when it was called, and
+//  the caller is expected to keep track of that thread state pointer
+//  and swap it back in when it's done.
+//
+//  The one exception to this is in tohil_mod_exec where the code knows
+//  that the Python interpreter being created is the parent Python
+//  interpreter, i.e. not a subinterpreter, and there is no prior thread stated
+//  to save or restore.
+//
 static PyThreadState *
 tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
 {
