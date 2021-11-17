@@ -72,7 +72,7 @@ static PyObject *TohilTclDict_FromTclObj(Tcl_Interp *interp, Tcl_Obj *obj);
 static Tcl_Obj *TohilTclObj_objptr(TohilTclObj *self);
 static int TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj);
 
-static int Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description);
+static int Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyThreadState *prior, char *description);
 
 static PyObject *tohil_python_return(Tcl_Interp *, int tcl_result, PyObject *toType, Tcl_Obj *resultObj);
 
@@ -652,19 +652,48 @@ pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
     return ret;
 }
 
-// tohil_tcl_return - you call this routine when you are returning to
-//   tcl after having done some work.
 //
-//   it checks to make sure
+// restore the python subinterpreter associated with the specified thread state
+//
+static void
+tohil_restore_subinterp(PyThreadState *prior)
+{
+    // it seems like you could just PyThreadState_Swap and let
+    // that code deal with if you're swapping to the thread state
+    // that's already current, but from inspection it looks to do
+    // a lot so we try to optimize here.  if we're wrong then simplify here.
+
+    // at startup PyThreadState_Get() can return NULL, don't switch
+    // the threadstate to NULL; just go on
+    if (prior == NULL)
+        return;
+
+    PyThreadState *current = PyThreadState_Get();
+
+    if (prior != current) {
+        PyThreadState_Swap(prior);
+    }
+}
+
+// tohil_tcl_return - you call this routine when you are returning to
+//   tcl after having done some work.  it restores the python thread
+//   state and returns the specified Tcl return code.
+//
+//   it checks to make sure you aren't trying to return to Tcl with an
+//   unhandled Python exception, which if you did and we didn't check,
+//   it would just cause the next innocent Python thing attempted to get
+//   fingered for the error.
 //
 static int
-tohil_tcl_return(Tcl_Interp *interp, int tcl_result)
+tohil_tcl_return(Tcl_Interp *interp, PyThreadState *prior, int tcl_result)
 {
     // check for an unhandled python exception -- that should not happen
+    // and if it does it indicates a bug in Tohil.
     if (PyErr_Occurred() != NULL) {
-        return Tohil_ReturnExceptionToTcl(interp, "Tohil C code returned to Tcl with an unprocessed Python exception");
+        return Tohil_ReturnExceptionToTcl(interp, prior, "Tohil C code returned to Tcl with an unhandled Python exception");
     }
 
+    tohil_restore_subinterp(prior);
     return tcl_result;
 }
 
@@ -673,10 +702,10 @@ tohil_tcl_return(Tcl_Interp *interp, int tcl_result)
 //   with the specified string as an error message
 //
 static int
-Tohil_ReturnTclError(Tcl_Interp *interp, char *string)
+Tohil_ReturnTclError(Tcl_Interp *interp, PyThreadState *prior, char *string)
 {
     Tcl_SetObjResult(interp, Tcl_NewStringObj(string, -1));
-    return tohil_tcl_return(interp, TCL_ERROR);
+    return tohil_tcl_return(interp, prior, TCL_ERROR);
 }
 
 //
@@ -684,11 +713,11 @@ Tohil_ReturnTclError(Tcl_Interp *interp, char *string)
 //   when tohil isn't up far enough to do a thorough job of it
 //
 static int
-Tohil_ReturnStartupExceptionToTcl(Tcl_Interp *interp, char *description)
+Tohil_ReturnStartupExceptionToTcl(Tcl_Interp *interp, PyThreadState *prior, char *description)
 {
     // Shouldn't call this function unless Python has excepted
     if (PyErr_Occurred() == NULL) {
-        return Tohil_ReturnTclError(interp, "bug in tohil - Tohil_ReturnStartupExceptionToTcl called without a python error having occurred");
+        return Tohil_ReturnTclError(interp, prior, "bug in tohil - Tohil_ReturnStartupExceptionToTcl called without a python error having occurred");
     }
 
     // break out the exception
@@ -706,18 +735,18 @@ Tohil_ReturnStartupExceptionToTcl(Tcl_Interp *interp, char *description)
     Tcl_AddErrorInfo(interp, description);
     Tcl_AddErrorInfo(interp, ")");
 
-    return TCL_ERROR;
+    return tohil_tcl_return(interp, prior, TCL_ERROR);
 }
 
 //
 // Tohil_ReturnExceptionToTcl - return a python exception to tcl as a tcl error
 //
 static int
-Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
+Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyThreadState *prior, char *description)
 {
     // Shouldn't call this function unless Python has excepted
     if (PyErr_Occurred() == NULL) {
-        return Tohil_ReturnTclError(interp, "bug in tohil - Tohil_ReturnExceptionToTcl called without a python error having occurred");
+        return Tohil_ReturnTclError(interp, prior, "bug in tohil - Tohil_ReturnExceptionToTcl called without a python error having occurred");
     }
 
     // break out the exception
@@ -740,7 +769,7 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
     PyObject *handle_exception = PyObject_GetAttrString(m, "handle_exception");
     if (handle_exception == NULL || !PyCallable_Check(handle_exception)) {
         Py_XDECREF(handle_exception);
-        return Tohil_ReturnTclError(interp, "unable to find tohil.handle_exception function in python interpreter");
+        return Tohil_ReturnTclError(interp, prior, "unable to find tohil.handle_exception function in python interpreter");
     }
 
     // invoke python tohil.handle_exception(type, val, tracebackObject)
@@ -756,17 +785,18 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, char *description)
         PyErr_NormalizeException(&pType, &pVal, &pTrace);
         // PyObject_Print(pType, stdout, 0);
         // PyObject_Print(pVal, stdout, 0);
-        return Tohil_ReturnTclError(interp, "some problem running the tohil python exception handler");
+        return Tohil_ReturnTclError(interp, prior, "some problem running the tohil python exception handler");
     }
 
     if (!PyTuple_Check(pExceptionResult) || PyTuple_GET_SIZE(pExceptionResult) != 2) {
-        return Tohil_ReturnTclError(interp,
+        return Tohil_ReturnTclError(interp, prior,
                                     "malfunction in tohil python exception handler, did not return tuple or tuple did not contain 2 elements");
     }
 
     Tcl_SetObjErrorCode(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 0)));
     Tcl_AppendObjToErrorInfo(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 1)));
     Py_DECREF(pExceptionResult);
+    tohil_restore_subinterp(prior);
     return TCL_ERROR;
 }
 
@@ -834,15 +864,18 @@ tohil_subinterp_is_set(Tcl_Interp *interp)
 //
 // swap to the python subinterpreter associated with this tcl interpreter
 //
-static void
+static PyThreadState *
 tohil_swap_subinterp(Tcl_Interp *interp)
 {
     TohilPyterps *pyterps = (TohilPyterps *)Tcl_GetAssocData(interp, TOHIL_ASSOC_PYTERPS, NULL);
     assert(pyterps != NULL);
-    if (pyterps->child != PyThreadState_Get()) {
+    PyThreadState *prior = PyThreadState_Get();
+    assert(prior != NULL); // i think a python interpreter has to exist to get here
+    if (pyterps->child != prior) {
         // printf("tohil_swap_subinterp %p, swapping subinterpreter to %p\n", interp, pyterps->child);
         PyThreadState_Swap(pyterps->child);
     }
+    return prior;
 }
 
 //
@@ -855,7 +888,18 @@ tohil_swap_subinterp(Tcl_Interp *interp)
 //  that it's the parent, so as not to delete it if our
 //  interpreter gets deleted.
 //
-static void
+//  When a new subinterpreter is created, Python switches the thread state
+//  to the new interpreter.  Because of this, tohil_setup_subinterp returns
+//  the Python thread state that was active when it was called, and
+//  the caller is expected to keep track of that thread state pointer
+//  and swap it back in when it's done.
+//
+//  The one exception to this is in tohil_mod_exec where the code knows
+//  that the Python interpreter being created is the parent Python
+//  interpreter, i.e. not a subinterpreter, and there is no prior thread stated
+//  to save or restore.
+//
+static PyThreadState *
 tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
 {
     PyThreadState *parent = PyThreadState_Get();
@@ -884,6 +928,7 @@ tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
         tohil_associate_subinterp(interp, parent, child);
         break;
     }
+    return parent;
 }
 
 //
@@ -893,12 +938,12 @@ tohil_setup_subinterp(Tcl_Interp *interp, enum SubinterpType subtype)
 static int
 TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    tohil_swap_subinterp(interp);
+    PyThreadState *prior = tohil_swap_subinterp(interp);
 
     if (objc < 2) {
     wrongargs:
         Tcl_WrongNumArgs(interp, 1, objv, "?-kwlist list? ?-nonevalue word? func ?arg ...?");
-        return tohil_tcl_return(interp, TCL_ERROR);
+        return tohil_tcl_return(interp, prior, TCL_ERROR);
     }
 
     PyObject *kwObj = NULL;
@@ -917,7 +962,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
             objandfn = tohil_TclObjToUTF8DString(interp, objv[objStart + 1], &objandfn_ds);
             objStart += 2;
             if (kwObj == NULL) {
-                return tohil_tcl_return(interp, TCL_ERROR);
+                return tohil_tcl_return(interp, prior, TCL_ERROR);
             }
             continue;
         }
@@ -939,7 +984,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         Tcl_DStringFree(&objandfn_ds);
         if (nonevalue)
             Tcl_DStringFree(&nonevalue_ds);
-        return Tohil_ReturnExceptionToTcl(interp, "unable to add module __main__ to python interpreter");
+        return Tohil_ReturnExceptionToTcl(interp, prior, "unable to add module __main__ to python interpreter");
     }
 
     /* So we don't have to special case the decref in the following loop */
@@ -957,7 +1002,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
             Tcl_DStringFree(&objandfn_ds);
             if (nonevalue)
                 Tcl_DStringFree(&nonevalue_ds);
-            return Tohil_ReturnExceptionToTcl(interp, "failed unicode translation of call function in python interpreter");
+            return Tohil_ReturnExceptionToTcl(interp, prior, "failed unicode translation of call function in python interpreter");
         }
 
         pObj = PyObject_GetAttr(pObjParent, pObjStr);
@@ -967,7 +1012,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
             Tcl_DStringFree(&objandfn_ds);
             if (nonevalue)
                 Tcl_DStringFree(&nonevalue_ds);
-            return Tohil_ReturnExceptionToTcl(interp, "failed to find dotted attribute in python interpreter");
+            return Tohil_ReturnExceptionToTcl(interp, prior, "failed to find dotted attribute in python interpreter");
         }
 
         objandfn = dot + 1;
@@ -997,13 +1042,13 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         if (nonevalue)
             Tcl_DStringFree(&nonevalue_ds);
         PyErr_SetString(PyExc_NameError, errorString);
-        return Tohil_ReturnExceptionToTcl(interp, "failed to find object/function in python interpreter");
+        return Tohil_ReturnExceptionToTcl(interp, prior, "failed to find object/function in python interpreter");
     }
     Tcl_DStringFree(&objandfn_ds);
 
     if (!PyCallable_Check(pFn)) {
         Py_DECREF(pFn);
-        return Tohil_ReturnExceptionToTcl(interp, "function is not callable");
+        return Tohil_ReturnExceptionToTcl(interp, prior, "function is not callable");
     }
 
     // if there are no positional arguments, we will
@@ -1025,7 +1070,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         if (curarg == NULL) {
             Py_DECREF(pArgs);
             Py_DECREF(pFn);
-            return Tohil_ReturnExceptionToTcl(interp, "unicode string conversion failed");
+            return Tohil_ReturnExceptionToTcl(interp, prior, "unicode string conversion failed");
         }
         /* Steals a reference */
         PyTuple_SET_ITEM(pArgs, i - objStart, curarg);
@@ -1038,16 +1083,18 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     Py_DECREF(pArgs);
     if (kwObj != NULL)
         Py_DECREF(kwObj);
-    if (pRet == NULL)
-        return Tohil_ReturnExceptionToTcl(interp, "error in python object call");
+    if (pRet == NULL) {
+        return Tohil_ReturnExceptionToTcl(interp, prior, "error in python object call");
+    }
 
     Tcl_Obj *tRet = pyObjToTcl(interp, pRet);
     Py_DECREF(pRet);
-    if (tRet == NULL)
-        return Tohil_ReturnExceptionToTcl(interp, "error converting python object to tcl object");
+    if (tRet == NULL) {
+        return Tohil_ReturnExceptionToTcl(interp, prior, "error converting python object to tcl object");
+    }
 
     Tcl_SetObjResult(interp, tRet);
-    return tohil_tcl_return(interp, TCL_OK);
+    return tohil_tcl_return(interp, prior, TCL_OK);
 }
 
 //
@@ -1060,24 +1107,27 @@ TohilImport_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *co
     const char *modname, *topmodname;
     PyObject *pMainModule, *pTopModule;
     int ret = -1;
-    tohil_swap_subinterp(interp);
+
+    PyThreadState *prior = tohil_swap_subinterp(interp);
 
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "module");
-        return tohil_tcl_return(interp, TCL_ERROR);
+        return tohil_tcl_return(interp, prior, TCL_ERROR);
     }
 
     modname = Tcl_GetString(objv[1]);
 
     /* Borrowed ref, do not decrement */
     pMainModule = PyImport_AddModule("__main__");
-    if (pMainModule == NULL)
-        return Tohil_ReturnExceptionToTcl(interp, "add module __main__ failed");
+    if (pMainModule == NULL) {
+        return Tohil_ReturnExceptionToTcl(interp, prior, "add module __main__ failed");
+    }
 
     // We don't use PyImport_ImportModule so mod.submod works
     pTopModule = PyImport_ImportModuleEx(modname, NULL, NULL, NULL);
-    if (pTopModule == NULL)
-        return Tohil_ReturnExceptionToTcl(interp, "import module failed");
+    if (pTopModule == NULL) {
+        return Tohil_ReturnExceptionToTcl(interp, prior, "import module failed");
+    }
 
     // attach tohil module to __main__
     topmodname = PyModule_GetName(pTopModule);
@@ -1086,10 +1136,11 @@ TohilImport_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *co
     }
     Py_DECREF(pTopModule);
 
-    if (ret < 0)
-        return Tohil_ReturnExceptionToTcl(interp, "while trying to import a module");
+    if (ret < 0) {
+        return Tohil_ReturnExceptionToTcl(interp, prior, "while trying to import a module");
+    }
 
-    return tohil_tcl_return(interp, TCL_OK);
+    return tohil_tcl_return(interp, prior, TCL_OK);
 }
 
 // common routine for evaluating isolated expressions or sequences of statements
@@ -1097,18 +1148,18 @@ TohilImport_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *co
 static int
 TohilExecEvalPython(int startSymbol, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    tohil_swap_subinterp(interp);
+    PyThreadState *prior = tohil_swap_subinterp(interp);
 
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, startSymbol == Py_eval_input ? "evalString" : "execString");
-        return tohil_tcl_return(interp, TCL_ERROR);
+        return tohil_tcl_return(interp, prior, TCL_ERROR);
     }
     Tcl_DString ds;
     char *cmd = tohil_TclObjToUTF8DString(interp, objv[1], &ds);
     if (startSymbol == Py_file_input) {
         if (tohil_UndentPython(interp, cmd) == TCL_ERROR) {
             Tcl_DStringFree(&ds);
-            return TCL_ERROR;
+            return tohil_tcl_return(interp, prior, TCL_ERROR);
         }
     }
 
@@ -1119,12 +1170,12 @@ TohilExecEvalPython(int startSymbol, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     Tcl_DStringFree(&ds);
 
     if (pyobj == NULL) {
-        return Tohil_ReturnExceptionToTcl(interp, "while evaluating python code");
+        return Tohil_ReturnExceptionToTcl(interp, prior, "while evaluating python code");
     }
 
     Tcl_SetObjResult(interp, pyObjToTcl(interp, pyobj));
     Py_XDECREF(pyobj);
-    return tohil_tcl_return(interp, TCL_OK);
+    return tohil_tcl_return(interp, prior, TCL_OK);
 }
 
 // evaluate using the Python grammar for isolated expressions
@@ -1148,19 +1199,19 @@ TohilExec_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
 static int
 TohilInteract_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    tohil_swap_subinterp(interp);
+    PyThreadState *prior = tohil_swap_subinterp(interp);
 
     if (objc != 1) {
         Tcl_WrongNumArgs(interp, 1, objv, "");
-        return tohil_tcl_return(interp, TCL_ERROR);
+        return tohil_tcl_return(interp, prior, TCL_ERROR);
     }
 
     int result = PyRun_InteractiveLoop(stdin, "stdin");
     if (result < 0) {
-        return Tohil_ReturnExceptionToTcl(interp, "interactive loop failure");
+        return Tohil_ReturnExceptionToTcl(interp, prior, "interactive loop failure");
     }
 
-    return tohil_tcl_return(interp, TCL_OK);
+    return tohil_tcl_return(interp, prior, TCL_OK);
 }
 
 /* Python library begins here */
@@ -1244,8 +1295,9 @@ TohilTclObj_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             return NULL;
     }
 
-    // grab pointer to tcl interp out of tclobj type's dictionary
-    PyObject *pCap = PyDict_GetItemString(type->tp_dict, "_interp");
+    // grab pointer to tcl interp
+    PyObject *main_module = PyImport_AddModule("__main__");
+    PyObject *pCap = PyObject_GetAttrString(main_module, TOHIL_TCL_INTERP_STASH_NAME);
     assert(pCap != NULL);
     Tcl_Interp *interp = PyCapsule_GetPointer(pCap, TCL_TCL_INTERP_CAPSULE_NAME);
 
@@ -4396,10 +4448,11 @@ PythonCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const ob
     PyObject *args, *res;
     int i;
     Tcl_Obj *obj_res;
+    PyThreadState *prior = tohil_swap_subinterp(interp);
 
     /* Create argument tuple (objv1, ..., objvN) */
     if (!(args = PyTuple_New(objc - 1)))
-        return TCL_ERROR;
+        return tohil_tcl_return(interp, prior, TCL_ERROR);
 
     for (i = 0; i < (objc - 1); i++) {
         Tcl_DString ds;
@@ -4407,7 +4460,7 @@ PythonCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const ob
         Tcl_DStringFree(&ds);
         if (!s) {
             Py_DECREF(args);
-            return TCL_ERROR;
+            return tohil_tcl_return(interp, prior, TCL_ERROR);
         }
         PyTuple_SET_ITEM(args, i, s);
     }
@@ -4416,17 +4469,17 @@ PythonCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const ob
     Py_DECREF(args);
 
     if (res == NULL)
-        return Tohil_ReturnExceptionToTcl(interp, "error in python object call");
+        return Tohil_ReturnExceptionToTcl(interp, prior, "error in python object call");
 
     obj_res = _pyObjToTcl(interp, res);
     if (obj_res == NULL) {
         Py_DECREF(res);
-        return Tohil_ReturnExceptionToTcl(interp, "error converting python object to tcl object");
+        return Tohil_ReturnExceptionToTcl(interp, prior, "error converting python object to tcl object");
     }
     Tcl_SetObjResult(interp, obj_res);
     Py_DECREF(res);
 
-    return tohil_tcl_return(interp, TCL_OK);
+    return tohil_tcl_return(interp, prior, TCL_OK);
 }
 
 static PyObject *
@@ -4508,6 +4561,7 @@ static struct PyModuleDef TohilModule = {
 int
 Tohil_Init(Tcl_Interp *interp)
 {
+    PyThreadState *prior = NULL;
     // printf("Tohil_Init\n");
 
     if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
@@ -4553,11 +4607,11 @@ Tohil_Init(Tcl_Interp *interp)
         Py_InitializeEx(0);
 
         // printf("Tohil_Init: initialized python from scratch, setting subinterp to main thread state\n");
-        tohil_setup_subinterp(interp, TclParent);
+        prior = tohil_setup_subinterp(interp, TclParent);
     } else {
         if (!tohil_subinterp_is_set(interp)) {
             // printf("Tohil_Init: python is there already and tcl interpreter %p doesn't have a subinterp set, making a subinterpreter\n", interp);
-            tohil_setup_subinterp(interp, TclChild);
+            prior = tohil_setup_subinterp(interp, TclChild);
         }
     }
 
@@ -4565,7 +4619,7 @@ Tohil_Init(Tcl_Interp *interp)
     PyObject *main_module = PyImport_AddModule("__main__");
     PyObject *pCap = PyCapsule_New(interp, TCL_TCL_INTERP_CAPSULE_NAME, NULL);
     if (PyObject_SetAttrString(main_module, TOHIL_TCL_INTERP_STASH_NAME, pCap) == -1) {
-        return TCL_ERROR;
+        return tohil_tcl_return(interp, prior, TCL_ERROR);
     }
     Py_DECREF(pCap);
 
@@ -4575,7 +4629,7 @@ Tohil_Init(Tcl_Interp *interp)
     Py_DECREF(pTohilModStr);
 
     if (m == NULL) {
-        return Tohil_ReturnStartupExceptionToTcl(interp, "unable to import tohil module to python interpreter");
+        return Tohil_ReturnStartupExceptionToTcl(interp, prior, "unable to import tohil module to python interpreter");
     }
     // printf("Tohil_Init: imported tohil module\n");
 
@@ -4583,9 +4637,14 @@ Tohil_Init(Tcl_Interp *interp)
     const char *tohil_modname = PyModule_GetName(m);
     if (tohil_modname != NULL) {
         int ret = PyObject_SetAttrString(main_module, tohil_modname, m);
-        if (ret < 0)
-            return Tohil_ReturnTclError(interp, "unable to setattr tohil module to __main__");
+        if (ret < 0) {
+            return Tohil_ReturnTclError(interp, prior, "unable to setattr tohil module to __main__");
+        }
     }
+
+    // there's no more python stuff in this routine so we can
+    // restore the python thread state to the caller's interp
+    tohil_restore_subinterp(prior);
 
     // define tohil C commands that extend the Tcl interpreter
     if (Tcl_CreateObjCommand(interp, "::tohil::eval", (Tcl_ObjCmdProc *)TohilEval_Cmd, (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL) == NULL)
@@ -4704,16 +4763,6 @@ tohil_mod_exec(PyObject *m)
     // and need to talk to tcl
     pCap = PyCapsule_New(interp, TCL_TCL_INTERP_CAPSULE_NAME, NULL);
     if (PyObject_SetAttrString(m, TOHIL_TCL_INTERP_STASH_NAME, pCap) == -1) {
-        Py_DECREF(pCap);
-        goto fail;
-    }
-    // stash capsule in the tclobj datatype's dictionary
-    if (PyDict_SetItemString(TohilTclObjType.tp_dict, "_interp", pCap) == -1) {
-        Py_DECREF(pCap);
-        goto fail;
-    }
-    // stash capsule in the tcldict datatype's dictionary
-    if (PyDict_SetItemString(TohilTclDictType.tp_dict, "_interp", pCap) == -1) {
         Py_DECREF(pCap);
         goto fail;
     }
