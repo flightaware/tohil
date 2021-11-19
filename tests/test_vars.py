@@ -27,6 +27,7 @@ class TestVars(unittest.TestCase):
 
     def test_unset2(self):
         """unset of array element"""
+        tohil.eval("array unset x; array set x [list a 1 b 2 c 3 d 4]")
         self.assertEqual(tohil.eval("info exists x(d)", to=int), 1)
         self.assertEqual(tohil.exists("x(d)"), True)
         tohil.unset("x(c)", "x(d)")

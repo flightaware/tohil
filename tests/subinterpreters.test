@@ -31,6 +31,19 @@ test tohil_subinterp-1.3 {continue proving that two python interpreters are diff
 		} \
 	-result {frammistan}
 
+test tohil_subinterp-1.4 {make sure exceptions come up from subinterps correctly} \
+	-body {
+		set interp [interp create]
+		$interp eval "package require tohil"
+		try {
+			$interp eval {tohil::exec "raise Exception('Something awful')"}
+		} trap {PYTHON Exception {Something awful}} {result options} {
+			return 1
+		}
+		return 0
+		} \
+	-result {1}
+
 
 # =========
 # cleanup
