@@ -529,13 +529,41 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         ckfree(utf8string);
         Py_DECREF(pBytesObj);
     } else if (PyNumber_Check(pObj)) {
-        /* We go via string to support arbitrary length numbers */
+        // we go via string to support arbitrary length numbers
         if (PyLong_Check(pObj)) {
+            int overflow = 0;
+            // try long conversion
+            long longValue = PyLong_AsLongAndOverflow(pObj, &overflow);
+            if (!overflow)
+                return Tcl_NewLongObj(longValue);
+
+            // not big enough try long long conversion
+            overflow = 0;
+            Tcl_WideInt wideValue = PyLong_AsLongLongAndOverflow(pObj, &overflow);
+            if (!overflow) {
+                return Tcl_NewWideIntObj(wideValue);
+            }
+            // still not big enough just use strings
+            // (both python and tcl have bignum support)
             pStrObj = PyNumber_ToBase(pObj, 10);
         } else {
-            assert(PyComplex_Check(pObj) || PyFloat_Check(pObj));
+            // it's not int, it better be float or complex
+            if (PyFloat_Check(pObj)) {
+                // it's float, effeciently get it from python
+                // to tcl
+                double doubleValue = PyFloat_AsDouble(pObj);
+                if (doubleValue == 1.0 && PyErr_Occurred()) {
+                    return NULL;
+                }
+                return Tcl_NewDoubleObj(doubleValue);
+            }
+            // it has to be complex type at this point, punt to string
+            assert(PyComplex_Check(pObj));
             pStrObj = PyObject_Str(pObj);
         }
+
+        // still here?  it's either wider than a long long, or
+        // complex, send it to tcl as a string
         if (pStrObj == NULL)
             return NULL;
         pBytesObj = PyUnicode_AsUTF8String(pStrObj);
