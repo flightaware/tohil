@@ -103,7 +103,7 @@ class ShadowDict(_MutableMapping):
     def __init__(self, tcl_array, *, default=None, to=None):
         self.tcl_array = tcl_array
         if to is None:
-            self.to_type = str
+            self.to_type = tohil.tclobj
         else:
             self.to_type = to
 
@@ -370,7 +370,7 @@ class TclProc:
     passthrough_trampoline function, below.
     """
 
-    def __init__(self, proc, to=str):
+    def __init__(self, proc, to=tclobj):
         self.proc = proc
         self.function_name = self._proc_to_function(proc)
 
