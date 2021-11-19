@@ -2918,7 +2918,7 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     Tcl_Interp *wInterp = NULL;
     int wFloat = tohil_pyobj_to_number(w, &wideW, &doubleW, &wInterp);
 
-    ldiv_t ldiv_res;
+    lldiv_t lldiv_res;
     double quotient;
     double remainder;
 
@@ -3021,11 +3021,11 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            ldiv_res = ldiv(wideV, wideW);
-            if (ldiv_res.rem != 0 && ((wideV < 0) ^ (wideW < 0))) {
-                ldiv_res.quot--;
+            lldiv_res = lldiv(wideV, wideW);
+            if (lldiv_res.rem != 0 && ((wideV < 0) ^ (wideW < 0))) {
+                lldiv_res.quot--;
             }
-            return PyLong_FromLong(ldiv_res.quot);
+            return PyLong_FromLongLong(lldiv_res.quot);
 
         case Remainder:
             if (wideW == 0) {
@@ -3039,8 +3039,8 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            ldiv_res = ldiv(wideV, wideW);
-            return Py_BuildValue("ll", ldiv_res.quot, ldiv_res.rem);
+            lldiv_res = lldiv(wideV, wideW);
+            return Py_BuildValue("LL", lldiv_res.quot, lldiv_res.rem);
 
         default:
             Py_RETURN_NOTIMPLEMENTED;
@@ -3158,7 +3158,7 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     Tcl_Interp *wInterp = NULL;
     int wFloat = tohil_pyobj_to_number(w, &wideW, &doubleW, &wInterp);
 
-    ldiv_t ldiv_res;
+    lldiv_t lldiv_res;
 
     if (vFloat < 0 || wFloat < 0) {
         if (operator== Add) {
@@ -3270,11 +3270,11 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            ldiv_res = ldiv(wideV, wideW);
-            if (ldiv_res.rem != 0 && ((wideV < 0) ^ (wideW < 0))) {
-                ldiv_res.quot--;
+            lldiv_res = lldiv(wideV, wideW);
+            if (lldiv_res.rem != 0 && ((wideV < 0) ^ (wideW < 0))) {
+                lldiv_res.quot--;
             }
-            Tcl_SetLongObj(writeObj, ldiv_res.quot);
+            Tcl_SetWideIntObj(writeObj, lldiv_res.quot);
             break;
 
         case Remainder:
