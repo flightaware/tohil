@@ -115,6 +115,20 @@ float.
 Tohil will raise a TypeError exception if the Tcl object
 can't be converted to the Python type that's needed.
 
+Both Python and Tcl support arbitrarily large numbers, and
+you can freely assign tclobjs from arbitrarily large numbers produced
+by Python, and vice versa.
+
+Note that Python calculations performed using Tohil's tclobjs are
+limited to 64 bits (or whatever width a C language "long long" is on the
+machine tohil was compiled for.)  While this should be fine in
+the overwhelming majority of cases, if you are manipulating numbers
+that are wider than 64 bits (i.e. less than
+-9,223,372,036,854,775,808 or greater than 9,223,372,036,854,775,807),
+you will need to move them from tclobjs to native Python ints, first,
+by invoking ``int()`` on the tclobjs of interest.
+
+
 .. _tohil_bitstring-ops:
 
 =================================
