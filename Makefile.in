@@ -131,7 +131,7 @@ TCL_UNDEFS	= -UPACKAGE_NAME -UPACKAGE_TARNAME -UPACKAGE_VERSION -UPACKAGE_STRING
 
 EXTRA_PATH	= $(top_builddir):$(TCL_BIN_DIR)
 #EXTRA_PATH	= $(top_builddir):$(TCL_BIN_DIR):$(TK_BIN_DIR)
-TCLLIBPATH	= $(top_builddir)
+TCLLIBPATH	?= $(top_builddir)
 TCLSH_ENV	= TCL_LIBRARY=`@CYGPATH@ $(TCL_SRC_DIR)/library`
 PKG_ENV		= @LD_LIBRARY_PATH_VAR@="$(EXTRA_PATH):$(@LD_LIBRARY_PATH_VAR@)" \
 		  PATH="$(EXTRA_PATH):$(PATH)" \
@@ -239,7 +239,7 @@ install-doc: doc
 
 test: binaries libraries
 	@echo "PYTHON TESTS"
-	cd tests && $(bindir)/python3 -m unittest
+	cd tests && python3 -m unittest
 	@echo "TCL TESTS"
 	cd tests && $(TCLSH) all.tcl
 
@@ -455,10 +455,10 @@ uninstall-binaries:
 # tohil python stuff
 #
 build-python-module:
-	$(bindir)/python3 setup.py build
+	python3 setup.py build
 
 install-python-module:
-	$(bindir)/python3 setup.py install
+	python3 setup.py install
 
 clean-python-module:
 	rm -rf build/ dist/ pysrc/tohil.egg-info/ tests/__pycache__/
