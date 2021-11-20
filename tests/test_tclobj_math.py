@@ -133,7 +133,7 @@ class TestTclObj(unittest.TestCase):
         assert(ti << 4 == i << 4)
         assert(4 << tj == 4 << j)
 
-    @given(st.integers(0, 2**63-1), st.integers(0, 64))
+    @given(st.integers(0, 2**63-1), st.integers(0, 63))
     def test_tclobj_math9(self, i, j):
         """exercise tohil.tclobj right shift math ops"""
         ti = tohil.tclobj(i)
@@ -237,7 +237,7 @@ class TestTclObj(unittest.TestCase):
         ti <<= tj
         assert(ti == i << j)
 
-    @given(st.integers(0, 2**63-1), st.integers(0, 64))
+    @given(st.integers(0, 2**63-1), st.integers(0, 63))
     def test_tclobj_math17(self, i, j):
         """exercise tohil.tclobj right shift math ops"""
         ti = tohil.tclobj(i)
