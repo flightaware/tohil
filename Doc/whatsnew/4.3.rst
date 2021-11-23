@@ -1,0 +1,40 @@
+
+.. 4.3.rst:
+
+****************************
+  What's New In Tohil 4.3
+****************************
+
+Tohil 4.3 is mostly a maintenance release.  One nice improvement, TclProcs now return the tclobj datatype by default. If you haven't seen them, TclProcs are the slickest way to invoke Tcl procs from Python using tohil.  A few releases back we changed tohil.call and tohil.eval to return Python tclobj objects by default (which can be overridden).  Now TclProcs work that way too.
+
+Since tclobjs behave like strings when used as strings in Python, very little if any code, even code that makes extensive use of TclProcs, should require changes. 
+
+=======================================
+Additional Improvements
+=======================================
+
+* Much faster Python-to-Tcl floating point and integer conversions.
+* Tohil previously stored a Python capsule containing a pointer to its corresponding Tcl interpreter in `__main__.interp` and you could make Python crash by doing like `interp = ''"` before importing tohil. This renames interp to something way less likely to have a conflict.
+* Many new tests
+
+========================================
+Bug Fixes
+========================================
+
+* Thread state handling improvements aka bug and crash fixes when using Tohil/Python from multiple Tcl interpreters.
+* Tohil tclobj integer math is now always performed at 64-bits, even on 32-bit machines.
+* Fixed infinite recursion when Tohil's exception handler caused an exception.
+
+=====================================
+Improved Build Support
+=====================================
+
+* configure script improvements to permit building Tohil with nix (https://github.com/flightaware/tohil/pull/65).
+* tests can now be run via nix.
+
+
+For release notes on github, visit `the Tohil github repo <https://github.com/flightaware/tohil/releases/tag/v4.3.0>`_.
+
+For the full changelog, visit the `Tohil github changelog between 4.2.0 and 4.3.0 <hangelog**: https://github.com/flightaware/tohil/compare/v4.2.0...v4.3.0>`_.
+
+
