@@ -434,7 +434,7 @@ static PyObject *
 tclObjToPy(Tcl_Interp *interp, Tcl_Obj *tObj)
 {
     int intValue;
-    long longValue;
+    Tcl_WideInt wideValue;
     double doubleValue;
 
     if (Tcl_GetBooleanFromObj(NULL, tObj, &intValue) == TCL_OK) {
@@ -443,8 +443,8 @@ tclObjToPy(Tcl_Interp *interp, Tcl_Obj *tObj)
         return p;
     }
 
-    if (Tcl_GetLongFromObj(NULL, tObj, &longValue) == TCL_OK) {
-        return PyLong_FromLong(longValue);
+    if (Tcl_GetWideIntFromObj(NULL, tObj, &wideValue) == TCL_OK) {
+        return PyLong_FromLongLong(wideValue);
     }
 
     if (Tcl_GetDoubleFromObj(NULL, tObj, &doubleValue) == TCL_OK) {
@@ -529,13 +529,41 @@ _pyObjToTcl(Tcl_Interp *interp, PyObject *pObj)
         ckfree(utf8string);
         Py_DECREF(pBytesObj);
     } else if (PyNumber_Check(pObj)) {
-        /* We go via string to support arbitrary length numbers */
+        // we go via string to support arbitrary length numbers
         if (PyLong_Check(pObj)) {
+            int overflow = 0;
+            // try long conversion
+            long longValue = PyLong_AsLongAndOverflow(pObj, &overflow);
+            if (!overflow)
+                return Tcl_NewLongObj(longValue);
+
+            // not big enough try long long conversion
+            overflow = 0;
+            Tcl_WideInt wideValue = PyLong_AsLongLongAndOverflow(pObj, &overflow);
+            if (!overflow) {
+                return Tcl_NewWideIntObj(wideValue);
+            }
+            // still not big enough just use strings
+            // (both python and tcl have bignum support)
             pStrObj = PyNumber_ToBase(pObj, 10);
         } else {
-            assert(PyComplex_Check(pObj) || PyFloat_Check(pObj));
+            // it's not int, it better be float or complex
+            if (PyFloat_Check(pObj)) {
+                // it's float, effeciently get it from python
+                // to tcl
+                double doubleValue = PyFloat_AsDouble(pObj);
+                if (doubleValue == 1.0 && PyErr_Occurred()) {
+                    return NULL;
+                }
+                return Tcl_NewDoubleObj(doubleValue);
+            }
+            // it has to be complex type at this point, punt to string
+            assert(PyComplex_Check(pObj));
             pStrObj = PyObject_Str(pObj);
         }
+
+        // still here?  it's either wider than a long long, or
+        // complex, send it to tcl as a string
         if (pStrObj == NULL)
             return NULL;
         pBytesObj = PyUnicode_AsUTF8String(pStrObj);
@@ -1694,7 +1722,7 @@ static PyObject *
 TohilTclObj_incr(TohilTclObj *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"incr", NULL};
-    long longValue = 0;
+    Tcl_WideInt wideValue = 0;
     long increment = 1;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|l", kwlist, &increment)) {
@@ -1705,23 +1733,23 @@ TohilTclObj_incr(TohilTclObj *self, PyObject *args, PyObject *kwargs)
     if (selfobj == NULL)
         return NULL;
 
-    if (Tcl_GetLongFromObj(self->interp, selfobj, &longValue) == TCL_ERROR) {
+    if (Tcl_GetWideIntFromObj(self->interp, selfobj, &wideValue) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return NULL;
     }
 
-    longValue += increment;
+    wideValue += increment;
 
     Tcl_Obj *writeObj = TohilTclObj_writable_objptr(self);
     if (writeObj == NULL)
         return NULL;
 
-    Tcl_SetLongObj(writeObj, longValue);
+    Tcl_SetWideIntObj(writeObj, wideValue);
 
     if (TohilTclObj_possibly_stuff_var(self, writeObj) < 0)
         return NULL;
 
-    return PyLong_FromLong(longValue);
+    return PyLong_FromLongLong(wideValue);
 }
 
 //
@@ -2753,14 +2781,14 @@ tclobj_nb_bool(TohilTclObj *self)
 static PyObject *
 tclobj_nb_long(PyObject *p)
 {
-    long longValue = 0;
+    Tcl_WideInt wideValue = 0;
 
     TohilTclObj *self = (TohilTclObj *)p;
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
         return NULL;
 
-    if (Tcl_GetLongFromObj(self->interp, selfobj, &longValue) == TCL_ERROR) {
+    if (Tcl_GetWideIntFromObj(self->interp, selfobj, &wideValue) == TCL_ERROR) {
         double doubleValue = 0;
         if (Tcl_GetDoubleFromObj(NULL, selfobj, &doubleValue) == TCL_OK) {
             return PyLong_FromDouble(doubleValue);
@@ -2768,7 +2796,7 @@ tclobj_nb_long(PyObject *p)
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return NULL;
     }
-    return PyLong_FromLong(longValue);
+    return PyLong_FromLongLong(wideValue);
 }
 
 static PyObject *
@@ -2788,10 +2816,10 @@ tclobj_nb_float(PyObject *p)
 }
 
 static int
-tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr, Tcl_Interp **interpPtr)
+tohil_pyobj_to_number(PyObject *v, Tcl_WideInt *widePtr, double *doublePtr, Tcl_Interp **interpPtr)
 {
     if (PyLong_Check(v)) {
-        *longPtr = PyLong_AsLong(v);
+        *widePtr = PyLong_AsLongLong(v);
         return 0;
     }
 
@@ -2813,7 +2841,7 @@ tohil_pyobj_to_number(PyObject *v, long *longPtr, double *doublePtr, Tcl_Interp 
         if (selfobj == NULL)
             return -1;
 
-        if (Tcl_GetLongFromObj(self->interp, selfobj, longPtr) == TCL_OK) {
+        if (Tcl_GetWideIntFromObj(self->interp, selfobj, widePtr) == TCL_OK) {
             return 0;
         }
 
@@ -2833,8 +2861,8 @@ tclobj_nb_unaryop(PyObject *v, enum tclobj_unary_op operator)
 {
     Tcl_Interp *interp = NULL;
     double doubleV = 0.0;
-    long longV = 0;
-    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV, &interp);
+    Tcl_WideInt wideV = 0;
+    int vFloat = tohil_pyobj_to_number(v, &wideV, &doubleV, &interp);
     if (vFloat < 0) {
         assert(interp != NULL);
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
@@ -2858,16 +2886,16 @@ tclobj_nb_unaryop(PyObject *v, enum tclobj_unary_op operator)
     } else {
         switch (operator) {
         case Abs:
-            return PyLong_FromLong(labs(longV));
+            return PyLong_FromLongLong(labs(wideV));
 
         case Negative:
-            return PyLong_FromLong(-longV);
+            return PyLong_FromLongLong(-wideV);
 
         case Positive:
-            return PyLong_FromLong(longV);
+            return PyLong_FromLongLong(wideV);
 
         case Invert:
-            return PyLong_FromLong(~longV);
+            return PyLong_FromLongLong(~wideV);
 
         default:
             Py_RETURN_NOTIMPLEMENTED;
@@ -2881,16 +2909,16 @@ static PyObject *
 tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 {
     double doubleV = 0.0;
-    long longV = 0;
+    Tcl_WideInt wideV = 0;
     Tcl_Interp *vInterp = NULL;
-    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV, &vInterp);
+    int vFloat = tohil_pyobj_to_number(v, &wideV, &doubleV, &vInterp);
 
     double doubleW = 0.0;
-    long longW = 0;
+    Tcl_WideInt wideW = 0;
     Tcl_Interp *wInterp = NULL;
-    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW, &wInterp);
+    int wFloat = tohil_pyobj_to_number(w, &wideW, &doubleW, &wInterp);
 
-    ldiv_t ldiv_res;
+    lldiv_t lldiv_res;
     double quotient;
     double remainder;
 
@@ -2907,9 +2935,9 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
     if (vFloat || wFloat) {
         if (!wFloat) {
-            doubleW = longW;
+            doubleW = wideW;
         } else if (!vFloat) {
-            doubleV = longV;
+            doubleV = wideV;
         }
 
         switch (operator) {
@@ -2958,61 +2986,61 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     } else {
         switch (operator) {
         case Add:
-            return PyLong_FromLong(longV + longW);
+            return PyLong_FromLongLong(wideV + wideW);
 
         case Sub:
-            return PyLong_FromLong(longV - longW);
+            return PyLong_FromLongLong(wideV - wideW);
 
         case Mul:
-            return PyLong_FromLong(longV * longW);
+            return PyLong_FromLongLong(wideV * wideW);
 
         case And:
-            return PyLong_FromLong(longV & longW);
+            return PyLong_FromLongLong(wideV & wideW);
 
         case Or:
-            return PyLong_FromLong(longV | longW);
+            return PyLong_FromLongLong(wideV | wideW);
 
         case Xor:
-            return PyLong_FromLong(longV ^ longW);
+            return PyLong_FromLongLong(wideV ^ wideW);
 
         case Lshift:
-            return PyLong_FromLong(longV << longW);
+            return PyLong_FromLongLong(wideV << wideW);
 
         case Rshift:
-            return PyLong_FromLong(longV >> longW);
+            return PyLong_FromLongLong(wideV >> wideW);
 
         case Truediv:
-            if (longW == 0) {
+            if (wideW == 0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            return PyFloat_FromDouble((double)longV / (double)longW);
+            return PyFloat_FromDouble((double)wideV / (double)wideW);
 
         case Floordiv:
-            if (longW == 0) {
+            if (wideW == 0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            ldiv_res = ldiv(longV, longW);
-            if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
-                ldiv_res.quot--;
+            lldiv_res = lldiv(wideV, wideW);
+            if (lldiv_res.rem != 0 && ((wideV < 0) ^ (wideW < 0))) {
+                lldiv_res.quot--;
             }
-            return PyLong_FromLong(ldiv_res.quot);
+            return PyLong_FromLongLong(lldiv_res.quot);
 
         case Remainder:
-            if (longW == 0) {
+            if (wideW == 0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            return PyLong_FromLong(((longV % longW) + longW) % longW);
+            return PyLong_FromLongLong(((wideV % wideW) + wideW) % wideW);
 
         case Divmod:
-            if (longW == 0) {
+            if (wideW == 0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            ldiv_res = ldiv(longV, longW);
-            return Py_BuildValue("ll", ldiv_res.quot, ldiv_res.rem);
+            lldiv_res = lldiv(wideV, wideW);
+            return Py_BuildValue("LL", lldiv_res.quot, lldiv_res.rem);
 
         default:
             Py_RETURN_NOTIMPLEMENTED;
@@ -3121,16 +3149,16 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 {
     // NB same chunk of code in tclobj_binop
     double doubleV = 0.0;
-    long longV = 0;
+    Tcl_WideInt wideV = 0;
     Tcl_Interp *vInterp = NULL;
-    int vFloat = tohil_pyobj_to_number(v, &longV, &doubleV, &vInterp);
+    int vFloat = tohil_pyobj_to_number(v, &wideV, &doubleV, &vInterp);
 
     double doubleW = 0.0;
-    long longW = 0;
+    Tcl_WideInt wideW = 0;
     Tcl_Interp *wInterp = NULL;
-    int wFloat = tohil_pyobj_to_number(w, &longW, &doubleW, &wInterp);
+    int wFloat = tohil_pyobj_to_number(w, &wideW, &doubleW, &wInterp);
 
-    ldiv_t ldiv_res;
+    lldiv_t lldiv_res;
 
     if (vFloat < 0 || wFloat < 0) {
         if (operator== Add) {
@@ -3150,9 +3178,9 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
     if (vFloat || wFloat) {
         if (!wFloat) {
-            doubleW = longW;
+            doubleW = wideW;
         } else if (!vFloat) {
-            doubleV = longV;
+            doubleV = wideV;
         }
 
         switch (operator) {
@@ -3198,63 +3226,63 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
     } else {
         switch (operator) {
         case Add:
-            Tcl_SetLongObj(writeObj, longV + longW);
+            Tcl_SetWideIntObj(writeObj, wideV + wideW);
             break;
 
         case Sub:
-            Tcl_SetLongObj(writeObj, longV - longW);
+            Tcl_SetWideIntObj(writeObj, wideV - wideW);
             break;
 
         case Mul:
-            Tcl_SetLongObj(writeObj, longV * longW);
+            Tcl_SetWideIntObj(writeObj, wideV * wideW);
             break;
 
         case And:
-            Tcl_SetLongObj(writeObj, longV & longW);
+            Tcl_SetWideIntObj(writeObj, wideV & wideW);
             break;
 
         case Or:
-            Tcl_SetLongObj(writeObj, longV | longW);
+            Tcl_SetWideIntObj(writeObj, wideV | wideW);
             break;
 
         case Xor:
-            Tcl_SetLongObj(writeObj, longV ^ longW);
+            Tcl_SetWideIntObj(writeObj, wideV ^ wideW);
             break;
 
         case Lshift:
-            Tcl_SetLongObj(writeObj, longV << longW);
+            Tcl_SetWideIntObj(writeObj, wideV << wideW);
             break;
 
         case Rshift:
-            Tcl_SetLongObj(writeObj, longV >> longW);
+            Tcl_SetWideIntObj(writeObj, wideV >> wideW);
             break;
 
         case Truediv:
-            if (longW == 0) {
+            if (wideW == 0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            Tcl_SetDoubleObj(writeObj, (double)longV / (double)longW);
+            Tcl_SetDoubleObj(writeObj, (double)wideV / (double)wideW);
             break;
 
         case Floordiv:
-            if (longW == 0) {
+            if (wideW == 0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            ldiv_res = ldiv(longV, longW);
-            if (ldiv_res.rem != 0 && ((longV < 0) ^ (longW < 0))) {
-                ldiv_res.quot--;
+            lldiv_res = lldiv(wideV, wideW);
+            if (lldiv_res.rem != 0 && ((wideV < 0) ^ (wideW < 0))) {
+                lldiv_res.quot--;
             }
-            Tcl_SetLongObj(writeObj, ldiv_res.quot);
+            Tcl_SetWideIntObj(writeObj, lldiv_res.quot);
             break;
 
         case Remainder:
-            if (longW == 0) {
+            if (wideW == 0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            Tcl_SetLongObj(writeObj, ((longV % longW) + longW) % longW);
+            Tcl_SetWideIntObj(writeObj, ((wideV % wideW) + wideW) % wideW);
             break;
 
         default:
@@ -4037,10 +4065,10 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     }
 
     if (STREQU(toString, "int")) {
-        long longValue;
+        Tcl_WideInt wideValue;
 
-        if (Tcl_GetLongFromObj(interp, resultObj, &longValue) == TCL_OK) {
-            return PyLong_FromLong(longValue);
+        if (Tcl_GetWideIntFromObj(interp, resultObj, &wideValue) == TCL_OK) {
+            return PyLong_FromLongLong(wideValue);
         }
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
@@ -4281,7 +4309,7 @@ tohil_incr(PyObject *m, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"var", "incr", NULL};
     char *var = NULL;
-    long longValue = 0;
+    Tcl_WideInt wideValue = 0;
     long increment = 1;
     Tcl_Interp *interp = tohilstate(m)->interp;
 
@@ -4290,32 +4318,32 @@ tohil_incr(PyObject *m, PyObject *args, PyObject *kwargs)
 
     Tcl_Obj *obj = Tcl_GetVar2Ex(interp, var, NULL, 0);
     if (obj == NULL) {
-        longValue = increment;
-        obj = Tcl_NewLongObj(longValue);
+        wideValue = increment;
+        obj = Tcl_NewWideIntObj(wideValue);
         if (Tcl_SetVar2Ex(interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
             goto type_error;
         }
     } else {
-        if (Tcl_GetLongFromObj(interp, obj, &longValue) == TCL_ERROR) {
+        if (Tcl_GetWideIntFromObj(interp, obj, &wideValue) == TCL_ERROR) {
         type_error:
             PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
             return NULL;
         }
 
-        longValue += increment;
+        wideValue += increment;
 
         if (Tcl_IsShared(obj)) {
             Tcl_DecrRefCount(obj);
             obj = Tcl_DuplicateObj(obj);
-            Tcl_SetLongObj(obj, longValue);
+            Tcl_SetWideIntObj(obj, wideValue);
             if (Tcl_SetVar2Ex(interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
                 goto type_error;
             }
         } else {
-            Tcl_SetLongObj(obj, longValue);
+            Tcl_SetWideIntObj(obj, wideValue);
         }
     }
-    return PyLong_FromLong(longValue);
+    return PyLong_FromLongLong(wideValue);
 }
 
 // tohil.unset - from python unset a variable or array element in the tcl
