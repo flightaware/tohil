@@ -6,7 +6,7 @@ node(label: 'raspberrypi') {
 
     def srcdir = "${WORKSPACE}/src"
     def resultsdir = "results"
-    def dist = "buster"
+    def dist = "bullseye"
 
     stage("Checkout") {
         sh "rm -fr ${srcdir}"
