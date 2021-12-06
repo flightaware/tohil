@@ -16,6 +16,4 @@ namespace import -force tcltest::*
 # tcltest::configure -verbose {body pass skip error}
 
 tcltest::testsDirectory [file dir [info script]]
-tcltest::runAllTests
-
-return
+exit [tcltest::runAllTests]
