@@ -13,7 +13,7 @@ Let's fire up Tcl and mess around with Python::
 
    $ tclsh
    % package require tohil
-   4.0.0
+   4.3.0
 
 OK, good news, we've got a working Tcl and Tohil.
 

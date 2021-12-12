@@ -38,7 +38,7 @@ module:
 
 ::
 
-    sudo pip3 install hypothesis
+    sudo pip3 install sphinx
 
 ==============================
 Build the Configure Script
@@ -53,6 +53,14 @@ Next you build the configure script:
 Then run the configure script.  The Python version must
 be specified.
 
+If you get a ton of errors from autoreconf then you probably
+need to run autoreconf 2.69.  Autoreconf 2.71 changed things
+quite a bit and tohil's build hasn't been brought forward yet.
+
+This isn't an uncommon problem and most Linux distros et al make
+2.69 explicitly available for this reason.
+
+
 ========================
 Run the Configure Script
 ========================
@@ -61,7 +69,7 @@ Run the configure script.  The Python version must be specified.
 
 ::
 
-    ./configure --with-python-version=3.7m
+    ./configure --with-python-version=3.7
 
 # don't forget the "m" if your stuff has that, which Debian tends to.
 
@@ -76,5 +84,6 @@ Make
     sudo make install
     make test
 
-There's a README.Linux file in the top-level tohil directory
+There's a README.Linux file in the tohil repo's os_readmes directory
 that might have some useful info in it.
+
