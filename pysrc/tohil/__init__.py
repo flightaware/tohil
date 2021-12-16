@@ -296,24 +296,27 @@ from tohil._tohil import (
     __version__,
 )
 
-###
-### tcl proc importer and trampoline
-###
-
-tcl_init = """
-proc safe_info_default {proc arg} {
-    if {[info default $proc $arg var] == 1} {
-        return [list 1 $var]
+def _init_tcl_env():
+    tcl_init = """
+    proc safe_info_default {proc arg} {
+        if {[info default $proc $arg var] == 1} {
+            return [list 1 $var]
+        }
+        return [list 0 ""]
     }
-    return [list 0 ""]
-}
-"""
+    """
 
-_tohil.eval(tcl_init)
+    _tohil.eval(tcl_init)
+
+_init_tcl_env()
 
 def tclvar(tcl_var_name, **kwargs):
     return tclobj(var=tcl_var_name, **kwargs)
 
+
+###
+### tcl proc importer and trampoline
+###
 
 def info_args(proc):
     """wrapper for 'info args'"""
