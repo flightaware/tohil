@@ -304,9 +304,20 @@ def _init_tcl_env():
         }
         return [list 0 ""]
     }
+
+    # Clear in case we're being reloaded
+    unset -nocomplain ::argc ::argv ::argv0
     """
 
     _tohil.eval(tcl_init)
+    if _sys.argv:
+        # Set up argv globals as if we were tclsh
+        argv0 = _sys.argv[0]
+        argv = _sys.argv[1:]
+        argc = len(argv)
+        _tohil.call("set", "::argv0", argv0)
+        _tohil.call("set", "::argv", argv)
+        _tohil.call("set", "::argc", argc)
 
 _init_tcl_env()
 
