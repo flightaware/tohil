@@ -217,7 +217,7 @@ class TestTclObj(unittest.TestCase):
         assert(ti == i * j)
 
 
-    @given(st.integers(0, 512), st.integers(0, 54))
+    @given(st.integers(0, 2**10-1), st.integers(0, 53))
     def test_tclobj_math16(self, i, j):
         """exercise tohil.tclobj "inplace left shift" math ops"""
 
