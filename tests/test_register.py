@@ -51,3 +51,7 @@ class TestRegister(unittest.TestCase):
             time.sleep(.05)
         assert flag
 
+    def test_register_get(self):
+        func = lambda: None
+        tohil.register_callback("func", func)
+        self.assertEqual(tohil.get_callback("func"), func)
