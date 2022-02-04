@@ -3981,14 +3981,9 @@ static PyTypeObject TohilTclDictType = {
 //   can convert the tcl object to a specific python type if the "to" type
 //   is not null.  (If null the conversion type defaults to str.)
 //
-// NB these strcmps could be replaced by more efficient direct
-// address comparisons if you grabbed the addresses of the type objects
-// we are insterested in compared to them
-//
 static PyObject *
 tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Obj *resultObj)
 {
-    const char *toString = NULL;
     PyTypeObject *pt = NULL;
 
     if (PyErr_Occurred() != NULL) {
@@ -4037,18 +4032,14 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     if (toType != NULL) {
         if (!tohil_check_toType(toType))
             return NULL;
-
         // toType/pt is a borrowed reference; do not decrement its reference count
         pt = (PyTypeObject *)toType;
-        toString = pt->tp_name;
     }
-    // printf("tohil_python_return called: tcl result %d, to=%s, resulObj '%s'\n", tcl_result, toString, Tcl_GetString(resultObj));
 
-    if (toType == NULL || STREQU(toString, "tohil.tclobj")) {
+    if (toType == NULL || pt==&TohilTclObjType) {
         return TohilTclObj_FromTclObj(interp, resultObj);
     }
-
-    if (STREQU(toString, "str")) {
+    if (pt==&PyUnicode_Type) {
         int tclStringSize;
         char *tclString;
         int utf8len;
@@ -4063,8 +4054,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         ckfree(utf8string);
         return pObj;
     }
-
-    if (STREQU(toString, "int")) {
+    if (pt==&PyLong_Type) {
         Tcl_WideInt wideValue;
 
         if (Tcl_GetWideIntFromObj(interp, resultObj, &wideValue) == TCL_OK) {
@@ -4073,8 +4063,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
-
-    if (STREQU(toString, "bool")) {
+    if (pt==&PyBool_Type) {
         int boolValue;
 
         if (Tcl_GetBooleanFromObj(interp, resultObj, &boolValue) == TCL_OK) {
@@ -4085,8 +4074,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
-
-    if (STREQU(toString, "float")) {
+    if (pt==&PyFloat_Type) {
         double doubleValue;
 
         if (Tcl_GetDoubleFromObj(interp, resultObj, &doubleValue) == TCL_OK) {
@@ -4095,25 +4083,23 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
-
-    if (STREQU(toString, "tohil.tcldict")) {
+    if (pt==&TohilTclDictType) {
         return TohilTclDict_FromTclObj(interp, resultObj);
     }
 
-    if (STREQU(toString, "list")) {
+    if (pt==&PyList_Type) {
         return tclListObjToPyListObject(interp, resultObj);
     }
 
-    if (STREQU(toString, "set")) {
+    if (pt==&PySet_Type) {
         return tclListObjToPySetObject(interp, resultObj);
     }
 
-    if (STREQU(toString, "dict")) {
-        // return tclListObjToPyDictObject(interp, resultObj);
+    if (pt==&PyDict_Type) {
         return tclListObjToPyDictTclObjects(interp, resultObj);
     }
 
-    if (STREQU(toString, "tuple")) {
+    if (pt==&PyTuple_Type) {
         return tclListObjToPyTupleObject(interp, resultObj);
     }
 
