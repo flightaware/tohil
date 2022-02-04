@@ -4039,6 +4039,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     if (toType == NULL || pt==&TohilTclObjType) {
         return TohilTclObj_FromTclObj(interp, resultObj);
     }
+    
     if (pt==&PyUnicode_Type) {
         int tclStringSize;
         char *tclString;
@@ -4054,6 +4055,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         ckfree(utf8string);
         return pObj;
     }
+    
     if (pt==&PyLong_Type) {
         Tcl_WideInt wideValue;
 
@@ -4063,6 +4065,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
+    
     if (pt==&PyBool_Type) {
         int boolValue;
 
@@ -4074,6 +4077,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
+    
     if (pt==&PyFloat_Type) {
         double doubleValue;
 
@@ -4083,6 +4087,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
+    
     if (pt==&TohilTclDictType) {
         return TohilTclDict_FromTclObj(interp, resultObj);
     }
