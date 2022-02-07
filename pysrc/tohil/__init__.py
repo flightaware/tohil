@@ -307,6 +307,9 @@ def _init_tcl_env():
     """
 
     _tohil.eval(tcl_init)
+    # In python3.6 if there are no arguments, then sys has no argv attribute at all
+    if not hasattr(_sys, 'argv'):
+        _sys.argv = []
     # In python3.8 and above, argv falls back to [""], but before that it would
     # be just [] here (since we're not setting it ourselves).
     if _sys.argv and _sys.argv != [""]:
