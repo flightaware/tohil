@@ -293,6 +293,7 @@ from tohil._tohil import (
     incr,
     result,
     register_callback,
+    get_callback,
     __version__,
 )
 
