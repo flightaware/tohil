@@ -2,7 +2,7 @@ Source: tohil
 Maintainer: FlightAware <notnow@flightaware.com>
 Section: python
 Priority: optional
-Build-Depends: python3-setuptools, python3-dev, debhelper (>= 9), tcl8.6-dev
+Build-Depends: python3-setuptools, python3.7-dev, python3-pip, debhelper (>= 9), tcl8.6-dev
 Standards-Version: 3.9.1
 Homepage: https://github.com/flightaware/tohil
 
