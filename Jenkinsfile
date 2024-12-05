@@ -6,7 +6,8 @@ node(label: 'raspberrypi') {
 
     def srcdir = "${WORKSPACE}/src"
     def resultsdir = "results"
-    def dist = "bullseye"
+    def dist = "bookworm"
+    def pkgdir = "package-${dist}"
 
     stage("Checkout") {
         sh "rm -fr ${srcdir}"
@@ -14,6 +15,11 @@ node(label: 'raspberrypi') {
         dir(srcdir) {
             checkout scm
         }
+    }
+
+    stage("Prepare source for ${dist}") {
+        sh "rm -fr ${pkgdir}"
+        sh "${srcdir}/prepare-build.sh ${dist} ${pkgdir}"
     }
 
     stage("Build") {
