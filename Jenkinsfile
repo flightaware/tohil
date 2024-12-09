@@ -26,7 +26,7 @@ node(label: 'raspberrypi') {
         sh "rm -fr ${resultsdir}"
         sh "mkdir -p ${resultsdir}"
         dir(srcdir) {
-            sh "DIST=${dist} BRANCH=${env.BRANCH_NAME} pdebuild --logfile /home/nickwan/debug.log  --use-pdebuild-internal --debbuildopts -b --buildresult ${WORKSPACE}/${resultsdir}"
+            sh "DIST=${dist} BRANCH=${env.BRANCH_NAME} pdebuild --logfile /debug.log  --use-pdebuild-internal --debbuildopts -b --buildresult ${WORKSPACE}/${resultsdir}"
         }
         archiveArtifacts artifacts: "${resultsdir}/*.deb", fingerprint: true
     }
