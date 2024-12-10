@@ -25,10 +25,10 @@ node(label: 'raspberrypi') {
             sh "${srcdir}/prepare-build.sh ${dist} ${pkgdir}"
         }
 
-        stage("Build") {
+        stage("Build for ${dist}") {
             sh "rm -fr ${resultsdir}"
             sh "mkdir -p ${resultsdir}"
-            dir(srcdir) {
+            dir(pkgdir) {
                 sh "DIST=${dist} BRANCH=${env.BRANCH_NAME} pdebuild --use-pdebuild-internal --debbuildopts -b --buildresult ${WORKSPACE}/${resultsdir} -- --override-config"
             }
             archiveArtifacts artifacts: "${resultsdir}/*.deb", fingerprint: true
