@@ -1,0 +1,33 @@
+Source: tohil
+Maintainer: FlightAware <notnow@flightaware.com>
+Section: python
+Priority: optional
+Build-Depends: python3-setuptools, python3.11-dev, python3-pip, debhelper (>= 10), tcl8.6-dev
+Standards-Version: 3.11.1
+Homepage: https://github.com/flightaware/tohil
+
+Package: python3-tohil
+Architecture: any
+Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}
+Description: tohil, a feathered serpent, binds together the serpent, pyth
+ # Tohil
+ .
+ [![Linux CI](https://github.com/flightaware/tohil/actions/workflows/linux-ci.yml/badge.svg)](https://github.com/flightaware/tohil/actions/workflows/linux-ci.yml)
+ .
+ <img src="https://github.com/flightaware/tohil/blob/main/graphics/237px-Quetzalcoatl_feathered_serpent.png">
+ .
+ Tohil a feathered serpent, aims to provide a delightful integration between Python, the serpent, and TCL, the feather.
+ .
+ Tohil is simultaneously a Python extension and a TCL extension that makes it possible to effortlessly call bidirectionally between Tcl and Python, targeting Tcl 8.6+ and Python 3.6+
+ .
+ Tohil is open source software, available for free including for profit and/or for redistribution, under the permissive 3-clause BSD license (see "LICENSE.txt").
+ .
+ Tohil is pronounced as, your choice, toe-heel, or toe-hill.
+ .
+ Tohil has a growing body of documentation, including a tutorial
+ and reference, available at https://flightaware.github.io/tohil-docs/.
+ .
+ ## Usage
+ .
+ You can import Tohil into either a Tcl or Python parent interpreter. Doing so will create and initialize an interpreter for the corresponding language and define Tohil's functions in both.
+
