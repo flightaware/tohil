@@ -1,4 +1,11 @@
-tohil (4.1.1-1) unstable; urgency=medium
+tohil (4.3.0) stable; urgency=medium
+
+  * Pull in updates from v4.3.0
+  * Changelog - https://github.com/flightaware/tohil/releases/tag/v4.3.0
+
+ -- Eric Tran  <eric.tran@flightaware.com>  Mon, 06 Dec 2021 20:41:05 -0600
+
+tohil (4.1.1-1) stable; urgency=medium
 
   * Debian directory framework to build tohil on Linux
 

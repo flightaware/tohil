@@ -6,7 +6,7 @@ export DH_VERBOSE=1
 	dh $@
 
 override_dh_auto_configure:
-	./configure --with-python-version=3.9
+	./configure --with-python-version=3.11
 
 override_dh_auto_install:
 	make install-binaries DESTDIR=$(CURDIR)/debian/python3-tohil
