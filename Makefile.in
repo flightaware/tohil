@@ -96,6 +96,7 @@ INSTALL_LIBRARY	= @INSTALL_LIBRARY@
 PACKAGE_NAME	= @PACKAGE_NAME@
 PACKAGE_VERSION	= @PACKAGE_VERSION@
 PYTHON_VERSION	= @PYTHON_VERSION@
+PYTHON_SHARED	= @PYTHON_SHARED@
 CC		= @CC@
 CFLAGS_DEFAULT	= @CFLAGS_DEFAULT@
 CFLAGS_WARNING	= @CFLAGS_WARNING@
@@ -455,10 +456,18 @@ uninstall-binaries:
 # tohil python stuff
 #
 build-python-module:
-	python3 setup.py build
+	@if test "$(PYTHON_SHARED)" = "1"; then \
+		python3 setup.py build; \
+	else \
+		echo "Skipping setup.py build for static Python"; \
+	fi
 
 install-python-module:
-	python3 setup.py install
+	@if test "$(PYTHON_SHARED)" = "1"; then \
+		python3 setup.py install; \
+	else \
+		echo "Skipping setup.py install for static Python"; \
+	fi
 
 clean-python-module:
 	rm -rf build/ dist/ pysrc/tohil.egg-info/ tests/__pycache__/
