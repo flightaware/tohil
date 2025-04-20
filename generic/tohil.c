@@ -18,7 +18,10 @@
 #include <tcl.h>
 
 #include <assert.h>
-#include <dlfcn.h>
+
+#ifdef Py_ENABLE_SHARED
+#  include <dlfcn.h>
+#endif
 
 #include <math.h>
 #include <stdio.h>
@@ -1023,7 +1026,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     PyObject *pObjParent = NULL;
     PyObject *pObj = pMainModule;
     PyObject *pObjStr = NULL;
-    char *dot = index(objandfn, '.');
+    char *dot = strchr(objandfn, '.');
     while (dot != NULL) {
         pObjParent = pObj;
 
@@ -1047,7 +1050,7 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         }
 
         objandfn = dot + 1;
-        dot = index(objandfn, '.');
+        dot = strchr(objandfn, '.');
     }
 
     PyObject *pFn = PyObject_GetAttrString(pObj, objandfn);
@@ -2886,7 +2889,7 @@ tclobj_nb_unaryop(PyObject *v, enum tclobj_unary_op operator)
     } else {
         switch (operator) {
         case Abs:
-            return PyLong_FromLongLong(labs(wideV));
+            return PyLong_FromLongLong(llabs(wideV));
 
         case Negative:
             return PyLong_FromLongLong(-wideV);
@@ -4582,6 +4585,8 @@ static struct PyModuleDef TohilModule = {
 
 /* Shared initialisation begins here */
 
+PyMODINIT_FUNC PyInit__tohil(void);
+
 //
 // this is the entry point called when the tcl interpreter loads the tohil shared library
 //
@@ -4622,6 +4627,7 @@ Tohil_Init(Tcl_Interp *interp)
             }
         }
 
+#ifdef Py_ENABLE_SHARED
         // NB without this ugly hack then on linux if tcl starts
         // python then python gets errors loading C shared libraries
         // such as "import sqlite3", where loading the shared library
@@ -4631,7 +4637,14 @@ Tohil_Init(Tcl_Interp *interp)
         if (dlopen(python_lib, RTLD_GLOBAL | RTLD_LAZY) == NULL) {
             // fprintf(stderr, "load %s failed\n", python_lib);
         }
-
+#else
+        // This structure will be added to the list of built-in modules
+        static struct _inittab tohil_inittab[] = {
+            {"tohil", PyInit__tohil},
+            {NULL, NULL}  // Sentinel
+        };
+        PyImport_ExtendInittab(tohil_inittab);
+#endif
         // initialize python but since tcl is the parent,
         // pass 0 for initsigs, so python will not register
         // signal handlers

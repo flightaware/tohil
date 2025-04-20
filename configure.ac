@@ -80,7 +80,7 @@ AC_ARG_WITH(python-version,  --with-python-version        python version (like 3
 need_python_config=""
 
 if test "${with_python_include+set}" = "set"; then
-    PYTHON_INCLUDES="-I'${with_python_include}'"
+    PYTHON_INCLUDES="-I${with_python_include}"
     AC_MSG_RESULT([using python includes of... "$PYTHON_INCLUDES"])
 else
     need_python_config="1"
@@ -120,6 +120,37 @@ if test "$need_python_config" = "1"; then
 	fi
 fi
 
+# Check for pyconfig.h and Py_ENABLE_SHARED
+
+python_save_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS $PYTHON_INCLUDES"
+
+AC_CHECK_HEADER(
+    [pyconfig.h], [
+        AC_MSG_CHECKING([whether Python is built as a shared library])
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(
+                 [[
+                     #include <pyconfig.h>
+                     #ifndef Py_ENABLE_SHARED
+                     #error "Python not built with shared library support"
+                     #endif
+                 ]], [])],
+            [
+                AC_MSG_RESULT([yes])
+                PYTHON_SHARED=1
+            ],
+            [
+                AC_MSG_RESULT([no])
+                PYTHON_SHARED=0
+            ])
+
+    ], [AC_MSG_ERROR([Cannot find pyconfig.h from $PYTHON_INCLUDES])]
+)
+
+CPPFLAGS="$python_save_CPPFLAGS"
+
+AC_SUBST(PYTHON_SHARED)
 AC_SUBST(PYTHON_INCLUDES)
 AC_SUBST(PYTHON_LIB_DIR)
 AC_SUBST(PYTHON_VERSION)
