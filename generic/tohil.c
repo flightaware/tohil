@@ -4585,6 +4585,8 @@ static struct PyModuleDef TohilModule = {
 
 /* Shared initialisation begins here */
 
+PyMODINIT_FUNC PyInit__tohil(void);
+
 //
 // this is the entry point called when the tcl interpreter loads the tohil shared library
 //
@@ -4635,6 +4637,13 @@ Tohil_Init(Tcl_Interp *interp)
         if (dlopen(python_lib, RTLD_GLOBAL | RTLD_LAZY) == NULL) {
             // fprintf(stderr, "load %s failed\n", python_lib);
         }
+#else
+        // This structure will be added to the list of built-in modules
+        static struct _inittab tohil_inittab[] = {
+            {"tohil", PyInit__tohil},
+            {NULL, NULL}  // Sentinel
+        };
+        PyImport_ExtendInittab(tohil_inittab);
 #endif
         // initialize python but since tcl is the parent,
         // pass 0 for initsigs, so python will not register
