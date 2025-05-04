@@ -4614,11 +4614,18 @@ Tohil_Init(Tcl_Interp *interp)
     if (!Py_IsInitialized()) {
         // figure out argv0; it will help the python interpreter hopefully find
         // a path to the right python run-time libraries.
+        PyStatus status;
+        PyConfig config;
+
+        PyConfig_InitPythonConfig(&config);
+
         const char *argv0 = Tcl_GetNameOfExecutable();
         if (argv0 != NULL) {
-            wchar_t *wide_argv0 = Py_DecodeLocale(argv0, NULL);
-            if (wide_argv0 != NULL) {
-                Py_SetProgramName(wide_argv0);
+            status = PyConfig_SetBytesString(&config, &config.program_name, argv0);
+            if (PyStatus_Exception(status)) {
+                PyConfig_Clear(&config);
+                Tcl_SetResult(interp, "Failed to set program name using PyConfig", TCL_STATIC);
+                return TCL_ERROR;
             }
         }
 
@@ -4632,14 +4639,25 @@ Tohil_Init(Tcl_Interp *interp)
             // fprintf(stderr, "load %s failed\n", python_lib);
         }
 
-        // initialize python but since tcl is the parent,
-        // pass 0 for initsigs, so python will not register
-        // signal handlers
-        Py_InitializeEx(0);
+        // set other configurations as needed, e.g., isolated, quiet, etc.
+        // config.isolated = 1;
+
+        // since tcl is the parent,
+        // ask python not to register signal handlers.
+        config.install_signal_handlers = 0;
+
+        status = Py_InitializeFromConfig(&config);
+        PyConfig_Clear(&config);
+        if (PyStatus_Exception(status)) {
+            Py_ExitStatusException(status);
+            Tcl_SetResult(interp, "Python initialization failed using PyConfig", TCL_STATIC);
+            return TCL_ERROR;
+        }
 
         // printf("Tohil_Init: initialized python from scratch, setting subinterp to main thread state\n");
         prior = tohil_setup_subinterp(interp, TclParent);
     } else {
+        // python already initialized
         if (!tohil_subinterp_is_set(interp)) {
             // printf("Tohil_Init: python is there already and tcl interpreter %p doesn't have a subinterp set, making a subinterpreter\n", interp);
             prior = tohil_setup_subinterp(interp, TclChild);
