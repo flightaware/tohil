@@ -2673,25 +2673,25 @@ Tohil_TD_items_iternext(Tohil_TD_IterObj *self)
 }
 
 static PyObject *
-Tohil_TD_iter_repr(_PyDictViewObject *dv)
+Tohil_TD_iter_repr(Tohil_TD_IterObj *self)
 {
     PyObject *seq;
     PyObject *result = NULL;
     Py_ssize_t rc;
 
-    rc = Py_ReprEnter((PyObject *)dv);
+    rc = Py_ReprEnter((PyObject *)self);
     if (rc != 0) {
         return rc > 0 ? PyUnicode_FromString("...") : NULL;
     }
-    seq = PySequence_List((PyObject *)dv);
+    seq = PySequence_List((PyObject *)self);
     if (seq == NULL) {
         goto Done;
     }
-    result = PyUnicode_FromFormat("%s(%R)", Py_TYPE(dv)->tp_name, seq);
+    result = PyUnicode_FromFormat("%s(%R)", Py_TYPE(self)->tp_name, seq);
     Py_DECREF(seq);
 
 Done:
-    Py_ReprLeave((PyObject *)dv);
+    Py_ReprLeave((PyObject *)self);
     return result;
 }
 
