@@ -90,6 +90,52 @@ typedef struct {
 
 #define TOHIL_NONE_SENTINEL "tohil::NONE"
 
+/* _float_div_mod - compute floordiv and mod of two doubles
+   using the same algorithm as Python's // and % operators.
+   The result is floordiv and mod, which are both doubles.
+   The result is floordiv = floor(vx/wx) and mod = vx - wx*floordiv.
+   The result is floordiv is the same sign as wx, and mod is the same
+   sign as wx.  If wx == 0.0, then floordiv is set to 0.0 and mod is
+   set to NaN.
+*/
+static void
+_float_div_mod(double vx, double wx, double *floordiv, double *mod)
+{
+    double div;
+    *mod = fmod(vx, wx);
+    /* fmod is typically exact, so vx-mod is *mathematically* an
+       exact multiple of wx.  But this is fp arithmetic, and fp
+       vx - mod is an approximation; the result is that div may
+       not be an exact integral value after the division, although
+       it will always be very close to one.
+    */
+    div = (vx - *mod) / wx;
+    if (*mod) {
+        /* ensure the remainder has the same sign as the denominator */
+        if ((wx < 0) != (*mod < 0)) {
+            *mod += wx;
+            div -= 1.0;
+        }
+    }
+    else {
+        /* the remainder is zero, and in the presence of signed zeroes
+           fmod returns different results across platforms; ensure
+           it has the same sign as the denominator. */
+        *mod = copysign(0.0, wx);
+    }
+    /* snap quotient to nearest integral value */
+    if (div) {
+        *floordiv = floor(div);
+        if (div - *floordiv > 0.5) {
+            *floordiv += 1.0;
+        }
+    }
+    else {
+        /* div is zero - get the same sign as the true quotient */
+        *floordiv = copysign(0.0, vx / wx); /* zero w/ sign of vx/wx */
+    }
+}
+
 // tohil_TclObjIsNoneSentinel - return true if a Tcl object matches the
 // tohil "none" sentinel, else false. A non-null sentinel overrides the
 // default.
@@ -2958,26 +3004,40 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyFloat_FromDouble(doubleV / doubleW);
 
         case Floordiv:
+            double mod, floordiv;
+
             if (doubleW == 0.0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
                 return NULL;
             }
-            return PyFloat_FromDouble(floor(doubleV / doubleW));
+            _float_div_mod(doubleV, doubleW, &floordiv, &mod);
+            return PyFloat_FromDouble(floordiv);
 
         case Remainder:
             if (doubleW == 0.0) {
-                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            return PyFloat_FromDouble(fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
+            mod = fmod(doubleV, doubleW);
+            if (mod) {
+                /* ensure the remainder has the same sign as the denominator */
+                if ((doubleW < 0) != (mod < 0)) {
+                    mod += doubleW;
+                }
+            } else {
+                /* the remainder is zero, and in the presence of signed zeroes
+                 * fmod returns different results across platforms; ensure
+                 * it has the same sign as the denominator. */
+                mod = copysign(0.0, doubleW);
+            }
+            return PyFloat_FromDouble(mod);
 
         case Divmod:
             if (doubleW == 0.0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
                 return NULL;
             }
-            quotient = doubleV / doubleW;
-            remainder = fmod(doubleV, doubleW);
+            _float_div_mod(doubleV, doubleW, &quotient, &remainder);
             return Py_BuildValue("dd", quotient, remainder);
 
         default:
@@ -3184,6 +3244,7 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         }
 
         switch (operator) {
+            double mod, floordiv;
         case Add:
             Tcl_SetDoubleObj(writeObj, doubleV + doubleW);
             break;
@@ -3198,10 +3259,22 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
         case Remainder:
             if (doubleW == 0.0) {
-                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            Tcl_SetDoubleObj(writeObj, fmod(fmod(doubleV, doubleW) + doubleW, doubleW));
+            mod = fmod(doubleV, doubleW);
+            if (mod) {
+                /* ensure the remainder has the same sign as the denominator */
+                if ((doubleW < 0) != (mod < 0)) {
+                    mod += doubleW;
+                }
+            } else {
+                /* the remainder is zero, and in the presence of signed zeroes
+                 * fmod returns different results across platforms; ensure
+                 * it has the same sign as the denominator. */
+                mod = copysign(0.0, doubleW);
+            }
+            Tcl_SetDoubleObj(writeObj, mod);
             break;
 
         case Truediv:
@@ -3214,10 +3287,11 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
         case Floordiv:
             if (doubleW == 0.0) {
-                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
-            Tcl_SetDoubleObj(writeObj, floor(doubleV / doubleW));
+            _float_div_mod(doubleV, doubleW, &floordiv, &mod);
+            Tcl_SetDoubleObj(writeObj, floordiv);
             break;
 
         default:
