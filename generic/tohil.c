@@ -2998,7 +2998,7 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
         case Truediv:
             if (doubleW == 0.0) {
-                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
             return PyFloat_FromDouble(doubleV / doubleW);
@@ -3007,7 +3007,7 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             double mod, floordiv;
 
             if (doubleW == 0.0) {
-                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
             _float_div_mod(doubleV, doubleW, &floordiv, &mod);
@@ -3034,7 +3034,7 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
         case Divmod:
             if (doubleW == 0.0) {
-                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
             _float_div_mod(doubleV, doubleW, &quotient, &remainder);
@@ -3279,7 +3279,7 @@ tclobj_nb_inplace_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
 
         case Truediv:
             if (doubleW == 0.0) {
-                PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+                PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
             }
             Tcl_SetDoubleObj(writeObj, doubleV / doubleW);
