@@ -34,7 +34,7 @@ jobs:
       - name: configure	
         run: |
           autoreconf
-          ./configure --with-tcl=/usr/lib/tcl8.6 --with-python-include=/usr/include/python3.8 --with-python-lib=/usr/lib --with-python-version=3.8
+          ./configure --with-tcl=/usr/lib/tcl8.6 --with-python-include=/usr/include/python3.12 --with-python-lib=/usr/lib --with-python-version=3.12
 
       - name: make	
         run: |
