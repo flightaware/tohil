@@ -130,19 +130,19 @@ specific Python datatype.
 
 
    >>> tohil.expr('5+5')
-   '10'
+   <tohil.tclobj: '10'>
    >>> tohil.expr('5**5')
-   '3125'
+   <tohil.tclobj: '3125'>
    >>> tohil.expr('1/3')
-   '0'
+   <tohil.tclobj: '0'>
    >>> tohil.expr('1/3.')
-   '0.3333333333333333
+   <tohil.tclobj: '0.3333333333333333'>
    >>> tohil.expr('1/3.',to=float)
    0.3333333333333333
    >>> tohil.expr('[clock seconds] % 86400')
-   '25571'
+   <tohil.tclobj: '55886'>
    >>> tohil.expr('[clock seconds] % 86400',to=int)
-   25571
+   55886
 
 ******************************
 tohil.getvar and tohil.setvar
@@ -156,15 +156,15 @@ using *tohil.getvar*.  Likewise, *tohil.setvar* can set them.
    >>> import tohil
    >>> tohil.setvar("foo", "bar")
    >>> tohil.getvar("foo")
-   'bar'
+   <tohil.tclobj: 'bar'>
    >>> tohil.setvar(var="happy", value="lamp")
-   >>> tohil.getvar("happy")
+   >>> str(tohil.getvar("happy"))
    'lamp'
 
    >>> tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
-   ''
+   <tohil.tclobj: ''>
    >>> tohil.getvar('x(a)')
-   '1'
+   <tohil.tclobj: '1'>
    >>> tohil.getvar('x(a)', to=int)
    1
    >>> tohil.getvar(var='x(b)', to=float)
@@ -197,7 +197,7 @@ You can use *tohil.exists* to see if a variable or array element exists:
 ::
 
    >>> tohil.eval("array set x [list a 1 b 2 c 3 d 4]")
-   ''
+   <tohil.tclobj: ''>
    >>> tohil.exists("x(c)")
    True
    >>> tohil.exists("x(e)")
@@ -241,7 +241,7 @@ arrays in the Tcl interpreter.
 
    >>> tohil.setvar("x(e)", "5")
    >>> tohil.getvar("x(e)")
-   '5'
+   <tohil.tclobj: '5'>
    >>> tohil.unset("x(e)")
    >>> tohil.getvar("x(e)")
    Traceback (most recent call last):
@@ -267,9 +267,9 @@ with embedded $-substitution and square bracket evaluation.
 
    >>> import tohil
    >>> tohil.eval("set name karl")
-   'karl'
+   <tohil.tclobj: 'karl'>
    >>> tohil.subst("hello, $name")
-   'hello, karl'
+   <tohil.tclobj: 'hello, karl'>
 
 *******************
 tohil.convert

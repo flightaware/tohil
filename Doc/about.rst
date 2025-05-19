@@ -3,7 +3,7 @@ About these documents
 =====================
 
 
-These Tohil documents, like Python's documentation, are generated 
+These Tohil documents, like Python's documentation, are generated
 from `reStructuredText`_ sources by `Sphinx`_, a
 document processor specifically written for the Python documentationt
 

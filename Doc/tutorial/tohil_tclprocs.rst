@@ -5,14 +5,14 @@ TclProcs
 
 TclProcs brings the integration of Tcl functions into Python to a new
 level of transparency, simplicity and versatility.  Using TclProcs,
-Most Tcl procs
-now look and behave just like Python functions in most cases.
+most Tcl procs
+can be invoked from Python indistinguishably from any other function.
 
-Using Tcl's introspection capabilities, tohil traverses a hierarchy
+Using Tcl's introspection capabilities, tohil traverses the hierarchy
 of Tcl namespaces, identifying all the procs and C-commands in each one,
 and for the procs, sussing out their arguments and default values,
-and stashing it so that we can create entrypoints for all of the
-Tcl procs in Python to invoke Tohil's trampoline function to call
+and stashing them so that we can create entrypoints for all of the
+Tcl procs in Python, set up to invoke Tohil's trampoline function to call
 the Tcl proc and return the result.
 
 It's awesome!

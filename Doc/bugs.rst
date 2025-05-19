@@ -4,13 +4,24 @@
 Dealing with Bugs
 *****************
 
-Python is a mature programming language which has established a reputation for
-stability, but Tohil is new and somewhat immature.
+Python and Tcl are both mature programming language which have
+well-earned reputations for
+stability, reliability and correct behavior, Tohil, while maturing rapidly,
+is still fairly new,
+and is more likely to have bugs and/or memory leaks.
 
-In order to become highly reliable, the Tohil developers would like to
+In order to bring tohil to a high level of reliability,
+the Tohil developers would like to
 know of any deficiencies you find in it.
 
-It can be sometimes faster to fix bugs yourself and contribute patches to
+If you come across a bug, have an idea for a feature, etc,
+please use
+`Tohil's issue tracker <https://github.com/flightaware/tohil/issues>`_
+to get in touch with us.
+
+For appropriately skilled developers it can be sometimes faster
+(and scratch an itch) to
+fix bugs yourself and contribute patches to
 Tohil. This can be done through https://github.com/flightaware/tohil.
 
 ==================
@@ -19,7 +30,7 @@ Documentation bugs
 
 If you find a bug in this documentation or would like to propose an improvement,
 please submit a bug report on aforelinked github site.  If you
-have a suggestion on how to fix it, include that as well.
+have a suggestion on how to fix it, please include that as well.
 
 
 ==============================

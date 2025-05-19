@@ -296,24 +296,40 @@ from tohil._tohil import (
     __version__,
 )
 
-###
-### tcl proc importer and trampoline
-###
-
-tcl_init = """
-proc safe_info_default {proc arg} {
-    if {[info default $proc $arg var] == 1} {
-        return [list 1 $var]
+def _init_tcl_env():
+    tcl_init = """
+    proc safe_info_default {proc arg} {
+        if {[info default $proc $arg var] == 1} {
+            return [list 1 $var]
+        }
+        return [list 0 ""]
     }
-    return [list 0 ""]
-}
-"""
+    """
 
-_tohil.eval(tcl_init)
+    _tohil.eval(tcl_init)
+    # In python3.6 if there are no arguments, then sys has no argv attribute at all
+    if not hasattr(_sys, 'argv'):
+        _sys.argv = []
+    # In python3.8 and above, argv falls back to [""], but before that it would
+    # be just [] here (since we're not setting it ourselves).
+    if _sys.argv and _sys.argv != [""]:
+        # Set up argv globals as if we were tclsh
+        argv0 = _sys.argv[0]
+        argv = _sys.argv[1:]
+        argc = len(argv)
+        _tohil.call("set", "::argv0", argv0)
+        _tohil.call("set", "::argv", argv)
+        _tohil.call("set", "::argc", argc)
+
+_init_tcl_env()
 
 def tclvar(tcl_var_name, **kwargs):
     return tclobj(var=tcl_var_name, **kwargs)
 
+
+###
+### tcl proc importer and trampoline
+###
 
 def info_args(proc):
     """wrapper for 'info args'"""

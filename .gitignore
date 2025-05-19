@@ -25,3 +25,6 @@ venv
 
 pysrc/tohil.egg-info/
 tests/__pycache__/
+
+# MacOS makes these
+.DS_Store
