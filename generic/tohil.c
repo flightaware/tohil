@@ -4615,6 +4615,27 @@ tohil_register_callback(PyObject *m, PyObject *args, PyObject *kwargs)
     Py_RETURN_NONE;
 }
 
+static PyObject *
+tohil_get_callback(PyObject *m, PyObject *args, PyObject *kwargs)
+{
+  Tcl_Interp *interp = tohilstate(m)->interp;
+  Tcl_CmdInfo cmdinfo;
+  char * name;
+  static char *kwlist[] = {"name", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &name)) {
+        return NULL;
+  }
+  if (!Tcl_GetCommandInfo(interp, name, &cmdinfo)) {
+    PyErr_SetString(PyExc_KeyError, "no such command");
+    return NULL;
+  }
+  if (cmdinfo.objProc == PythonCmd) {
+    return ((PythonCmd_ClientData *) cmdinfo.objClientData)->func;
+  } else {
+    PyErr_SetString(PyExc_KeyError, "Not a python callback ");
+    return NULL;
+  }
+}
 //
 // python C extension structure defining functions
 //
@@ -4635,6 +4656,8 @@ static PyMethodDef TohilMethods[] = {
     {"result", (PyCFunction)tohil_result, METH_VARARGS | METH_KEYWORDS, "return the tcl interpreter result object"},
     {"register_callback", (PyCFunction)tohil_register_callback, METH_VARARGS | METH_KEYWORDS,
      "Register a Python callable so it can be called directly from Tcl as a command"},
+    {"get_callback", (PyCFunction)tohil_get_callback, METH_VARARGS | METH_KEYWORDS,
+     "Get the Python callable from a Tcl command registered with tohil.register_callback"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
