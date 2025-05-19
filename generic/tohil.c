@@ -4110,11 +4110,11 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         pt = (PyTypeObject *)toType;
     }
 
-    if (toType == NULL || pt==&TohilTclObjType) {
+    if (toType == NULL || pt == &TohilTclObjType) {
         return TohilTclObj_FromTclObj(interp, resultObj);
     }
-    
-    if (pt==&PyUnicode_Type) {
+
+    if (pt == &PyUnicode_Type) {
         int tclStringSize;
         char *tclString;
         int utf8len;
@@ -4129,8 +4129,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         ckfree(utf8string);
         return pObj;
     }
-    
-    if (pt==&PyLong_Type) {
+
+    if (pt == &PyLong_Type) {
         Tcl_WideInt wideValue;
 
         if (Tcl_GetWideIntFromObj(interp, resultObj, &wideValue) == TCL_OK) {
@@ -4139,8 +4139,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
-    
-    if (pt==&PyBool_Type) {
+
+    if (pt == &PyBool_Type) {
         int boolValue;
 
         if (Tcl_GetBooleanFromObj(interp, resultObj, &boolValue) == TCL_OK) {
@@ -4151,8 +4151,8 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
-    
-    if (pt==&PyFloat_Type) {
+
+    if (pt == &PyFloat_Type) {
         double doubleValue;
 
         if (Tcl_GetDoubleFromObj(interp, resultObj, &doubleValue) == TCL_OK) {
@@ -4161,24 +4161,24 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyErr_SetString(PyExc_ValueError, Tcl_GetString(Tcl_GetObjResult(interp)));
         return NULL;
     }
-    
-    if (pt==&TohilTclDictType) {
+
+    if (pt == &TohilTclDictType) {
         return TohilTclDict_FromTclObj(interp, resultObj);
     }
 
-    if (pt==&PyList_Type) {
+    if (pt == &PyList_Type) {
         return tclListObjToPyListObject(interp, resultObj);
     }
 
-    if (pt==&PySet_Type) {
+    if (pt == &PySet_Type) {
         return tclListObjToPySetObject(interp, resultObj);
     }
 
-    if (pt==&PyDict_Type) {
+    if (pt == &PyDict_Type) {
         return tclListObjToPyDictTclObjects(interp, resultObj);
     }
 
-    if (pt==&PyTuple_Type) {
+    if (pt == &PyTuple_Type) {
         return tclListObjToPyTupleObject(interp, resultObj);
     }
 
