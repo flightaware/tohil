@@ -1096,8 +1096,8 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
         dot = index(objandfn, '.');
     }
 
-    PyObject *pFn = PyObject_GetAttrString(pObj, objandfn);
 
+    PyObject *pFn = PyObject_GetAttrString(pObj, objandfn);
 
     // if we didn't find anything and we weren't invoked with dotted notation,
     // check builtins
@@ -4618,23 +4618,23 @@ tohil_register_callback(PyObject *m, PyObject *args, PyObject *kwargs)
 static PyObject *
 tohil_get_callback(PyObject *m, PyObject *args, PyObject *kwargs)
 {
-  Tcl_Interp *interp = tohilstate(m)->interp;
-  Tcl_CmdInfo cmdinfo;
-  char * name;
-  static char *kwlist[] = {"name", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &name)) {
+    Tcl_Interp *interp = tohilstate(m)->interp;
+    Tcl_CmdInfo cmdinfo;
+    char *name;
+    static char *kwlist[] = {"name", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", kwlist, &name)) {
         return NULL;
-  }
-  if (!Tcl_GetCommandInfo(interp, name, &cmdinfo)) {
-    PyErr_SetString(PyExc_KeyError, "no such command");
-    return NULL;
-  }
-  if (cmdinfo.objProc == PythonCmd) {
-    return ((PythonCmd_ClientData *) cmdinfo.objClientData)->func;
-  } else {
-    PyErr_SetString(PyExc_KeyError, "Not a python callback ");
-    return NULL;
-  }
+    }
+    if (!Tcl_GetCommandInfo(interp, name, &cmdinfo)) {
+        PyErr_SetString(PyExc_KeyError, "no such command");
+        return NULL;
+    }
+    if (cmdinfo.objProc == PythonCmd) {
+        return ((PythonCmd_ClientData *)cmdinfo.objClientData)->func;
+    } else {
+        PyErr_SetString(PyExc_KeyError, "Not a python callback ");
+        return NULL;
+    }
 }
 //
 // python C extension structure defining functions
