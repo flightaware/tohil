@@ -177,7 +177,7 @@ print("<hr>")
 
 ###  Building Tohil on Unix, Linux, FreeBSD and the Mac
 
-Tohil builds with the familiar GNU autoconf build system.  "autoreconf" will produce a configure script based on the configure.in.  The tooling used is the standard Tcl Extension Architecture (TEA) approach, which is pretty evolved and fairly clean considering it's autoconf.
+Tohil builds with the familiar GNU autoconf build system.  You will need to use the older version, autoconf 2.69.  "autoreconf" will produce a configure script based on the configure.in.  The tooling used is the standard Tcl Extension Architecture (TEA) approach, which is pretty evolved and fairly clean considering it's autoconf.
 
 It is assumed that you
  - have got the Tohil repo (either by `git clone` or a tar.gz from the releases page).
