@@ -843,6 +843,9 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyThreadState *prior, char *descr
     PyObject *handle_exception = PyObject_GetAttrString(m, "handle_exception");
     if (handle_exception == NULL || !PyCallable_Check(handle_exception)) {
         Py_XDECREF(handle_exception);
+        Py_XDECREF(pType);
+        Py_XDECREF(pVal);
+        Py_XDECREF(pTrace);
         // Be sure to clear any error that might have been set by us trying to
         // dig out handle_exception(). Tohil_ReturnTclError will recurse otherwise.
         PyErr_Clear();
@@ -852,20 +855,24 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyThreadState *prior, char *descr
     // invoke python tohil.handle_exception(type, val, tracebackObject)
     // it returns a tuple consisting of the error code and error info (traceback)
     PyObject *pExceptionResult = PyObject_CallFunctionObjArgs(handle_exception, pType, pVal, pTrace, NULL);
+    Py_DECREF(handle_exception);
 
     // call tohil python exception handler function
     // return to me a tuple containing the error string, error code, and traceback
     if (pExceptionResult == NULL) {
         // NB debug break out the exception
-        PyObject *pType = NULL, *pVal = NULL, *pTrace = NULL;
-        PyErr_Fetch(&pType, &pVal, &pTrace); /* Clears exception */
-        PyErr_NormalizeException(&pType, &pVal, &pTrace);
-        // PyObject_Print(pType, stdout, 0);
-        // PyObject_Print(pVal, stdout, 0);
+        PyErr_Clear();
+        Py_XDECREF(pType);
+        Py_XDECREF(pVal);
+        Py_XDECREF(pTrace);
         return Tohil_ReturnTclError(interp, prior, "some problem running the tohil python exception handler");
     }
 
     if (!PyTuple_Check(pExceptionResult) || PyTuple_GET_SIZE(pExceptionResult) != 2) {
+        Py_DECREF(pExceptionResult);
+        Py_XDECREF(pType);
+        Py_XDECREF(pVal);
+        Py_XDECREF(pTrace);
         return Tohil_ReturnTclError(interp, prior,
                                     "malfunction in tohil python exception handler, did not return tuple or tuple did not contain 2 elements");
     }
@@ -873,6 +880,9 @@ Tohil_ReturnExceptionToTcl(Tcl_Interp *interp, PyThreadState *prior, char *descr
     Tcl_SetObjErrorCode(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 0)));
     Tcl_AppendObjToErrorInfo(interp, pyObjToTcl(interp, PyTuple_GET_ITEM(pExceptionResult, 1)));
     Py_DECREF(pExceptionResult);
+    Py_XDECREF(pType);
+    Py_XDECREF(pVal);
+    Py_XDECREF(pTrace);
     tohil_restore_subinterp(prior);
     return TCL_ERROR;
 }
@@ -1018,7 +1028,6 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
     PyThreadState *prior = tohil_swap_subinterp(interp);
 
     if (objc < 2) {
-    wrongargs:
         Tcl_WrongNumArgs(interp, 1, objv, "?-kwlist list? ?-nonevalue word? func ?arg ...?");
         return tohil_tcl_return(interp, prior, TCL_ERROR);
     }
@@ -1172,6 +1181,15 @@ TohilCall_Cmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *cons
 
     Tcl_SetObjResult(interp, tRet);
     return tohil_tcl_return(interp, prior, TCL_OK);
+
+wrongargs:
+    Tcl_WrongNumArgs(interp, 1, objv, "?-kwlist list? ?-nonevalue word? func ?arg ...?");
+    Tcl_DStringFree(&objandfn_ds);
+    if (nonevalue)
+        Tcl_DStringFree(&nonevalue_ds);
+    if (kwObj != NULL)
+        Py_DECREF(kwObj);
+    return tohil_tcl_return(interp, prior, TCL_ERROR);
 }
 
 //
@@ -1515,7 +1533,6 @@ TohilTclObj_stuff_var(TohilTclObj *self, Tcl_Obj *obj)
         PyErr_SetString(PyExc_RuntimeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return -1;
     }
-    Tcl_IncrRefCount(res);
     return 0;
 }
 
@@ -4761,9 +4778,11 @@ Tohil_Init(Tcl_Interp *interp)
     if (tohil_modname != NULL) {
         int ret = PyObject_SetAttrString(main_module, tohil_modname, m);
         if (ret < 0) {
+            Py_DECREF(m);
             return Tohil_ReturnTclError(interp, prior, "unable to setattr tohil module to __main__");
         }
     }
+    Py_DECREF(m);
 
     // there's no more python stuff in this routine so we can
     // restore the python thread state to the caller's interp
@@ -4899,6 +4918,7 @@ tohil_mod_exec(PyObject *m)
     if (pTohilMod == NULL) {
         goto fail;
     }
+    Py_DECREF(pTohilMod);
 
     return 0;
 
