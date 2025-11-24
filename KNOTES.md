@@ -461,3 +461,18 @@ make
 sudo make install
 make test
 
+
+  sudo apt install tcl8.6-dev install python3.11-dev python3-setuptools python3-hypothesis
+
+python3 -m venv tohilenv
+
+. tohilenv/bin/actviate
+
+pip install --upgrade pip
+pip install hypothesis
+
+pip install .
+
+
+
+
