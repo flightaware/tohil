@@ -300,11 +300,15 @@ tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 
     for (int i = 0; i < count; i++) {
         Tcl_DString ds;
-        if (PySet_Add(pset, Py_BuildValue("s", tohil_TclObjToUTF8DString(interp, list[i], &ds))) < 0) {
+        PyObject *item = Py_BuildValue("s", tohil_TclObjToUTF8DString(interp, list[i], &ds));
+        Tcl_DStringFree(&ds);
+        if (PySet_Add(pset, item) < 0) {
             // no need to set a python error; PySet_Add will do it
+            Py_DECREF(item);
+            Py_DECREF(pset);
             return NULL;
         }
-        Tcl_DStringFree(&ds);
+        Py_DECREF(item);  // PySet_Add increfs, so we need to decref our reference
     }
 
     return pset;
@@ -361,9 +365,13 @@ tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
         Tcl_DString kds, vds;
         char *key = tohil_TclObjToUTF8DString(interp, list[i], &kds);
         char *val = tohil_TclObjToUTF8DString(interp, list[i + 1], &vds);
-        PyDict_SetItem(pdict, Py_BuildValue("s", key), Py_BuildValue("s", val));
+        PyObject *pyKey = Py_BuildValue("s", key);
+        PyObject *pyVal = Py_BuildValue("s", val);
         Tcl_DStringFree(&kds);
         Tcl_DStringFree(&vds);
+        PyDict_SetItem(pdict, pyKey, pyVal);
+        Py_DECREF(pyKey);  // PyDict_SetItem increfs, so we need to decref our references
+        Py_DECREF(pyVal);
     }
 
     return pdict;
@@ -1503,8 +1511,11 @@ TohilTclObj_objptr_for_write(TohilTclObj *self)
     if (self->tclobj != NULL) {
         assert(self->tclvar == NULL);
         if (Tcl_IsShared(self->tclobj)) {
+            // duplicate BEFORE decrementing to avoid use-after-free
+            Tcl_Obj *newObj = Tcl_DuplicateObj(self->tclobj);
             Tcl_DecrRefCount(self->tclobj);
-            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+            self->tclobj = newObj;
+            Tcl_IncrRefCount(self->tclobj);
         }
         return self->tclobj;
     }
@@ -1518,8 +1529,11 @@ TohilTclObj_objptr_for_write(TohilTclObj *self)
     }
     // duplicate the object if it's shared
     if (Tcl_IsShared(obj)) {
+        // duplicate BEFORE decrementing to avoid use-after-free
+        Tcl_Obj *newObj = Tcl_DuplicateObj(obj);
         Tcl_DecrRefCount(obj);
-        obj = Tcl_DuplicateObj(obj);
+        obj = newObj;
+        Tcl_IncrRefCount(obj);
     }
     return obj;
 }
@@ -1569,8 +1583,11 @@ TohilTclObj_writable_objptr(TohilTclObj *self)
     if (self->tclobj != NULL) {
         // assert(self->tclobj->refCount > 0);
         if (Tcl_IsShared(self->tclobj)) {
+            // duplicate BEFORE decrementing to avoid use-after-free
+            Tcl_Obj *newObj = Tcl_DuplicateObj(self->tclobj);
             Tcl_DecrRefCount(self->tclobj);
-            self->tclobj = Tcl_DuplicateObj(self->tclobj);
+            self->tclobj = newObj;
+            Tcl_IncrRefCount(self->tclobj);
         }
         return self->tclobj;
     }
@@ -1653,11 +1670,12 @@ TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
     if (selfobj == NULL)
         return NULL;
     Tcl_Obj *otherobj = NULL;
+    int need_decref = 0;  // track if we created otherobj and need to free it
 
     // if you want equal and they point to the exact same object,
     // we are donezo
     if (op == Py_EQ && (TohilTclObj_Check(other) || TohilTclDict_Check(other))) {
-        otherobj = pyObjToTcl(self->interp, other);
+        otherobj = TohilTclObj_objptr((TohilTclObj *)other);
         if (selfobj == otherobj) {
             Py_INCREF(Py_True);
             return Py_True;
@@ -1675,6 +1693,8 @@ TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
         otherString = Tcl_GetString(otherobj);
     } else {
         otherobj = pyObjToTcl(self->interp, other);
+        need_decref = 1;  // we created this object, need to free it
+        Tcl_IncrRefCount(otherobj);  // protect it while we use it
         otherString = Tcl_GetString(otherobj);
     }
 
@@ -1709,6 +1729,12 @@ TohilTclObj_richcompare(TohilTclObj *self, PyObject *other, int op)
     default:
         assert(0 == 1);
     }
+
+    // clean up the Tcl object we created if needed
+    if (need_decref) {
+        Tcl_DecrRefCount(otherobj);
+    }
+
     PyObject *p = (res ? Py_True : Py_False);
     Py_INCREF(p);
     return p;
@@ -1770,11 +1796,11 @@ TohilTclObj_dup_if_shared(TohilTclObj *self)
         return;
     }
 
-    // decrement the old object.  It's safe because refcount
-    // must be 2 or more.  then duplicate and increment
-    // the new, duplicated object's 0 refcount to 1
+    // duplicate BEFORE decrementing to avoid use-after-free
+    // then increment the new, duplicated object's 0 refcount to 1
+    Tcl_Obj *newObj = Tcl_DuplicateObj(self->tclobj);
     Tcl_DecrRefCount(self->tclobj);
-    self->tclobj = Tcl_DuplicateObj(self->tclobj);
+    self->tclobj = newObj;
     Tcl_IncrRefCount(self->tclobj);
 }
 
@@ -2164,18 +2190,23 @@ TohilTclObj_pop(TohilTclObj *self, PyObject *args, PyObject *kwargs)
     }
     Tcl_IncrRefCount(resultObj);
 
-    // remove the item for the list
+    // remove the item from the list
     if (Tcl_ListObjReplace(self->interp, selfobj, i, 1, 0, NULL) == TCL_ERROR) {
         PyErr_SetString(PyExc_IndexError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
+        Tcl_DecrRefCount(resultObj);
         return NULL;
     }
-    if (TohilTclObj_possibly_stuff_var(self, selfobj) < 0)
+    if (TohilTclObj_possibly_stuff_var(self, selfobj) < 0) {
+        Tcl_DecrRefCount(resultObj);
         return NULL;
+    }
 
     if (to == NULL && self->to != NULL)
         to = self->to;
 
-    return tohil_python_return(self->interp, TCL_OK, to, resultObj);
+    PyObject *pyResult = tohil_python_return(self->interp, TCL_OK, to, resultObj);
+    Tcl_DecrRefCount(resultObj);
+    return pyResult;
 }
 
 static PyObject *TohilTclObj_subscript(TohilTclObj *, PyObject *);
@@ -2262,9 +2293,8 @@ TohilTclObj_item(TohilTclObj *self, Py_ssize_t i)
         return NULL;
     }
 
-    PyObject *ret = tohil_python_return(self->interp, TCL_OK, self->to, listObjv[i]);
-    Py_INCREF(ret);
-    return ret;
+    // tohil_python_return already returns a new reference, no extra Py_INCREF needed
+    return tohil_python_return(self->interp, TCL_OK, self->to, listObjv[i]);
 }
 
 //
@@ -2299,14 +2329,10 @@ TohilTclObj_ass_item(TohilTclObj *self, Py_ssize_t i, PyObject *v)
         return -1;
     }
 
+    // TohilTclObj_objptr_for_write already handles duplicating shared objects
     Tcl_Obj *writeObj = TohilTclObj_objptr_for_write(self);
     if (writeObj == NULL)
         return -1;
-
-    if (Tcl_IsShared(writeObj)) {
-        Tcl_DecrRefCount(writeObj);
-        writeObj = Tcl_DuplicateObj(writeObj);
-    }
 
     if (Tcl_ListObjReplace(self->interp, writeObj, i, 1, 1, &obj) == TCL_ERROR) {
         PyErr_SetString(PyExc_IndexError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
@@ -2367,9 +2393,11 @@ TohilTclObj_concat(TohilTclObj *self, PyObject *item)
         return NULL;
 
     Tcl_Obj *returnObj = Tcl_DuplicateObj(selfobj);
+    Tcl_IncrRefCount(returnObj);  // protect while we use it
     Tcl_AppendObjToObj(returnObj, tItem);
     Tcl_DString ds;
     PyObject *pRet = Py_BuildValue("s", tohil_TclObjToUTF8DString(self->interp, returnObj, &ds));
+    Tcl_DStringFree(&ds);
     Tcl_DecrRefCount(returnObj);
     return pRet;
 }
@@ -2516,7 +2544,7 @@ TohilTclObjIter(TohilTclObj *self)
     Py_INCREF(self);
     pIter->i = 0;
     pIter->done = 0;
-    Py_INCREF(pIter);
+    // PyObject_New returns a new reference, no need for extra Py_INCREF
     return (PyObject *)pIter;
 }
 
@@ -2568,7 +2596,9 @@ static void
 TohilTclObjIter_dealloc(TohilTclObj_IterObj *self)
 {
     // NB we need to do var shadowing with tcldicts too
-    if (self->tohilObj->tclobj != NULL) {
+    // Only decrement if iteration wasn't completed (done flag not set)
+    // to avoid double-free since iternext decrements when done
+    if (!self->done && self->tohilObj->tclobj != NULL) {
         Tcl_DecrRefCount(self->tohilObj->tclobj);
     }
     Py_XDECREF(self->tohilObj);
@@ -4089,16 +4119,19 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
 
     if (tcl_result == TCL_ERROR) {
         // dig out tcl error information and create a tohil tcldict containing it
-        // (Tcl_GetReturnOptions returns a tcl dict object)
+        // (Tcl_GetReturnOptions returns a tcl dict object with refcount 0)
         Tcl_Obj *returnOptionsObj = Tcl_GetReturnOptions(interp, tcl_result);
+        Tcl_IncrRefCount(returnOptionsObj);  // protect it while we use it
 
         // the tcl errorstack is big and replicates a lot of stuff,
         // just get rid of it.  if you want it, put this back in.
         Tcl_Obj *keyObj = Tcl_NewStringObj("-errorstack", -1);
+        Tcl_IncrRefCount(keyObj);
         Tcl_DictObjRemove(NULL, returnOptionsObj, keyObj);
         Tcl_DecrRefCount(keyObj);
 
         PyObject *pReturnOptionsObj = TohilTclDict_FromTclObj(interp, returnOptionsObj);
+        Tcl_DecrRefCount(returnOptionsObj);  // TohilTclDict_FromTclObj increfs, so we can release
 
         // construct a two-element tuple comprising the interpreter result
         // and the tcldict containing the info grabbed from tcl
@@ -4109,19 +4142,21 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", tclString, tclStringSize));
         PyTuple_SET_ITEM(pRetTuple, 1, pReturnOptionsObj);
 
-        // borrowed ref, do not decrement
+        // borrowed ref from PyImport_AddModule, do not decrement
         PyObject *m = PyImport_AddModule("tohil");
         assert(m != NULL);
         PyObject *error_class = PyObject_GetAttrString(m, "TclError");
         if (error_class == NULL || !PyCallable_Check(error_class)) {
             Py_XDECREF(error_class);
-            Py_DECREF(m);
+            Py_DECREF(pRetTuple);
             return NULL;
         }
 
         // ...and set the python error object to
         // TclError(interp_result_string, tcldict_object)
         PyErr_SetObject(error_class, pRetTuple);
+        Py_DECREF(error_class);
+        Py_DECREF(pRetTuple);
         return NULL;
     }
 
@@ -4263,8 +4298,14 @@ tohil_expr(PyObject *m, PyObject *args, PyObject *kwargs)
     Tcl_DString ds;
     char *expression = tohil_UTF8ToTclDString(interp, utf8expression, -1, &ds);
 
+    Tcl_Obj *exprObj = Tcl_NewStringObj(expression, -1);
+    Tcl_IncrRefCount(exprObj);
     Tcl_Obj *resultObj = NULL;
-    if (Tcl_ExprObj(interp, Tcl_NewStringObj(expression, -1), &resultObj) == TCL_ERROR) {
+    int tcl_result = Tcl_ExprObj(interp, exprObj, &resultObj);
+    Tcl_DecrRefCount(exprObj);
+    Tcl_DStringFree(&ds);
+
+    if (tcl_result == TCL_ERROR) {
         char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
         PyErr_SetString(PyExc_RuntimeError, errMsg);
         return NULL;
@@ -4424,8 +4465,10 @@ tohil_incr(PyObject *m, PyObject *args, PyObject *kwargs)
         wideValue += increment;
 
         if (Tcl_IsShared(obj)) {
+            // duplicate BEFORE decrementing to avoid use-after-free
+            Tcl_Obj *newObj = Tcl_DuplicateObj(obj);
             Tcl_DecrRefCount(obj);
-            obj = Tcl_DuplicateObj(obj);
+            obj = newObj;
             Tcl_SetWideIntObj(obj, wideValue);
             if (Tcl_SetVar2Ex(interp, var, NULL, obj, (TCL_LEAVE_ERR_MSG)) == NULL) {
                 goto type_error;
@@ -4474,7 +4517,10 @@ tohil_subst(PyObject *m, PyObject *args, PyObject *kwargs)
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|$O", kwlist, &string, &to)) {
         return NULL;
     }
-    Tcl_Obj *obj = Tcl_SubstObj(interp, Tcl_NewStringObj(string, -1), TCL_SUBST_ALL);
+    Tcl_Obj *stringObj = Tcl_NewStringObj(string, -1);
+    Tcl_IncrRefCount(stringObj);
+    Tcl_Obj *obj = Tcl_SubstObj(interp, stringObj, TCL_SUBST_ALL);
+    Tcl_DecrRefCount(stringObj);
     if (obj == NULL) {
         char *errMsg = Tcl_GetString(Tcl_GetObjResult(interp));
         PyErr_SetString(PyExc_RuntimeError, errMsg);
