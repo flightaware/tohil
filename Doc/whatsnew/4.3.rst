@@ -13,6 +13,7 @@ Since tclobjs behave like strings when used as strings in Python, very little if
 Additional Improvements
 =======================================
 
+* Full compatibility with Tcl 9.0 (64-bit safe `Tcl_Size` migration).
 * Much faster Python-to-Tcl floating point and integer conversions.
 * Tohil previously stored a Python capsule containing a pointer to its corresponding Tcl interpreter in `__main__.interp` and you could make Python crash by doing like `interp = ''"` before importing tohil. This renames interp to something way less likely to have a conflict.
 * Many new tests

@@ -33,7 +33,7 @@ Next install Tcl if you haven't already:
 
 ::
 
-    cd /usr/ports/lang/tcl86
+    cd /usr/ports/lang/tcl86 # or /usr/ports/lang/tcl90
     sudo make install
 
     cd /usr/ports/lang/tclX
@@ -90,7 +90,7 @@ installed at the same time.
 
 ::
 
-    ./configure --with-tcl=/usr/local/lib/tcl8.6 --mandir=/usr/local/man --with-python-version=3.7m
+    ./configure --with-tcl=/usr/local/lib/tcl8.6 --mandir=/usr/local/man --with-python-version=3.7m # use tcl9.0 if you installed Tcl 9
 
 In the above, we tell configure where to find the Tcl library because
 it's in a slightly nonstandard place.  We tell it the Python version;

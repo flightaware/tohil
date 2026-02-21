@@ -18,7 +18,7 @@ the Python *pip* installer:
 
 ::
 
-   sudo apt install python3-dev python3-pip tcl8.6-dev
+   sudo apt install python3-dev python3-pip tcl8.6-dev # or tcl9.0-dev
 
 There are a few addition things that are probably nice to have:
 
