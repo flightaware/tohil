@@ -364,7 +364,7 @@ Tcldicts can be created by the :class:`tcldict` constructor.
 
       Return a new view of the tcldict's keys.  As with items above, if
       you keep a reference to keys the keys doesn't change if the tcldict
-      does.  For more on keys in general, see the 
+      does.  For more on keys in general, see the
       :ref:`documentation of view objects <dict-views>`.
 
    .. method:: pop(key[, default])

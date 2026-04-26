@@ -28,6 +28,6 @@ etc.
 Meanwhile, uncaught Tcl errors resulting from Tcl code invoked from Python
 are propagated back through Python as TclError exceptions, while
 uncaught exceptions raised from Python code invoked from Tcl are
-propagated back through Tcl as a Tcl error, the traceback interspersing Tcl
+propagated back through Tcl as Tcl errors, the traceback interspersing Tcl
 and Python as the error/exception unwinds.
 

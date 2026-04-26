@@ -7,7 +7,7 @@
 
 Tohil 4.3 is mostly a maintenance release.  One nice improvement, TclProcs now return the tclobj datatype by default. If you haven't seen them, TclProcs are the slickest way to invoke Tcl procs from Python using tohil.  A few releases back we changed tohil.call and tohil.eval to return Python tclobj objects by default (which can be overridden).  Now TclProcs work that way too.
 
-Since tclobjs behave like strings when used as strings in Python, very little if any code, even code that makes extensive use of TclProcs, should require changes. 
+Since tclobjs behave like strings when used as strings in Python, very little if any code, even code that makes extensive use of TclProcs, should require changes.
 
 =======================================
 Additional Improvements

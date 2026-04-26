@@ -17,7 +17,8 @@ clause that mentions TclError, that clause will handle the Tcl exception.
 What's nice about the TclError class is that it is populated by Tohil
 with useful information that Tohil gleaned from the Tcl interpreter,
 such as the interpreter result, traceback, Tcl error code, code level,
-and in some cases the file and line number.
+and in some cases the file name and line number where the errant
+Tcl code was defined.
 
 Likewise, uncaught exceptions in the Python interpreter resulting from
 code invoked from Tcl using Tohil will propagate a TCL error including
@@ -59,7 +60,7 @@ Tcl error:
    >>> tohil.interact()
    $ tclsh
    % package require tohil
-   3.2.0
+   4.3.0
    % catch {tohil::eval "no"} catchResult catchDict
    1
    % puts $catchResult

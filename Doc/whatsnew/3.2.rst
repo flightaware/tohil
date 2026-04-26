@@ -14,7 +14,7 @@ Tclobjs have gained considerable new power.  Among them, they now
 implement the number protocol.
 
 This means tclobjs can be used for number in numeric calculations
-without needing to pass through int() or float(). 
+without needing to pass through int() or float().
 
 Testing of tclobjs for boolean value now provides tcl
 semantics.  'f', 'F', 'n', 'N', 0, substrings case-insentiviely

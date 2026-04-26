@@ -449,4 +449,15 @@ PATH=/home/karl/.local/bin:$PATH
 
 https://packaging.python.org/tutorials/packaging-projects/
 
+-----
+
+autoconf 2.69
+tcl-dev
+python3.11-dev
+python3-setuptools
+python3-hypothesis
+./configure --with-python-version=3.11
+make
+sudo make install
+make test
 
