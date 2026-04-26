@@ -1,3 +1,10 @@
+tohil (4.4.3) UNRELEASED; urgency=medium
+
+  * Pull in the latest v4.4.3 release
+  * Changelog - https://github.com/flightaware/tohil/releases/tag/v4.4.3
+
+ -- Eric Tran  <eric.tran@flightaware.com>  Sun, 26 Apr 2026 15:34:43 -0500
+
 tohil (4.3.0) stable; urgency=medium
 
   * Pull in updates from v4.3.0
