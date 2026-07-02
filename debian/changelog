@@ -1,4 +1,4 @@
-tohil (4.4.3) UNRELEASED; urgency=medium
+tohil (4.4.3) stable; urgency=medium
 
   * Pull in the latest v4.4.3 release
   * Changelog - https://github.com/flightaware/tohil/releases/tag/v4.4.3
