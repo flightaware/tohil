@@ -38,6 +38,12 @@
 // pointer for python
 #define TCL_TCL_INTERP_CAPSULE_NAME "tohil.interp"
 
+// For Tcl 8.6 and 9 compatibility
+// This is handled by tclconfig for Tcl, but it is still needed for python
+#ifndef TCL_SIZE_MAX
+#define Tcl_Size int
+#endif
+
 typedef struct {
     PyThreadState *parent;
     PyThreadState *child;
@@ -158,7 +164,7 @@ tohil_TclObjToUTF8DString(Tcl_Interp *interp, Tcl_Obj *obj, Tcl_DString *ds)
     static Tcl_Encoding utf8encoding = NULL;
     if (!utf8encoding)
         utf8encoding = Tcl_GetEncoding(interp, "utf-8");
-    int tclStringLen;
+    Tcl_Size tclStringLen;
     char *tclString = Tcl_GetStringFromObj(obj, &tclStringLen);
     return Tcl_UtfToExternalDString(utf8encoding, tclString, tclStringLen, ds);
 }
@@ -264,7 +270,7 @@ static PyObject *
 tclListObjToPyListObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
-    int count;
+    Tcl_Size count;
 
     if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
@@ -289,7 +295,7 @@ static PyObject *
 tclListObjToPySetObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
-    int count;
+    Tcl_Size count;
 
     if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
@@ -317,7 +323,7 @@ static PyObject *
 tclListObjToPyTupleObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
-    int count;
+    Tcl_Size count;
 
     if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
@@ -342,7 +348,7 @@ static PyObject *
 tclListObjToPyDictObject(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
-    int count;
+    Tcl_Size count;
 
     if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
@@ -377,7 +383,7 @@ static PyObject *
 tclListObjToPyDictTclObjects(Tcl_Interp *interp, Tcl_Obj *inputObj)
 {
     Tcl_Obj **list;
-    int count;
+    Tcl_Size count;
 
     if (Tcl_ListObjGetElements(interp, inputObj, &count, &list) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(interp)));
@@ -1588,7 +1594,7 @@ TohilTclObj_writable_objptr(TohilTclObj *self)
 static PyObject *
 TohilTclObj_str(TohilTclObj *self)
 {
-    int tclStringSize;
+    Tcl_Size tclStringSize;
     Tcl_Obj *tclobj = TohilTclObj_objptr(self);
     if (tclobj == NULL)
         return NULL;
@@ -1738,7 +1744,7 @@ TohilTclObj_as_dict(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 static PyObject *
 TohilTclObj_as_byte_array(TohilTclObj *self, PyObject *Py_UNUSED(ignored))
 {
-    int size;
+    Tcl_Size size;
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
         return NULL;
@@ -1904,7 +1910,7 @@ TohilTclObj_lindex(TohilTclObj *self, PyObject *args, PyObject *kwargs)
     static char *kwlist[] = {"index", "to", NULL};
     PyObject *to = NULL;
     int index = 0;
-    int length = 0;
+    Tcl_Size length = 0;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i|$O", kwlist, &index, &to))
         return NULL;
@@ -2121,7 +2127,7 @@ TohilTclObj_pop(TohilTclObj *self, PyObject *args, PyObject *kwargs)
     if (selfobj == NULL)
         return NULL;
 
-    int size = 0;
+    Tcl_Size size = 0;
     if (Tcl_ListObjLength(self->interp, selfobj, &size) == TCL_ERROR) {
         PyErr_SetString(PyExc_TypeError, Tcl_GetString(Tcl_GetObjResult(self->interp)));
         return NULL;
@@ -2173,13 +2179,13 @@ static PyObject *
 TohilTclObj_slice(TohilTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 {
     PyListObject *np;
-    int listObjc;
+    Tcl_Size listObjc;
     Tcl_Obj **listObjv;
     Tcl_Obj **src;
     Py_ssize_t i, len;
     len = ihigh - ilow;
 
-    int size = 0;
+    Tcl_Size size = 0;
 
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -2221,7 +2227,7 @@ TohilTclObj_slice(TohilTclObj *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 static PyObject *
 TohilTclObj_item(TohilTclObj *self, Py_ssize_t i)
 {
-    int size = 0;
+    Tcl_Size size = 0;
 
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -2237,7 +2243,7 @@ TohilTclObj_item(TohilTclObj *self, Py_ssize_t i)
         return NULL;
     }
 
-    int listObjc;
+    Tcl_Size listObjc;
     Tcl_Obj **listObjv;
 
     if (Tcl_ListObjGetElements(self->interp, selfobj, &listObjc, &listObjv) == TCL_ERROR) {
@@ -2256,7 +2262,7 @@ TohilTclObj_item(TohilTclObj *self, Py_ssize_t i)
 static int
 TohilTclObj_ass_item(TohilTclObj *self, Py_ssize_t i, PyObject *v)
 {
-    int size = 0;
+    Tcl_Size size = 0;
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
         return -1;
@@ -2312,7 +2318,7 @@ TohilTclObj_ass_item(TohilTclObj *self, Py_ssize_t i, PyObject *v)
 static Py_ssize_t
 TohilTclObj_length(TohilTclObj *self, Py_ssize_t i)
 {
-    int size = 0;
+    Tcl_Size size = 0;
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
         return -1;
@@ -2399,7 +2405,7 @@ TohilTclObj_inplace_concat(TohilTclObj *self, PyObject *item)
 static PyObject *
 TohilTclObj_subscript(TohilTclObj *self, PyObject *item)
 {
-    int size = 0;
+    Tcl_Size size = 0;
 
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
@@ -2450,7 +2456,7 @@ TohilTclObj_subscript(TohilTclObj *self, PyObject *item)
             if (!result)
                 return NULL;
 
-            int listObjc;
+            Tcl_Size listObjc;
             Tcl_Obj **listObjv;
 
             if (Tcl_ListObjGetElements(self->interp, selfobj, &listObjc, &listObjv) == TCL_ERROR) {
@@ -2510,7 +2516,7 @@ static PyObject *
 TohilTclObj_iternext(TohilTclObj_IterObj *self)
 {
     // printf("TohilTclObj_iternext\n");
-    int length = 0;
+    Tcl_Size length = 0;
 
     Tcl_Obj *selfobj = TohilTclObj_objptr(self->tohilObj);
     Tcl_Interp *interp = self->tohilObj->interp;
@@ -2647,7 +2653,7 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
     }
 
     if (itertype == Keys || itertype == Values || (itertype == Iter && self->to == NULL)) {
-        int tclStringSize;
+        Tcl_Size tclStringSize;
         char *tclString;
 
         if (itertype != Values) {
@@ -2668,7 +2674,7 @@ Tohil_TD_multi_iternext(Tohil_TD_IterObj *self, enum td_itertype itertype)
     // they specified a to, return a tuple
     PyObject *pRetTuple = PyTuple_New(2);
 
-    int tclStringSize;
+    Tcl_Size tclStringSize;
     char *tclString = Tcl_GetStringFromObj(keyObj, &tclStringSize);
 
     if (tohil_TclToUTF8(self->interp, tclString, tclStringSize, &utf8string, &utf8len) != TCL_OK) {
@@ -3878,7 +3884,7 @@ TohilTclDict_ass_sub(TohilTclObj *self, PyObject *key, PyObject *val)
 static Py_ssize_t
 TohilTclDict_length(TohilTclObj *self)
 {
-    int length;
+    Tcl_Size length;
     Tcl_Obj *selfobj = TohilTclObj_objptr(self);
     if (selfobj == NULL)
         return -1;
@@ -3918,7 +3924,7 @@ TohilTclDictIter_new(TohilTclObj *self, PyTypeObject *itertype)
 
     // printf("TohilTclDictIter\n");
     // we don't need size but we use this to make tclobj is or can be a dict
-    int size = 0;
+    Tcl_Size size = 0;
     if (Tcl_DictObjSize(self->interp, selfobj, &size) == TCL_ERROR) {
         PyErr_Format(PyExc_TypeError, "tclobj contents cannot be converted into a td");
         return NULL;
@@ -4086,7 +4092,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
         // construct a two-element tuple comprising the interpreter result
         // and the tcldict containing the info grabbed from tcl
         PyObject *pRetTuple = PyTuple_New(2);
-        int tclStringSize;
+        Tcl_Size tclStringSize;
         char *tclString;
         tclString = Tcl_GetStringFromObj(resultObj, &tclStringSize);
         PyTuple_SET_ITEM(pRetTuple, 0, Py_BuildValue("s#", tclString, tclStringSize));
@@ -4123,7 +4129,7 @@ tohil_python_return(Tcl_Interp *interp, int tcl_result, PyObject *toType, Tcl_Ob
     }
 
     if (STREQU(toString, "str")) {
-        int tclStringSize;
+        Tcl_Size tclStringSize;
         char *tclString;
         int utf8len;
         char *utf8string;
@@ -4669,10 +4675,10 @@ Tohil_Init(Tcl_Interp *interp)
     PyThreadState *prior = NULL;
     // printf("Tohil_Init\n");
 
-    if (Tcl_InitStubs(interp, "8.6", 0) == NULL)
+    if (Tcl_InitStubs(interp, TCL_VERSION, 0) == NULL)
         return TCL_ERROR;
 
-    if (Tcl_PkgRequire(interp, "Tcl", "8.6", 0) == NULL)
+    if (Tcl_PkgRequire(interp, "Tcl", TCL_VERSION, 0) == NULL)
         return TCL_ERROR;
 
     // if (Tcl_PkgProvide(interp, "tohil", PACKAGE_VERSION) != TCL_OK)
