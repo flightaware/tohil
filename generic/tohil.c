@@ -2993,6 +2993,7 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
         }
 
         switch (operator) {
+            double mod, floordiv;
         case Add:
             return PyFloat_FromDouble(doubleV + doubleW);
 
@@ -3010,8 +3011,6 @@ tclobj_nb_binop(PyObject *v, PyObject *w, enum tclobj_op operator)
             return PyFloat_FromDouble(doubleV / doubleW);
 
         case Floordiv:
-            double mod, floordiv;
-
             if (doubleW == 0.0) {
                 PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
                 return NULL;
